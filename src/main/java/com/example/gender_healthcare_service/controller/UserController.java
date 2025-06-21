@@ -1,5 +1,6 @@
 package com.example.gender_healthcare_service.controller;
 
+import com.example.gender_healthcare_service.dto.request.MenstrualLogRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UserProfileRequest;
 import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
 import com.example.gender_healthcare_service.dto.response.UserResponseDTO;
@@ -53,23 +54,32 @@ public class UserController {
         List<BookingResponseDTO> bookingHistory = bookingService.getUserBookings();
         return ResponseEntity.ok(bookingHistory);
     }
-
     @PostMapping("/menstrual-cycle")
-    public ResponseEntity<?> saveMenstrualCycle(@RequestBody MenstrualCycleRequestDTO requestDTO) {
-        // Assuming you have a way to get the current user's ID
-        // For example, from the security context
-        // Long userId = ...;
-        // MenstrualCycleResponseDTO responseDTO = menstrualCycleService.saveMenstrualCycle(userId, requestDTO);
-        // return ResponseEntity.ok(responseDTO);
-        return ResponseEntity.ok("Endpoint for saving menstrual cycle data is ready.");
+    public ResponseEntity<MenstrualCycleResponseDTO> addOrUpdateMenstrualCycle(@RequestBody MenstrualCycleRequestDTO requestDTO) {
+        return ResponseEntity.ok(menstrualCycleService.addOrUpdateMenstrualCycle(requestDTO));
     }
 
-    @GetMapping("/menstrual-cycle")
-    public ResponseEntity<?> getMenstrualCycle() {
-        // Assuming you have a way to get the current user's ID
-        // Long userId = ...;
-        // MenstrualCycleResponseDTO responseDTO = menstrualCycleService.getMenstrualCycle(userId);
-        // return ResponseEntity.ok(responseDTO);
-        return ResponseEntity.ok("Endpoint for getting menstrual cycle data is ready.");
+    @PostMapping("/menstrual-cycle/log")
+    public ResponseEntity<?> logMenstrualPeriod(@RequestBody MenstrualLogRequestDTO logDTO) {
+        try {
+            menstrualCycleService.logMenstrualPeriod(logDTO);
+            return ResponseEntity.ok("Menstrual period logged successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Failed to log menstrual period: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/menstrual-cycle/tracker")
+    public ResponseEntity<?> getMenstrualCycleTracker() {
+        try {
+            return ResponseEntity.ok(menstrualCycleService.getMenstrualCycleTracker());
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/reminders")
+    public ResponseEntity<?> getUserReminders() {
+        return null;
     }
 }

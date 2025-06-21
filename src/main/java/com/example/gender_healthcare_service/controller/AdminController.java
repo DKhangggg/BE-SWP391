@@ -2,19 +2,14 @@ package com.example.gender_healthcare_service.controller;
 
 import com.example.gender_healthcare_service.dto.request.CreateNewConsultantRequest;
 import com.example.gender_healthcare_service.dto.request.UpdateBookingStatusRequestDTO;
-import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
-import com.example.gender_healthcare_service.dto.response.ConsultantDTO;
+import com.example.gender_healthcare_service.dto.response.*;
 
-import com.example.gender_healthcare_service.dto.response.TestingServiceResponseDTO;
 import com.example.gender_healthcare_service.dto.request.TestingServiceUpdateDTO;
-import com.example.gender_healthcare_service.dto.response.UserResponseDTO;
 import com.example.gender_healthcare_service.entity.TestingService;
 import com.example.gender_healthcare_service.exception.ServiceNotFoundException;
 import com.example.gender_healthcare_service.service.*;
 import com.example.gender_healthcare_service.entity.Consultant;
 import com.example.gender_healthcare_service.dto.request.AddUnavailabilityRequestDTO;
-import com.example.gender_healthcare_service.dto.response.ConsultantScheduleResponseDTO;
-import com.example.gender_healthcare_service.dto.response.ConsultationBookingResponseDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateConsultationStatusRequestDTO;
 import com.example.gender_healthcare_service.dto.request.RescheduleBookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.AdminUpdateUserRequestDTO;
@@ -54,6 +49,8 @@ public class AdminController {
     private ConsultantScheduleService consultantScheduleService;
     @Autowired
     private TransactionHistoryService transactionHistoryService;
+    @Autowired
+    private MenstrualCycleService menstrualCycleService;
 
     // Testing Services Management
    @PostMapping("/testing-services")
@@ -313,6 +310,22 @@ public class AdminController {
                 return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
             }
             return new ResponseEntity<>("Failed to reschedule consultation booking.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    //Menstrual Cycle Management
+    @GetMapping("/menstrual-cycles/{userId}")
+    public ResponseEntity<?> getMenstrualCycleDetailsAdmin(@PathVariable Integer userId) {
+        try{
+            boolean existingUser = authenticationService.isUserExists(userId);
+            if (!existingUser) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            List<MenstrualLogResponseDTO> menstrualLogs = menstrualCycleService.getMenstrualLogs(userId);
+            return new ResponseEntity<>(menstrualLogs, HttpStatus.OK);
+        }
+        catch (Exception e) {
+            logger.error("Error fetching menstrual cycle details for user {}: {}", userId, e.getMessage(), e);
+            return new ResponseEntity<>("Failed to fetch menstrual cycle details.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

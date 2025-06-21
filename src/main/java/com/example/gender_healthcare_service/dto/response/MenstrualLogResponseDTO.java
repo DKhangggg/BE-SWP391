@@ -11,9 +11,8 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class MenstrualCycleResponseDTO {
-    private LocalDate startDate;
-    private LocalDate LastTimeTakePeriod;
-    private LocalDate predictedPeriodDay;
+public class MenstrualLogResponseDTO {
+    private LocalDate logDate;
+    private String notes;
 }
 

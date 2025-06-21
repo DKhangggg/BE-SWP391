@@ -8,13 +8,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
 public interface AuthenticationService {
-    public ResponseEntity<?> registerUser(RegisterRequest RegisterUser);
-    public ResponseEntity<?> loginUser(LoginRequest loginRequest);
-    public void setConsultantUser(Integer Userid);
-    public UserDetails loadUserByUsername(String username);
-    public ResponseEntity<?> refreshAccessToken(String refreshToken);
-    public ResponseEntity<?> handleForgotPassword(String email);
-    public ResponseEntity<?> handleResetPassword(String token, String newPassword);
-    public UserResponseDTO findUserById(Integer userId);
-    public ResponseEntity<?> loginByGoogle(SocialLoginRequestDTO requestDTO);
+     ResponseEntity<?> registerUser(RegisterRequest RegisterUser);
+     ResponseEntity<?> loginUser(LoginRequest loginRequest);
+     void setConsultantUser(Integer Userid);
+     UserDetails loadUserByUsername(String username);
+     ResponseEntity<?> refreshAccessToken(String refreshToken);
+     ResponseEntity<?> handleForgotPassword(String email);
+     ResponseEntity<?> handleResetPassword(String token, String newPassword);
+     UserResponseDTO findUserById(Integer userId);
+     ResponseEntity<?> loginByGoogle(SocialLoginRequestDTO requestDTO);
+    boolean isUserExists(Integer userId);
 }

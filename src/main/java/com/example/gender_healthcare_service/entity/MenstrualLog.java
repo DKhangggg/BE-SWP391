@@ -14,33 +14,28 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "MenstrualCycles")
-public class MenstrualCycle {
+@Table(name = "MenstrualLogs")
+public class MenstrualLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "CycleID")
-    private Integer cycleID;
+    @Column(name = "LogID")
+    private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "UserID", nullable = false)
-    private User user;
+    @JoinColumn(name = "CycleID", nullable = false)
+    private MenstrualCycle menstrualCycle;
 
-    @Column(name = "StartDate", nullable = false)
-    private LocalDate startDate;
+    @Column(name = "LogDate", nullable = false)
+    private LocalDate logDate;
 
-    @Column(name = "CycleLength")
-    private Integer cycleLength;
-
-    @Column(name = "PeriodDay")
-    private LocalDate PeriodDay;
+    @Column(name = "Notes", length = 500)
+    private String notes;
 
     @Column(name = "CreatedAt")
     private LocalDateTime createdAt;
 
     @Column(name = "UpdatedAt")
     private LocalDateTime updatedAt;
-
-    @Column(name = "IsDeleted")
-    private Boolean isDeleted = false;
 }
+

@@ -334,4 +334,13 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
 
         return ResponseEntity.ok().body("Password has been reset successfully.");
     }
+    @Override
+    public boolean isUserExists(Integer userId) {
+        User user = userRepository.findUserById(userId);
+        if (user != null) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
