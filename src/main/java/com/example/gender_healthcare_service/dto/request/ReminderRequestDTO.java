@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -13,5 +14,5 @@ public class ReminderRequestDTO {
     private Integer userId;
     private String reminderType;
     private String message;
-    private Instant reminderDate;
+    private LocalDate reminderDate;
 }
