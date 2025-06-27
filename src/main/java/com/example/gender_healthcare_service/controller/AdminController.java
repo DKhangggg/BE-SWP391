@@ -1,18 +1,11 @@
 package com.example.gender_healthcare_service.controller;
 
-import com.example.gender_healthcare_service.dto.request.CreateNewConsultantRequest;
-import com.example.gender_healthcare_service.dto.request.UpdateBookingStatusRequestDTO;
+import com.example.gender_healthcare_service.dto.request.*;
 import com.example.gender_healthcare_service.dto.response.*;
 
-import com.example.gender_healthcare_service.dto.request.TestingServiceUpdateDTO;
 import com.example.gender_healthcare_service.entity.TestingService;
-import com.example.gender_healthcare_service.exception.ServiceNotFoundException;
 import com.example.gender_healthcare_service.service.*;
 import com.example.gender_healthcare_service.entity.Consultant;
-import com.example.gender_healthcare_service.dto.request.AddUnavailabilityRequestDTO;
-import com.example.gender_healthcare_service.dto.request.UpdateConsultationStatusRequestDTO;
-import com.example.gender_healthcare_service.dto.request.RescheduleBookingRequestDTO;
-import com.example.gender_healthcare_service.dto.request.AdminUpdateUserRequestDTO;
 
 import java.time.LocalDate;
 import org.slf4j.Logger;
@@ -51,6 +44,8 @@ public class AdminController {
     private TransactionHistoryService transactionHistoryService;
     @Autowired
     private MenstrualCycleService menstrualCycleService;
+    @Autowired
+    private ReminderService reminderService;
 
     // Testing Services Management
    @PostMapping("/testing-services")
@@ -190,8 +185,8 @@ public class AdminController {
     }
 
     @PutMapping("/consultants/{consultantId}")
-    public ResponseEntity<?> updateConsultantDetailsAdmin(@PathVariable Integer consultantId, @RequestBody ConsultantDTO updateDTO) {
-        consultantService.updateConsultant(consultantId, updateDTO);
+    public ResponseEntity<?> updateConsultantDetailsAdmin(@RequestBody ConsultantUpdateDTO updateDTO) {
+        consultantService.updateConsultant(updateDTO);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
@@ -272,18 +267,6 @@ public class AdminController {
         }
     }
 
-    @PutMapping("/consultation-bookings/{bookingId}/status")
-    public ResponseEntity<?> updateConsultationBookingStatusAdmin(@PathVariable Integer bookingId, @RequestBody UpdateConsultationStatusRequestDTO statusRequest) {
-        try {
-            ConsultationBookingResponseDTO updatedBooking = consultationService.updateConsultationBookingStatusByAdmin(bookingId, statusRequest);
-            return new ResponseEntity<>(updatedBooking, HttpStatus.OK);
-        } catch (RuntimeException e) {
-            if (e.getMessage().contains("Invalid status value") || e.getMessage().contains("not found")) {
-                return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-            }
-            return new ResponseEntity<>("Failed to update consultation booking status.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
 
     @PostMapping("/consultation-bookings/{bookingId}/cancel")
     public ResponseEntity<?> cancelConsultationBookingAdmin(@PathVariable Integer bookingId, @RequestBody(required = false) String adminNotes) {
@@ -328,7 +311,56 @@ public class AdminController {
             return new ResponseEntity<>("Failed to fetch menstrual cycle details.", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    //Reminder
+    @GetMapping("/patient/{userId}/reminders")
+    public ResponseEntity<?> getUserReminders(@PathVariable Integer userId) {
+        try {
+            List<ReminderResponseDTO> reminders = reminderService.getRemindersByUserId(userId);
+            return ResponseEntity.ok(reminders);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Failed to get reminders: " + e.getMessage());
+        }
+    }
 
+    @PostMapping("/patient/reminder")
+    public ResponseEntity<?> createReminder(@RequestBody ReminderRequestDTO reminderRequest) {
+        try {
+            ReminderResponseDTO createdReminder = reminderService.createReminder(reminderRequest);
+            return ResponseEntity.ok(createdReminder);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Failed to create reminder: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/patient/reminder/{id}")
+    public ResponseEntity<?> getReminderById(@PathVariable Integer id) {
+        try {
+            ReminderResponseDTO reminder = reminderService.getReminderById(id);
+            return ResponseEntity.ok(reminder);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Failed to get reminder: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/patient/reminder/{id}")
+    public ResponseEntity<?> updateReminder(@PathVariable Integer id, @RequestBody ReminderRequestDTO reminderRequest) {
+        try {
+            ReminderResponseDTO updatedReminder = reminderService.updateReminder(id, reminderRequest);
+            return ResponseEntity.ok(updatedReminder);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Failed to update reminder: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/patient/reminder/{id}")
+    public ResponseEntity<?> deleteReminder(@PathVariable Integer id) {
+        try {
+            reminderService.deleteReminder(id);
+            return ResponseEntity.ok().body("Reminder deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Failed to delete reminder: " + e.getMessage());
+        }
+    }
 
 //    @GetMapping("/reports/bookings")
 //    public ResponseEntity<?> generateBookingsReport() {

@@ -1,39 +1,88 @@
 package com.example.gender_healthcare_service.controller;
 
+import com.example.gender_healthcare_service.dto.request.ConsultationBookingRequestDTO;
+import com.example.gender_healthcare_service.dto.request.ConsultationStatusUpdateDTO;
+import com.example.gender_healthcare_service.dto.response.ConsultationBookingResponseDTO;
+import com.example.gender_healthcare_service.dto.response.ConsultationDetailResponseDTO;
+import com.example.gender_healthcare_service.dto.response.ConsultantAvailabilityResponseDTO;
+import com.example.gender_healthcare_service.service.ConsultationService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("api/consultation")
 public class ConsultationController {
 
-    @PostMapping("/schedule")
-    public ResponseEntity<?> scheduleConsultation() {
-        return null;
+    @Autowired
+    private ConsultationService consultationService;
+
+    @GetMapping("/consultant/{consultantId}/availability")
+    public ResponseEntity<?> getConsultantAvailability(
+            @PathVariable Integer consultantId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        List<ConsultantAvailabilityResponseDTO> availableSlots = consultationService.getConsultantAvailability(consultantId, date);
+        return ResponseEntity.ok(availableSlots);
+    }
+
+    @PostMapping("/book")
+    @PreAuthorize("hasAuthority('ROLE_CUSTOMER')")
+    public ResponseEntity<ConsultationBookingResponseDTO> scheduleConsultation(
+            @Valid @RequestBody ConsultationBookingRequestDTO bookingRequest) {
+        ConsultationBookingResponseDTO booking = consultationService.bookConsultation(bookingRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(booking);
     }
 
     @GetMapping("/user-bookings")
-    public ResponseEntity<?> getUserBookings() {
-        // TODO: Implement get user's upcoming/past consultations logic
-        return null;
+    @PreAuthorize("hasAuthority('ROLE_CUSTOMER')")
+    public ResponseEntity<List<ConsultationBookingResponseDTO>> getUserBookings(
+            @RequestParam(required = false) String status) {
+        List<ConsultationBookingResponseDTO> bookings = consultationService.getUserConsultations(status);
+        return ResponseEntity.ok(bookings);
     }
 
-    @GetMapping("/consultant-bookings/{consultantId}")
-    public ResponseEntity<?> getConsultantBookings(@PathVariable Long consultantId) {
-        // TODO: Implement get consultant's upcoming/past consultations logic
-        return null;
+    @GetMapping("/consultant-bookings")
+    @PreAuthorize("hasAuthority('ROLE_CONSULTANT')")
+    public ResponseEntity<List<ConsultationBookingResponseDTO>> getConsultantBookings(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) String status) {
+        List<ConsultationBookingResponseDTO> bookings = consultationService.getConsultantBookings(date, status);
+        return ResponseEntity.ok(bookings);
     }
 
     @PutMapping("/{consultationId}/status")
-    public ResponseEntity<?> updateConsultationStatus(@PathVariable Long consultationId/*, @RequestBody ConsultationStatusUpdateDTO statusUpdateDTO*/) {
-        // TODO: Implement update consultation status logic
-        return null;
+    @PreAuthorize("hasAnyAuthority('ROLE_CONSULTANT', 'ROLE_ADMIN')")
+    public ResponseEntity<ConsultationBookingResponseDTO> updateConsultationStatus(
+            @PathVariable Integer consultationId,
+            @Valid @RequestBody ConsultationStatusUpdateDTO statusUpdateDTO) {
+        ConsultationBookingResponseDTO updatedBooking = consultationService.updateConsultationStatus(consultationId, statusUpdateDTO);
+        return ResponseEntity.ok(updatedBooking);
     }
 
-    @GetMapping("/{consultationId}/details")
-    public ResponseEntity<?> getConsultationDetails(@PathVariable Long consultationId) {
-        // TODO: Implement get details of a specific consultation logic
-        return null;
+    @GetMapping("/{consultationId}")
+    public ResponseEntity<ConsultationDetailResponseDTO> getConsultationDetails(@PathVariable Integer consultationId) {
+        ConsultationDetailResponseDTO details = consultationService.getConsultationDetails(consultationId);
+        return ResponseEntity.ok(details);
     }
 
+    @PutMapping("/{consultationId}/cancel")
+    @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER', 'ROLE_CONSULTANT')")
+    public ResponseEntity<ConsultationBookingResponseDTO> cancelConsultation(@PathVariable Integer consultationId) {
+        ConsultationBookingResponseDTO cancelledBooking = consultationService.cancelConsultation(consultationId);
+        return ResponseEntity.ok(cancelledBooking);
+    }
+
+    @GetMapping("/upcoming")
+    @PreAuthorize("hasAuthority('ROLE_CUSTOMER')")
+    public ResponseEntity<List<ConsultationBookingResponseDTO>> getUpcomingConsultations() {
+        List<ConsultationBookingResponseDTO> upcomingBookings = consultationService.getUserUpcomingConsultations();
+        return ResponseEntity.ok(upcomingBookings);
+    }
 }

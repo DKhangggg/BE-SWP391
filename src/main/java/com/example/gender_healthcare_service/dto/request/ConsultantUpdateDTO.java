@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class ConsultantUpdateDTO {
+    private Integer id;
     private String biography;
     private String qualifications;
     private Integer experienceYears;

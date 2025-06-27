@@ -2,14 +2,18 @@ package com.example.gender_healthcare_service.dto.response;
 
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
-public class ConsultationBookingResponseDTO {
+public class ConsultationDetailResponseDTO {
     private Integer id;
     private Integer consultantId;
     private String consultantName;
+    private String consultantSpecialty;
+    private String consultantImageUrl;
     private Integer userId;
     private String userName;
+    private String userEmail;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String status;
@@ -17,4 +21,6 @@ public class ConsultationBookingResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String notes;
+    private String meetingLink;
+    private List<String> consultationNotes;
 }

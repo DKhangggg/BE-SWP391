@@ -1,18 +1,21 @@
 package com.example.gender_healthcare_service.service.impl;
 
 import com.example.gender_healthcare_service.dto.request.LoginRequest;
+import com.example.gender_healthcare_service.dto.request.OTPRequestDTO;
 import com.example.gender_healthcare_service.dto.request.RegisterRequest;
 import com.example.gender_healthcare_service.dto.request.SocialLoginRequestDTO;
 import com.example.gender_healthcare_service.dto.response.AuthResponseDTO;
 import com.example.gender_healthcare_service.dto.response.UserResponseDTO;
+import com.example.gender_healthcare_service.entity.PasswordResetOTP;
+import com.example.gender_healthcare_service.entity.Consultant;
 import com.example.gender_healthcare_service.entity.enumpackage.Role;
 import com.example.gender_healthcare_service.entity.User;
+import com.example.gender_healthcare_service.repository.ConsultantRepository;
+import com.example.gender_healthcare_service.repository.PasswordResetOTPRepository;
 import com.example.gender_healthcare_service.repository.UserRepository;
 import com.example.gender_healthcare_service.service.AuthenticationService;
 import com.example.gender_healthcare_service.service.EmailService;
 import com.example.gender_healthcare_service.service.JwtService;
-import com.example.gender_healthcare_service.repository.PasswordResetTokenRepository;
-import com.example.gender_healthcare_service.entity.PasswordResetToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -36,11 +39,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.annotation.Value; // Added import
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -55,12 +58,12 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
     private  AuthenticationManager authenticationManager;
     @Autowired
     private JwtService jwtService;
-
     @Autowired
     private EmailService emailService;
-
     @Autowired
-    private PasswordResetTokenRepository passwordResetTokenRepository;
+    private PasswordResetOTPRepository passwordResetOTPRepository;
+    @Autowired
+    private ConsultantRepository consultantRepository;
 
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String googleClientId;
@@ -82,8 +85,8 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             newUser.setPasswordHash(passwordEncoder.encode(RegisterUser.getPassword()));
             newUser.setRoleName(Role.ROLE_CUSTOMER.name());
             newUser.setIsDeleted(false);
-            newUser.setCreatedAt(new Date().toInstant());
-            newUser.setUpdatedAt(new Date().toInstant());
+            newUser.setCreatedAt(LocalDate.now());
+            newUser.setUpdatedAt(LocalDate.now());
             userRepository.save(newUser);
             UserResponseDTO response = modelMapper.map(newUser, UserResponseDTO.class);
 
@@ -160,11 +163,23 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
                 .authorities(authorities)
                 .build();
     }
+
+
+    @Transactional
     public void setConsultantUser(Integer Userid){
         User user = userRepository.findUserById(Userid);
         if (user != null) {
             user.setRoleName(Role.ROLE_CONSULTANT.name());
             userRepository.save(user);
+
+            Consultant existingConsultant = consultantRepository.findByUserId(Userid);
+            if (existingConsultant == null) {
+                Consultant consultant = new Consultant();
+                user.setUpdatedAt(LocalDate.now());
+                consultant.setUser(user);
+                consultant.setIsDeleted(false);
+                consultantRepository.save(consultant);
+            }
         } else {
             throw new RuntimeException("User not found with ID: " + Userid);
         }
@@ -195,31 +210,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
         }
     }
 
-    @Transactional
-    public ResponseEntity<?> handleForgotPassword(String email) {
-        System.out.println("[LOG] Received forgot password request for email: " + email);
-        User user = userRepository.findUserByEmail(email);
-        if (user == null) {
-            System.out.println("[LOG] User not found with email: " + email);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with email: " + email);
-        }
-        System.out.println("[LOG] User found: " + user.getUsername() + " (ID: " + user.getId() + ")");
 
-        System.out.println("[LOG] Deleting existing password reset tokens for user ID: " + user.getId());
-        passwordResetTokenRepository.deleteByUser(user);
-
-        String token = UUID.randomUUID().toString();
-        System.out.println("[LOG] Generated new password reset token: " + token);
-        PasswordResetToken passwordResetToken = new PasswordResetToken(token, user);
-        passwordResetTokenRepository.save(passwordResetToken);
-        System.out.println("[LOG] Saved new password reset token to database. Token ID: " + passwordResetToken.getId() + ", Expiry: " + passwordResetToken.getExpiryDate());
-
-        System.out.println("[LOG] Calling emailService.forgotPasswordEmail for email: " + user.getEmail() + " with token: " + token);
-        emailService.forgotPasswordEmail(user.getEmail(), token);
-        System.out.println("[LOG] forgotPasswordEmail service call completed.");
-
-        return ResponseEntity.ok().body("If your email address is in our database, you will receive a password reset link shortly.");
-    }
     private String generateOTP() {
         String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder otp = new StringBuilder();
@@ -241,7 +232,6 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             return userResponseDTO;
         }
     }
-
     @Override
     public ResponseEntity<?> loginByGoogle(SocialLoginRequestDTO requestDTO) {
 
@@ -307,33 +297,6 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
                     .body("Error processing Google login: " + e.getMessage());
         }
     }
-
-    public ResponseEntity<?> handleResetPassword(String token, String newPassword) {
-        PasswordResetToken resetTokenEntity = passwordResetTokenRepository.findByToken(token);
-
-        if (resetTokenEntity == null) {
-            return ResponseEntity.badRequest().body("Invalid password reset token.");
-        }
-
-        if (resetTokenEntity.isExpired()) {
-            passwordResetTokenRepository.delete(resetTokenEntity);
-            return ResponseEntity.badRequest().body("Password reset token has expired.");
-        }
-
-        User user = resetTokenEntity.getUser();
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("User associated with token not found.");
-        }
-
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-
-        passwordResetTokenRepository.delete(resetTokenEntity);
-
-        emailService.resetPasswordEmail(user.getEmail(), null);
-
-        return ResponseEntity.ok().body("Password has been reset successfully.");
-    }
     @Override
     public boolean isUserExists(Integer userId) {
         User user = userRepository.findUserById(userId);
@@ -342,5 +305,85 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
         } else {
             return false;
         }
+    }
+
+    @Transactional
+    public ResponseEntity<?> sendResetPasswordEmail(String email) {
+        System.out.println("[LOG] Received password reset request for email: " + email);
+        User user = userRepository.findUserByEmail(email);
+        if (user == null) {
+            System.out.println("[LOG] User not found with email: " + email);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with email: " + email);
+        }
+        System.out.println("[LOG] User found: " + user.getUsername() + " (ID: " + user.getId() + ")");
+
+        System.out.println("[LOG] Deleting existing OTP codes for user ID: " + user.getId());
+        passwordResetOTPRepository.deleteByUser(user);
+
+        String otpCode = generateOTP();
+        System.out.println("[LOG] Generated new OTP code: " + otpCode);
+        PasswordResetOTP passwordResetOTP = new PasswordResetOTP(otpCode, user);
+        passwordResetOTPRepository.save(passwordResetOTP);
+        System.out.println("[LOG] Saved new OTP code to database. OTP ID: " + passwordResetOTP.getId() + ", Expiry: " + passwordResetOTP.getExpiryDate());
+
+        System.out.println("[LOG] Calling emailService.sendOTPEmail for email: " + user.getEmail() + " with OTP: " + otpCode);
+        emailService.sendOTPEmail(user.getEmail(), user.getFullName(), otpCode);
+        System.out.println("[LOG] sendOTPEmail service call completed.");
+
+        return ResponseEntity.ok().body("If your email address is in our database, you will receive an OTP code shortly.");
+    }
+
+    @Transactional
+    public ResponseEntity<?> validateOtp(String email, String otp) {
+        System.out.println("[LOG] Validating OTP code: " + otp + " for email: " + email);
+
+        PasswordResetOTP resetOTP = passwordResetOTPRepository.findByOtpCodeAndUser_Email(otp, email);
+
+        if (resetOTP == null) {
+            System.out.println("[LOG] Invalid OTP code for email: " + email);
+            return ResponseEntity.badRequest().body("Invalid OTP code.");
+        }
+
+        if (resetOTP.isExpired()) {
+            System.out.println("[LOG] OTP code expired for email: " + email);
+            passwordResetOTPRepository.delete(resetOTP);
+            return ResponseEntity.badRequest().body("OTP code has expired.");
+        }
+
+        System.out.println("[LOG] OTP code valid for email: " + email);
+        return ResponseEntity.ok().body("OTP code is valid.");
+    }
+
+    @Transactional
+    public ResponseEntity<?> resetPassword(OTPRequestDTO otpRequest) {
+        System.out.println("[LOG] Resetting password with OTP for email: " + otpRequest.getEmail());
+
+        PasswordResetOTP resetOTP = passwordResetOTPRepository.findByOtpCodeAndUser_Email(
+                otpRequest.getOtpCode(), otpRequest.getEmail());
+
+        if (resetOTP == null) {
+            System.out.println("[LOG] Invalid OTP code for email: " + otpRequest.getEmail());
+            return ResponseEntity.badRequest().body("Invalid OTP code.");
+        }
+
+        if (resetOTP.isExpired()) {
+            System.out.println("[LOG] OTP code expired for email: " + otpRequest.getEmail());
+            passwordResetOTPRepository.delete(resetOTP);
+            return ResponseEntity.badRequest().body("OTP code has expired.");
+        }
+
+        User user = resetOTP.getUser();
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("User associated with OTP not found.");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(otpRequest.getNewPassword()));
+        userRepository.save(user);
+
+        passwordResetOTPRepository.delete(resetOTP);
+
+        emailService.resetPasswordEmail(user.getEmail(), null);
+
+        return ResponseEntity.ok().body("Password has been reset successfully.");
     }
 }

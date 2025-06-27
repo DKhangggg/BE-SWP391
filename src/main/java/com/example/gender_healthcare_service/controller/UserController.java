@@ -9,6 +9,7 @@ import com.example.gender_healthcare_service.service.UserService;
 import com.example.gender_healthcare_service.dto.request.MenstrualCycleRequestDTO;
 import com.example.gender_healthcare_service.dto.response.MenstrualCycleResponseDTO;
 import com.example.gender_healthcare_service.service.MenstrualCycleService;
+import com.example.gender_healthcare_service.service.ReminderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,6 +29,9 @@ public class UserController {
 
     @Autowired
     private MenstrualCycleService menstrualCycleService;
+
+    @Autowired
+    private ReminderService reminderService;
 
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(@RequestBody UserProfileRequest userProfileUpdate) {
@@ -80,6 +84,10 @@ public class UserController {
 
     @GetMapping("/reminders")
     public ResponseEntity<?> getUserReminders() {
-        return null;
+        try {
+            return ResponseEntity.ok(reminderService.getUserReminders());
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        }
     }
 }

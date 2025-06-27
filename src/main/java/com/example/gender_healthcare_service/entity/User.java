@@ -85,11 +85,11 @@ public class User implements UserDetails {
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private Instant createdAt;
+    private LocalDate createdAt;
 
     @ColumnDefault("getdate()")
     @Column(name = "UpdatedAt")
-    private Instant updatedAt;
+    private LocalDate updatedAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")
