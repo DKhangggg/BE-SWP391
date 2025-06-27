@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -13,9 +14,9 @@ public class ReminderResponseDTO {
     private Integer id;
     private String reminderType;
     private String message;
-    private Instant reminderDate;
+    private LocalDate reminderDate;
     private Boolean isSent;
-    private Instant createdAt;
+    private LocalDate createdAt;
     private Integer userId;
     private String username;
 }

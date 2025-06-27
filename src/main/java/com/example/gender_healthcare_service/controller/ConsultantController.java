@@ -14,7 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.gender_healthcare_service.dto.request.UpdateConsultationStatusRequestDTO;
 import com.example.gender_healthcare_service.dto.response.ConsultationBookingResponseDTO;
 import com.example.gender_healthcare_service.entity.ConsultantUnavailability;
 import com.example.gender_healthcare_service.service.ConsultationService;

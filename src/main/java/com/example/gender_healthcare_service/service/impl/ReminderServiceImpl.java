@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,9 +25,17 @@ public class ReminderServiceImpl implements ReminderService {
     private final UserRepository userRepository;
 
     @Override
-    public List<Reminder> getUserReminders() {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return reminderRepository.findByUser(currentUser);
+    public List<ReminderResponseDTO> getUserReminders() {
+        String userName =  SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(userName);
+        if (currentUser == null) {
+           throw  new EntityNotFoundException("User not found with username: " + userName);
+        }
+        List<ReminderResponseDTO> reminders = reminderRepository.findByUser(currentUser).stream()
+                .filter(reminder -> !Boolean.TRUE.equals(reminder.getIsDeleted()))
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+        return reminders;
     }
 
     @Override
@@ -51,7 +60,7 @@ public class ReminderServiceImpl implements ReminderService {
         reminder.setMessage(reminderRequestDTO.getMessage());
         reminder.setReminderDate(reminderRequestDTO.getReminderDate());
         reminder.setIsSent(false);
-        reminder.setCreatedAt(Instant.now());
+        reminder.setCreatedAt(LocalDate.now());
         reminder.setIsDeleted(false);
 
         Reminder savedReminder = reminderRepository.save(reminder);
