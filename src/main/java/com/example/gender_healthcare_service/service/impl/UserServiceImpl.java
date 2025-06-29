@@ -68,7 +68,7 @@ public class UserServiceImpl implements UserService {
             } catch (Exception e) {
                 System.out.println("Invalid date format: " + e.getMessage());
             }
-            user.setUpdatedAt(new Date().toInstant());
+            user.setUpdatedAt(LocalDate.now());
             userRepository.save(user);
             return modelMapper.map(user, UserResponseDTO.class);
         }

@@ -32,13 +32,15 @@ public class MenstrualCycle {
     @Column(name = "CycleLength")
     private Integer cycleLength;
 
-    @Column(name = "Notes", length = 500)
-    private String notes;
+    @Column(name = "PeriodDay")
+    private LocalDate PeriodDay;
 
     @Column(name = "CreatedAt")
-    private LocalDateTime createdAt; // DB default GETDATE()
+    private LocalDateTime createdAt;
+
+    @Column(name = "UpdatedAt")
+    private LocalDateTime updatedAt;
 
     @Column(name = "IsDeleted")
-    private Boolean isDeleted = false; // DB default 0
+    private Boolean isDeleted = false;
 }
-

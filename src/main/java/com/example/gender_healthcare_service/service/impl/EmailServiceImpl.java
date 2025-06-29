@@ -116,8 +116,37 @@ public class EmailServiceImpl implements EmailService {
             return "Welcome email sent successfully";
         } catch (Exception e) {
             System.err.println("Failed to send welcome email to: " + email + ". Error: " + e.getMessage());
-            e.printStackTrace(); // This will print the full stack trace to the console
+            e.printStackTrace();
             return "Failed to send welcome email: " + e.getMessage();
+        }
+    }
+
+    @Override
+    public String sendOTPEmail(String email, String userName, String otpCode) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        try {
+            message.setFrom(fromEmail);
+            message.setTo(email);
+            message.setSubject("Password Reset OTP Code");
+            message.setText(String.format("""
+                    Dear %s,
+
+                    You requested a password reset for your account.
+                    Your One-Time Password (OTP) code is: %s
+
+                    Please enter this code on the password reset verification page.
+                    This OTP code is valid for 10 minutes.
+                    
+                    If you did not request a password reset, please ignore this email.
+
+                    Thanks,
+                    The Gender Healthcare Service Team
+                    """, userName, otpCode));
+            MailSender.send(message);
+            return "Password reset OTP code has been sent";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Failed to send password reset OTP email: " + e.getMessage();
         }
     }
 }

@@ -3,10 +3,9 @@ package com.example.gender_healthcare_service.controller;
 import com.example.gender_healthcare_service.dto.request.*;
 import com.example.gender_healthcare_service.dto.response.AuthResponseDTO;
 import com.example.gender_healthcare_service.service.AuthenticationService;
-import com.example.gender_healthcare_service.service.impl.AuthenticationServiceImpl;
+import com.example.gender_healthcare_service.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     @Autowired
     private AuthenticationService authenticationService;
+    @Autowired
+    private JwtService jwtService;
 
 
     @PostMapping("/login")
@@ -62,31 +63,50 @@ public class AuthController {
         }
         return authenticationService.refreshAccessToken(requestDTO.getRefreshToken());
     }
-
+    // Initiate Password Reset - Generates and sends OTP
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequestDTO requestDTO) {
-        System.out.println("[AUTH_CONTROLLER_LOG] Received request for /forgot-password.");
+        System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] Received request for /forgot-password");
         if (requestDTO == null) {
-            System.out.println("[AUTH_CONTROLLER_LOG] ForgotPasswordRequestDTO is null.");
             return ResponseEntity.badRequest().body("Email is required (DTO is null).");
         }
         if (requestDTO.getEmail() == null || requestDTO.getEmail().isEmpty()) {
-            System.out.println("[AUTH_CONTROLLER_LOG] Email in ForgotPasswordRequestDTO is null or empty. Email: '" + requestDTO.getEmail() + "'");
             return ResponseEntity.badRequest().body("Email is required (email field is null/empty).");
         }
-        System.out.println("[AUTH_CONTROLLER_LOG] Email from DTO: " + requestDTO.getEmail() + ". Calling authenticationService.handleForgotPassword...");
-        return authenticationService.handleForgotPassword(requestDTO.getEmail());
+        System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] Email from DTO: " + requestDTO.getEmail());
+        return authenticationService.sendResetPasswordEmail(requestDTO.getEmail());
     }
 
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequestDTO requestDTO) {
-        if (requestDTO == null || requestDTO.getToken() == null || requestDTO.getToken().isEmpty() ||
-            requestDTO.getNewPassword() == null || requestDTO.getNewPassword().isEmpty()) {
-            return ResponseEntity.badRequest().body("Token and new password are required.");
+    // Validate OTP - Checks if OTP is valid without changing password
+    @PostMapping("/validate-otp")
+    public ResponseEntity<?> validateOtp(@RequestBody ValidateOtpRequestDTO requestDTO) {
+        System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] Received request for /validate-otp");
+        if (requestDTO == null) {
+            return ResponseEntity.badRequest().body("Email and OTP are required (DTO is null).");
         }
-        return authenticationService.handleResetPassword(requestDTO.getToken(), requestDTO.getNewPassword());
+        if (requestDTO.getEmail() == null || requestDTO.getEmail().isEmpty() ||
+                requestDTO.getOtpCode() == null || requestDTO.getOtpCode().isEmpty()) {
+            return ResponseEntity.badRequest().body("Email and OTP are required (fields are null/empty).");
+        }
+        System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] Email: " + requestDTO.getEmail() + ", OTP: " + requestDTO.getOtpCode());
+        return authenticationService.validateOtp(requestDTO.getEmail(), requestDTO.getOtpCode());
     }
-
+    // Reset Password - Resets password using OTP
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody OTPRequestDTO requestDTO) {
+        System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] Received request for /reset-password");
+        if (requestDTO == null) {
+            return ResponseEntity.badRequest().body("Email, OTP, and new password are required (DTO is null).");
+        }
+        if (requestDTO.getEmail() == null || requestDTO.getEmail().isEmpty() ||
+                requestDTO.getOtpCode() == null || requestDTO.getOtpCode().isEmpty() ||
+                requestDTO.getNewPassword() == null || requestDTO.getNewPassword().isEmpty()) {
+            return ResponseEntity.badRequest().body("Email, OTP, and new password are required (fields are null/empty).");
+        }
+        System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] Email: " + requestDTO.getEmail());
+        return authenticationService.resetPassword(requestDTO);
+    }
+    //login by google
     @PostMapping("/login-by-google")
     public ResponseEntity<?> loginByGoogle(@RequestBody SocialLoginRequestDTO requestDTO) {
         System.out.println("DEBUG: AuthController.loginByGoogle called.");
@@ -99,8 +119,14 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestHeader("Authorization") String token) {
-
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Invalid authorization header format.");
+        }
+        String token = authHeader.substring(7);
+        if (!jwtService.validateToken(token)) {
+            return ResponseEntity.status(401).body("Invalid or expired token.");
+        }
         SecurityContextHolder.clearContext();
         return ResponseEntity.ok().body("Logout successful. Please clear your tokens client-side.");
     }

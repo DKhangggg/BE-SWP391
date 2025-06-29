@@ -9,6 +9,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -23,7 +24,7 @@ public class Reminder {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "UserID", nullable = false)
-    private User user; // Renamed from userID
+    private User user;
 
     @Size(max = 255)
     @NotNull
@@ -33,7 +34,7 @@ public class Reminder {
 
     @NotNull
     @Column(name = "ReminderDate", nullable = false)
-    private Instant reminderDate;
+    private LocalDate reminderDate;
 
     @Size(max = 200)
     @Nationalized
@@ -46,7 +47,7 @@ public class Reminder {
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private Instant createdAt;
+    private LocalDate createdAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")

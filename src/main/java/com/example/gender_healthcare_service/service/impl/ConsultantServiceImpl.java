@@ -1,10 +1,15 @@
 package com.example.gender_healthcare_service.service.impl;
 
+import com.example.gender_healthcare_service.dto.request.ConsultantUpdateDTO;
 import com.example.gender_healthcare_service.dto.request.CreateNewConsultantRequest;
+import com.example.gender_healthcare_service.dto.request.UnavailabilityRequest;
 import com.example.gender_healthcare_service.dto.response.ConsultantDTO;
 import com.example.gender_healthcare_service.entity.Consultant;
+import com.example.gender_healthcare_service.entity.ConsultantUnavailability;
+import com.example.gender_healthcare_service.entity.enumpackage.RequestStatus;
 import com.example.gender_healthcare_service.entity.User;
 import com.example.gender_healthcare_service.repository.ConsultantRepository;
+import com.example.gender_healthcare_service.repository.ConsultantUnavailabilityRepository;
 import com.example.gender_healthcare_service.repository.UserRepository;
 import com.example.gender_healthcare_service.service.ConsultantScheduleService;
 import com.example.gender_healthcare_service.service.ConsultantService;
@@ -35,12 +40,25 @@ public class ConsultantServiceImpl implements ConsultantService {
     private ConsultantScheduleService consultantScheduleService;
 
     @Autowired
+    private ConsultantUnavailabilityRepository consultantUnavailabilityRepository;
+
+    @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Override
     public ConsultantDTO getConsultantById(Integer consultantId) {
         Consultant consultant = consultantRepository.findById(consultantId)
                 .orElseThrow(() -> new RuntimeException("Consultant not found with ID: " + consultantId));
+        return modelMapper.map(consultant, ConsultantDTO.class);
+    }
+    @Override
+    public ConsultantDTO getCurrentConsultant(){
+        User currentUser = (User) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (currentUser == null) {
+            throw new RuntimeException("No user is currently authenticated.");
+        }
+        Consultant consultant = consultantRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new RuntimeException("Consultant not found for the current user."));
         return modelMapper.map(consultant, ConsultantDTO.class);
     }
 
@@ -85,8 +103,8 @@ public class ConsultantServiceImpl implements ConsultantService {
         user.setGender(request.getGender());
         user.setAddress(request.getAddress());
         user.setMedicalHistory(request.getMedicalHistory());
-        user.setCreatedAt(new Date().toInstant());
-        user.setUpdatedAt(new Date().toInstant());
+        user.setCreatedAt(LocalDate.now());
+        user.setUpdatedAt(LocalDate.now());
 
         User savedUser = userRepository.save(user);
         Consultant c = new Consultant();
@@ -102,31 +120,25 @@ public class ConsultantServiceImpl implements ConsultantService {
     }
 
     @Override
-    public void updateConsultant(Integer id, ConsultantDTO consultantDTO) {
-        Optional<Consultant> c = consultantRepository.findById(id);
+    public void updateConsultant(ConsultantUpdateDTO consultantDTO) {
+        Optional<Consultant> c = consultantRepository.findById(consultantDTO.getId());
         if(c.isPresent()){
-            c.get().setBiography(consultantDTO.getBiography());
-            c.get().setQualifications(consultantDTO.getQualifications());
-            c.get().setExperienceYears(consultantDTO.getExperienceYears());
-            c.get().setSpecialization(consultantDTO.getSpecialization());
-
-            User user = c.get().getUser();
-            if(user!=null){
-                user.setFullName(consultantDTO.getFullName());
-                user.setEmail(consultantDTO.getEmail());
-                user.setAddress(consultantDTO.getAddress());
-                user.setPhoneNumber(consultantDTO.getPhoneNumber());
-                user.setGender(consultantDTO.getGender());
-                try {
-                    LocalDate birthDate = LocalDate.parse(consultantDTO.getBirthDate().toString());
-                    user.setDateOfBirth(birthDate);
-                } catch (Exception e) {
-                    throw new RuntimeException("Invalid date format. Use YYYY-MM-DD format: " + e.getMessage());
-                }
+            if(consultantDTO.getBiography()!=null){
+                c.get().setBiography(consultantDTO.getBiography());
             }
+            if(consultantDTO.getSpecialization()!=null){
+                c.get().setSpecialization(consultantDTO.getSpecialization());
+            }
+            if(consultantDTO.getQualifications()!=null){
+                c.get().setQualifications(consultantDTO.getQualifications());
+            }
+            if(consultantDTO.getExperienceYears()!=null){
+                c.get().setExperienceYears(consultantDTO.getExperienceYears());
+            }
+            consultantRepository.save(c.get());
         }
         else {
-            throw new RuntimeException("Consultant not found with id: " + id);
+            throw new RuntimeException("Consultant not found with id: " + consultantDTO.getId());
         }
     }
 
@@ -167,5 +179,38 @@ public class ConsultantServiceImpl implements ConsultantService {
     public Consultant findConsultantByUserId(Integer userId) {
         Optional<Consultant> consultantOptional = consultantRepository.findById(userId);
         return consultantOptional.orElse(null);
+    }
+    @Override
+    public boolean addUnavailability(UnavailabilityRequest unavailabilityRequest){
+        Consultant consultant = consultantRepository.findById(unavailabilityRequest.getConsultantId())
+                .orElseThrow(() -> new RuntimeException("Consultant not found with ID: " + unavailabilityRequest.getConsultantId()));
+
+        LocalDate startDate = LocalDate.parse(unavailabilityRequest.getStartDate());
+        List<ConsultantUnavailability> existingUnavailability = consultantUnavailabilityRepository.findByConsultantAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(consultant,startDate, startDate.plusDays(30));
+
+        if (!existingUnavailability.isEmpty()) {
+            throw new RuntimeException("Unavailability already exists for this date.");
+        }
+        ConsultantUnavailability unavailability = new ConsultantUnavailability();
+        unavailability.setConsultant(consultant);
+        unavailability.setStartTime(startDate);
+        unavailability.setEndTime(LocalDate.parse(unavailabilityRequest.getEndDate()));
+        unavailability.setStatus(RequestStatus.IN_PROGRESS);
+        unavailability.setCreateDate(LocalDate.now());
+        unavailability.setReason(unavailabilityRequest.getReason());
+        consultantUnavailabilityRepository.save(unavailability);
+        return true;
+    }
+
+    @Override
+    public List<ConsultantUnavailability> getUnavailabilityByDate(String date) {
+        LocalDate localDate = LocalDate.parse(date);
+        User currentUser = (User) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (currentUser == null) {
+            throw new RuntimeException("No user is currently authenticated.");
+        }
+        Consultant consultant = consultantRepository.findById(currentUser.getId())
+                .orElseThrow(() -> new RuntimeException("Consultant not found for the current user."));
+        return consultantUnavailabilityRepository.findByConsultantAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(consultant,localDate, localDate.plusDays(30));
     }
 }

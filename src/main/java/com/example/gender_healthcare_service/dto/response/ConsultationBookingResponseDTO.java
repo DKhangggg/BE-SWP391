@@ -1,27 +1,20 @@
 package com.example.gender_healthcare_service.dto.response;
 
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class ConsultationBookingResponseDTO {
-    private Long id;
-    private Long userId;
-    private String userName;
-    private Long consultantId;
+    private Integer id;
+    private Integer consultantId;
     private String consultantName;
-    private LocalDate bookingDate;
-    private LocalTime startTime;
-    private LocalTime endTime;
+    private Integer userId;
+    private String userName;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private String status;
+    private String consultationType;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private String notes;
-    private String adminNotes;
-
 }
-

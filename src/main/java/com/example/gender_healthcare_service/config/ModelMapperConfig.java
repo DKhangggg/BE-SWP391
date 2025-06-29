@@ -1,9 +1,11 @@
 package com.example.gender_healthcare_service.config;
 
 import com.example.gender_healthcare_service.dto.response.ConsultantDTO;
+import com.example.gender_healthcare_service.dto.response.QuestionResponseDTO;
 import com.example.gender_healthcare_service.dto.response.TestingServiceResponseDTO;
 import com.example.gender_healthcare_service.dto.response.UserResponseDTO;
 import com.example.gender_healthcare_service.entity.Consultant;
+import com.example.gender_healthcare_service.entity.Question;
 import com.example.gender_healthcare_service.entity.TestingService;
 import com.example.gender_healthcare_service.entity.User;
 import org.modelmapper.ModelMapper;
@@ -21,8 +23,27 @@ public class ModelMapperConfig {
         ModelMapper modelMapper = new ModelMapper();
         configureUserMapping(modelMapper);
         configureConsultantMapping(modelMapper);
-        configureServiceMapping(modelMapper); // Register service mapping
+        configureServiceMapping(modelMapper);
+        configureQuestionMapping(modelMapper);
         return modelMapper;
+    }
+
+    private void configureQuestionMapping(ModelMapper modelMapper) {
+        TypeMap<Question, QuestionResponseDTO> typeMap = modelMapper.createTypeMap(Question.class, QuestionResponseDTO.class);
+        typeMap.addMappings(mapper -> {
+            try {
+                mapper.map(Question::getQuestionId, QuestionResponseDTO::setQuestionId);
+                mapper.map(src->src.getUser().getId(), QuestionResponseDTO::setUserId);
+                mapper.map(Question::getCategory, QuestionResponseDTO::setCategory);
+                mapper.map(Question::getContent, QuestionResponseDTO::setContent);
+                mapper.map(Question::getStatus, QuestionResponseDTO::setStatus);
+                mapper.map(Question::isPublic, QuestionResponseDTO::setPublic);
+                mapper.map(Question::getCreatedAt, QuestionResponseDTO::setCreatedAt);
+                mapper.map(Question::getUpdatedAt, QuestionResponseDTO::setUpdatedAt);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private void configureConsultantMapping(ModelMapper modelMapper) {

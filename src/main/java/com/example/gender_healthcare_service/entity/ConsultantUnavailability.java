@@ -1,12 +1,12 @@
 package com.example.gender_healthcare_service.entity;
 
+import com.example.gender_healthcare_service.entity.enumpackage.RequestStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
-import java.time.LocalTime;
 
 @Entity
 @Table(name = "consultant_unavailability")
@@ -23,15 +23,22 @@ public class ConsultantUnavailability {
     @JoinColumn(name = "consultant_id", nullable = false)
     private Consultant consultant;
 
-    @Column(nullable = false)
-    private LocalDate date;
-
     @Column(name = "start_time", nullable = false)
-    private LocalTime startTime;
+    private LocalDate startTime;
 
     @Column(name = "end_time", nullable = false)
-    private LocalTime endTime;
+    private LocalDate endTime;
 
-    private String reason; // Optional reason for unavailability
+    private String reason;
+
+    @Enumerated(EnumType.STRING)
+    private RequestStatus status;
+
+    @Column(name = "createDate", updatable = false)
+    private LocalDate createDate;
+
+    @PrePersist
+    protected void onCreate() {
+        createDate = LocalDate.now();
+    }
 }
-

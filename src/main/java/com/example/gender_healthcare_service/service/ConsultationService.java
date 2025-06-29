@@ -1,21 +1,37 @@
 package com.example.gender_healthcare_service.service;
 
-import com.example.gender_healthcare_service.entity.Consultation;
-import com.example.gender_healthcare_service.entity.enumpackage.ConsultationStatus;
-import com.example.gender_healthcare_service.entity.User;
+import com.example.gender_healthcare_service.dto.request.ConsultationBookingRequestDTO;
+import com.example.gender_healthcare_service.dto.request.ConsultationStatusUpdateDTO;
 import com.example.gender_healthcare_service.dto.request.RescheduleBookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateConsultationStatusRequestDTO;
-import com.example.gender_healthcare_service.dto.response.ConsultationBookingResponseDTO;
+import com.example.gender_healthcare_service.dto.response.*;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 public interface ConsultationService {
-    List<ConsultationBookingResponseDTO> getAllConsultationBookingsForAdmin(LocalDate date, String status, Integer userId, Integer consultantId);
-    ConsultationBookingResponseDTO getConsultationBookingByIdForAdmin(Integer bookingId);
-    ConsultationBookingResponseDTO updateConsultationBookingStatusByAdmin(Integer bookingId, UpdateConsultationStatusRequestDTO statusRequest);
+
     void cancelConsultationBookingByAdmin(Integer bookingId, String adminNotes);
-    ConsultationBookingResponseDTO rescheduleConsultationBookingByAdmin(Integer bookingId, RescheduleBookingRequestDTO rescheduleRequest);
+    ConsultationBookingResponseDTO rescheduleConsultationBookingByAdmin(
+            Integer bookingId, RescheduleBookingRequestDTO rescheduleRequest);
+    List<ConsultationBookingResponseDTO> getAllConsultationBookingsForAdmin(
+            LocalDate date, String status, Integer userId, Integer consultantId);
+    List<ConsultantAvailabilityResponseDTO> getConsultantAvailability(Integer consultantId, LocalDate date);
+    List<ConsultationBookingResponseDTO> getConsultationBookingsForCurrentConsultant();
+    ConsultationBookingResponseDTO getConsultationBookingByIdForAdmin(Integer bookingId);
+    ConsultationBookingResponseDTO bookConsultation(ConsultationBookingRequestDTO bookingRequest);
+    void updateConsultationStatus(Integer id, String status);
+     List<ConsultationHistoryDTO> getConsultationHistoryForCurrentConsultant();
+    UserResponseDTO getPatientInfoForConsultation(Integer id);
+    List<ConsultationBookingResponseDTO> getUserConsultations(String status);
+
+    List<ConsultationBookingResponseDTO> getConsultantBookings(LocalDate date, String status);
+
+    ConsultationBookingResponseDTO updateConsultationStatus(Integer consultationId, ConsultationStatusUpdateDTO statusUpdateDTO);
+
+    ConsultationDetailResponseDTO getConsultationDetails(Integer consultationId);
+
+    ConsultationBookingResponseDTO cancelConsultation(Integer consultationId);
+
+    List<ConsultationBookingResponseDTO> getUserUpcomingConsultations();
 }

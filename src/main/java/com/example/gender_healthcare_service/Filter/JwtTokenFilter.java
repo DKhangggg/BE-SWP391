@@ -27,16 +27,16 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     @Autowired
     private AuthenticationService authenticationService;
     private final List<String> AUTH_PERMISSION = List.of(
-            "/api/login",
-            "/api/register",
+            "/api/auth/login",
+            "/api/auth/register",
             "/",
             "/home",
             "/services",
             "/doctors",
             "/blog",
             "/contact",
-            "/api//forgot-password",
-            "/api/reset-password",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password",
             "/api/auth/login-by-google",
             "/api/auth/register",
             "/api/auth/forgot-password",

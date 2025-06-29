@@ -63,7 +63,7 @@ public class BookingController {
     }
 
     @GetMapping("/all")
-    @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')") // Admin can also access this
+    @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<List<BookingResponseDTO>> getAllBookingsForStaffOrManager() {
         List<BookingResponseDTO> bookings = bookingService.getAllBookingsForStaff();
         return ResponseEntity.ok(bookings);
