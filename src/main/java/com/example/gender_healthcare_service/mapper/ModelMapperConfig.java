@@ -1,18 +1,15 @@
-package com.example.gender_healthcare_service.config;
+package com.example.gender_healthcare_service.mapper;
 
-import com.example.gender_healthcare_service.dto.response.ConsultantDTO;
-import com.example.gender_healthcare_service.dto.response.QuestionResponseDTO;
-import com.example.gender_healthcare_service.dto.response.TestingServiceResponseDTO;
-import com.example.gender_healthcare_service.dto.response.UserResponseDTO;
-import com.example.gender_healthcare_service.entity.Consultant;
-import com.example.gender_healthcare_service.entity.Question;
-import com.example.gender_healthcare_service.entity.TestingService;
-import com.example.gender_healthcare_service.entity.User;
+import com.example.gender_healthcare_service.dto.response.*;
+import com.example.gender_healthcare_service.entity.*;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeMap;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 
 @Configuration
@@ -25,6 +22,7 @@ public class ModelMapperConfig {
         configureConsultantMapping(modelMapper);
         configureServiceMapping(modelMapper);
         configureQuestionMapping(modelMapper);
+        configureBlogCategoryMapping(modelMapper);
         return modelMapper;
     }
 
@@ -111,6 +109,19 @@ public class ModelMapperConfig {
             }
         });
     }
+
+    private void configureBlogCategoryMapping(ModelMapper modelMapper) {
+        TypeMap<BlogCategory, BlogCategoryDTO> typeMap = modelMapper.createTypeMap(BlogCategory.class, BlogCategoryDTO.class);
+        typeMap.addMappings(mapper -> {
+            mapper.map(BlogCategory::getCategoryID, BlogCategoryDTO::setCategoryID);
+            mapper.map(BlogCategory::getCategoryName, BlogCategoryDTO::setCategoryName);
+            mapper.map(BlogCategory::getDescription, BlogCategoryDTO::setDescription);
+        });
+
+        modelMapper.typeMap(com.example.gender_healthcare_service.dto.request.BlogCategoryRequestDTO.class, BlogCategory.class)
+                .addMappings(mapper -> {
+                    mapper.map(src -> src.getName(), BlogCategory::setCategoryName);
+                    mapper.map(src -> src.getDescription(), BlogCategory::setDescription);
+                });
+    }
 }
-//    private void configureConsultantMapping(ModelMapper modelMapper) {
-//        modelMapper.typeMap(Consultant.class, Consultant

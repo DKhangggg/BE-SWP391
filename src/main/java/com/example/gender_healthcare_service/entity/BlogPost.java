@@ -6,7 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -32,17 +34,36 @@ public class BlogPost {
     @JoinColumn(name = "AuthorID", nullable = false)
     private User author;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "CategoryID")
-    private BlogCategory category;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "BlogPost_Categories",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<BlogCategory> categories = new HashSet<>();
 
     @Column(name = "PublishedAt")
-    private LocalDateTime publishedAt; // DB default GETDATE()
+    private LocalDate publishedAt;
+
+    @Column(name = "UpdatedAt")
+    private LocalDate updatedAt;
+
+    @Column(name = "CreatedAt")
+    private LocalDate createdAt;
 
     @Column(name = "IsPublished")
-    private Boolean isPublished = false; // DB default 0
+    private Boolean isPublished = false;
 
     @Column(name = "IsDeleted")
-    private Boolean isDeleted = false; // DB default 0
-}
+    private Boolean isDeleted = false;
 
+    public void addCategory(BlogCategory category) {
+        this.categories.add(category);
+        category.getBlogPosts().add(this);
+    }
+
+    public void removeCategory(BlogCategory category) {
+        this.categories.remove(category);
+        category.getBlogPosts().remove(this);
+    }
+}
