@@ -15,6 +15,7 @@ import java.time.Instant;
 @Entity
 public class Feedback {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "FeedbackID", nullable = false)
     private Integer id;
 
