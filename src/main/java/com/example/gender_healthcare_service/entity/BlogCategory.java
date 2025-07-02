@@ -6,8 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -29,12 +30,14 @@ public class BlogCategory {
     private String description;
 
     @Column(name = "CreatedAt")
-    private LocalDateTime createdAt; // DB default GETDATE()
+    private LocalDate createdAt;
 
     @Column(name = "IsDeleted")
-    private Boolean isDeleted = false; // DB default 0
+    private Boolean isDeleted = false;
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<BlogPost> blogPosts;
+    @Column(name = "UpdatedAt")
+    private LocalDate updatedAt;
+
+    @ManyToMany(mappedBy = "categories")
+    private Set<BlogPost> blogPosts = new HashSet<>();
 }
-
