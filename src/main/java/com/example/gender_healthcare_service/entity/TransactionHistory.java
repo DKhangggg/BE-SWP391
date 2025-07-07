@@ -6,7 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -33,8 +34,10 @@ public class TransactionHistory {
     @JoinColumn(name = "BookingID", nullable = false)
     private Booking booking;
 
-    @Column(name = "TransactionDate", nullable = false)
-    private LocalDateTime transactionDate;
+
+    @Column(name = "TransactionDate")
+    private LocalDate transactionDate;
+
 
     @Column(name = "Status", nullable = false, length = 255)
     private String status;
@@ -43,9 +46,8 @@ public class TransactionHistory {
     private String notes;
 
     @Column(name = "CreatedAt")
-    private LocalDateTime createdAt; // DB default GETDATE()
+    private LocalDate createdAt; // DB default GETDATE()
 
     @Column(name = "IsDeleted")
     private Boolean isDeleted = false; // DB default 0
 }
-

@@ -110,8 +110,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
 
     @Override
     public MenstrualCycleTrackerResponseDTO getMenstrualCycleTracker() {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = userDetails.getUsername();
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findUserByUsername(username);
         if (user == null) {
             throw new UsernameNotFoundException("User not found in the system");

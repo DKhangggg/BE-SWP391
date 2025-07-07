@@ -10,6 +10,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List; // Added for Payments
 
 @Getter
@@ -35,6 +36,14 @@ public class Consultation {
     @NotNull
     @Column(name = "ConsultationDate", nullable = false)
     private Instant consultationDate;
+
+    @NotNull
+    @Column(name = "StartTime", nullable = false)
+    private LocalDate startTime;
+
+    @NotNull
+    @Column(name = "EndTime", nullable = false)
+    private LocalDate endTime;
 
     @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Payment> payments; // If a consultation can have multiple payments

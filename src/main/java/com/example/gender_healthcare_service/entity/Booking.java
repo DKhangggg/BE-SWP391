@@ -10,7 +10,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List; // Added for TransactionHistory
+import java.util.List;
 
 @Getter
 @Setter
@@ -38,6 +38,10 @@ public class Booking {
     @NotNull
     @Column(name = "BookingDate", nullable = false)
     private LocalDate bookingDate;
+
+    @NotNull
+    @Column(name = "BookingTime", nullable = false)
+    private LocalDate bookingTime;
 
     @Size(max = 255)
     @NotNull

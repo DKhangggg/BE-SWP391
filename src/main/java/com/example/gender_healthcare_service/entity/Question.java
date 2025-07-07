@@ -3,7 +3,7 @@ package com.example.gender_healthcare_service.entity;
 import com.example.gender_healthcare_service.entity.enumpackage.QuestionStatus;
 import jakarta.persistence.*;
 import lombok.Data;
-
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,5 +45,7 @@ public class Question {
     private  LocalDate updatedAt;
     @Column(name = "isDeleted")
     private boolean isDeleted = false;
+    @Column(name = "QuestionDate")
+    private LocalDate questionDate;
 
 }

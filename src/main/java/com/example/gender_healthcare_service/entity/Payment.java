@@ -10,6 +10,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -55,11 +56,11 @@ public class Payment {
 
     @ColumnDefault("getdate()")
     @Column(name = "PaymentDate")
-    private Instant paymentDate;
+    private LocalDate paymentDate;
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private Instant createdAt;
+    private LocalDate createdAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")

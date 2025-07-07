@@ -5,8 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Nationalized;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -28,14 +31,15 @@ public class ReportLog {
     @JoinColumn(name = "GeneratedBy", nullable = false)
     private User generatedBy;
 
+    @ColumnDefault("getdate()")
     @Column(name = "GeneratedAt")
-    private LocalDateTime generatedAt; // DB default GETDATE()
+    private LocalDate generatedAt;
 
+    @Nationalized
     @Lob
     @Column(name = "ReportData")
     private String reportData;
 
     @Column(name = "IsDeleted")
-    private Boolean isDeleted = false; // DB default 0
+    private Boolean isDeleted = false;
 }
-

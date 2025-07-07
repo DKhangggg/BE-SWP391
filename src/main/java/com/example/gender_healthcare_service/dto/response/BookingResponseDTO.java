@@ -20,8 +20,8 @@ public class BookingResponseDTO {
     private String serviceName;
     private LocalDate bookingDate;
     private Integer timeSlotId;
-    private LocalTime startTime;
-    private LocalTime endTime;
+    private LocalDate startTime;
+    private LocalDate endTime;
     private String status;
     private String notes;
 }
