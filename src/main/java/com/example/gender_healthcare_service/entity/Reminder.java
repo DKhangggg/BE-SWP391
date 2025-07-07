@@ -36,6 +36,10 @@ public class Reminder {
     @Column(name = "ReminderDate", nullable = false)
     private LocalDate reminderDate;
 
+    @NotNull
+    @Column(name = "ReminderTime", nullable = false)
+    private LocalDate reminderTime;
+
     @Size(max = 200)
     @Nationalized
     @Column(name = "Message", length = 200)

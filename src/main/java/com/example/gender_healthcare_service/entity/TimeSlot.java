@@ -6,8 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter
@@ -26,17 +25,19 @@ public class TimeSlot {
     @Column(name = "SlotNumber", nullable = false, unique = true)
     private Integer slotNumber;
 
+
     @Column(name = "StartTime", nullable = false)
-    private LocalTime startTime;
+    private LocalDate startTime;
+
 
     @Column(name = "EndTime", nullable = false)
-    private LocalTime endTime;
+    private LocalDate endTime;
 
     @Column(name = "Description", length = 100)
     private String description;
 
     @Column(name = "CreatedAt")
-    private LocalDateTime createdAt; // DB default GETDATE()
+    private LocalDate createdAt; // DB default GETDATE()
 
     @Column(name = "IsDeleted")
     private Boolean isDeleted = false; // DB default 0
@@ -47,4 +48,3 @@ public class TimeSlot {
     @OneToMany(mappedBy = "timeSlot", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConsultantSchedule> consultantSchedules;
 }
-

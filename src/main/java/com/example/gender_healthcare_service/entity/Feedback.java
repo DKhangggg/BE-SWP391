@@ -9,6 +9,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -42,7 +43,7 @@ public class Feedback {
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private Instant createdAt;
+    private LocalDate createdAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")

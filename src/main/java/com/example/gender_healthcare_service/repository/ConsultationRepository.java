@@ -2,6 +2,7 @@ package com.example.gender_healthcare_service.repository;
 
 import com.example.gender_healthcare_service.entity.Consultation;
 import com.example.gender_healthcare_service.entity.User;
+import com.example.gender_healthcare_service.entity.enumpackage.ConsultationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -24,4 +25,10 @@ public interface ConsultationRepository extends JpaRepository<Consultation,Integ
             " AND (:userId IS NULL OR c.customer.id = :userId) " +
             " AND (:consultantId IS NULL OR c.consultant.id = :consultantId)")
     List<Consultation> findWithFilters(LocalDate date, String status, Integer userId, Integer consultantId);
+
+    @Query("SELECT COUNT(c) FROM Consultation c WHERE c.consultant.id = :consultantId")
+    long countByConsultantId(Integer consultantId);
+
+    @Query("SELECT COUNT(c) FROM Consultation c WHERE c.consultant.id = :consultantId AND c.status = :status")
+    long countByConsultantIdAndStatus(Integer consultantId, ConsultationStatus status);
 }

@@ -9,6 +9,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -46,10 +47,10 @@ public class Chat {
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private Instant createdAt;
+    private LocalDate createdAt;
 
     @Column(name = "AnsweredAt")
-    private Instant answeredAt;
+    private LocalDate answeredAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")

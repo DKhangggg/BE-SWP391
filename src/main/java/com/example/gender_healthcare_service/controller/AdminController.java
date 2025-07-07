@@ -2,6 +2,7 @@ package com.example.gender_healthcare_service.controller;
 
 import com.example.gender_healthcare_service.dto.request.*;
 import com.example.gender_healthcare_service.dto.response.*;
+import com.example.gender_healthcare_service.dto.response.DashboardReportDTO;
 
 import com.example.gender_healthcare_service.entity.TestingService;
 import com.example.gender_healthcare_service.service.*;
@@ -16,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.List;
 
@@ -46,6 +48,8 @@ public class AdminController {
     private MenstrualCycleService menstrualCycleService;
     @Autowired
     private ReminderService reminderService;
+    @Autowired
+    private ReportService reportService;
 
     // Testing Services Management
    @PostMapping("/testing-services")
@@ -362,33 +366,108 @@ public class AdminController {
         }
     }
 
-//    @GetMapping("/reports/bookings")
-//    public ResponseEntity<?> generateBookingsReport() {
-//        try {
-//            Object reportData = bookingService.generateBookingsReportData();
-//            if (reportData == null) {
-//                return new ResponseEntity<>("No booking data available for report.", HttpStatus.NOT_FOUND);
-//            }
-//            return new ResponseEntity<>(reportData, HttpStatus.OK);
-//        } catch (Exception e) {
-//            logger.error("Error generating bookings report: {}", e.getMessage(), e);
-//            return new ResponseEntity<>("Failed to generate bookings report.", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
+    @GetMapping("/reports/dashboard")
+    public ResponseEntity<?> generateDashboardReport(
+            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        try {
+            if (endDate == null) {
+                endDate = LocalDate.now();
+            }
+            if (startDate == null) {
+                startDate = endDate.minusDays(30);
+            }
+            DashboardReportDTO report = reportService.generateDashboardReport(startDate, endDate);
+            return ResponseEntity.ok(report);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate dashboard report: " + e.getMessage());
+        }
+    }
 
-//    @GetMapping("/reports/financials")
-//    public ResponseEntity<?> generateFinancialsReport() {
-//        try {
-//            Object reportData = transactionHistoryService.generateFinancialsReportData();
-//            if (reportData == null) {
-//                return new ResponseEntity<>("No financial data available for report.", HttpStatus.NOT_FOUND);
-//            }
-//            return new ResponseEntity<>(reportData, HttpStatus.OK);
-//        } catch (Exception e) {
-//            logger.error("Error generating financials report: {}", e.getMessage(), e);
-//            return new ResponseEntity<>("Failed to generate financials report.", HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
+    @GetMapping("/reports/overview")
+    public ResponseEntity<?> getOverviewStats() {
+        try {
+            DashboardReportDTO.OverviewStats stats = reportService.getOverviewStats();
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate overview stats: " + e.getMessage());
+        }
+    }
 
+    @GetMapping("/reports/bookings")
+    public ResponseEntity<?> generateBookingsReport(
+            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(value = "period", defaultValue = "daily") String period) {
+        try {
+            if (endDate == null) {
+                endDate = LocalDate.now();
+            }
+            if (startDate == null) {
+                startDate = endDate.minusDays(30);
+            }
+            Object report = reportService.generateBookingsReport(startDate, endDate, period);
+            return ResponseEntity.ok(report);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate bookings report: " + e.getMessage());
+        }
+    }
 
+    @GetMapping("/reports/financials")
+    public ResponseEntity<?> generateFinancialsReport(
+            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(value = "period", defaultValue = "daily") String period) {
+        try {
+            if (endDate == null) {
+                endDate = LocalDate.now();
+            }
+            if (startDate == null) {
+                startDate = endDate.minusDays(30);
+            }
+            Object report = reportService.generateFinancialsReport(startDate, endDate, period);
+            return ResponseEntity.ok(report);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate financials report: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/reports/users")
+    public ResponseEntity<?> generateUsersReport(
+            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(value = "period", defaultValue = "daily") String period) {
+        try {
+            if (endDate == null) {
+                endDate = LocalDate.now();
+            }
+            if (startDate == null) {
+                startDate = endDate.minusDays(30);
+            }
+            Object report = reportService.generateUsersReport(startDate, endDate, period);
+            return ResponseEntity.ok(report);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate users report: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/reports/consultants")
+    public ResponseEntity<?> generateConsultantsReport() {
+        try {
+            Object report = reportService.generateConsultantsReport();
+            return ResponseEntity.ok(report);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate consultants report: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/reports/services")
+    public ResponseEntity<?> generateServicesReport() {
+        try {
+            Object report = reportService.generateServicesReport();
+            return ResponseEntity.ok(report);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate services report: " + e.getMessage());
+        }
+    }
 }

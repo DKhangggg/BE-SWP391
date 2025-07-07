@@ -5,7 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
@@ -42,9 +44,11 @@ public class BlogPost {
     )
     private Set<BlogCategory> categories = new HashSet<>();
 
-    @Column(name = "PublishedAt")
-    private LocalDate publishedAt;
+    @ColumnDefault("getdate()")
+    @Column(name = "PublishedDate")
+    private LocalDate publishedDate;
 
+    @ColumnDefault("getdate()")
     @Column(name = "UpdatedAt")
     private LocalDate updatedAt;
 

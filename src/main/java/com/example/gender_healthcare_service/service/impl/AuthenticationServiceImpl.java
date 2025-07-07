@@ -138,7 +138,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             UserResponseDTO userDTO = modelMapper.map(user, UserResponseDTO.class);
             String jwt = jwtService.generateToken(authentication);
             String refreshToken = jwtService.generateRefreshToken(authentication);
-            return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken));
+            return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken,user.getFullName(), user.getRoleName()));
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Login failed. Error: " + e.getMessage());

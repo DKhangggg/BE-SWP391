@@ -3,6 +3,7 @@ package com.example.gender_healthcare_service.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Data
@@ -34,3 +35,4 @@ public class Answer {
     private boolean isDeleted = false;
 
 }
+
