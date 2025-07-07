@@ -1,5 +1,5 @@
 package com.example.gender_healthcare_service.entity.enumpackage;
 
-public enum ConsultationStatus {
-    SCHEDULED,CANCELLED, COMPLETED,
+public enum SeverityLevel {
+    MILD, MODERATE, SEVERE
 }

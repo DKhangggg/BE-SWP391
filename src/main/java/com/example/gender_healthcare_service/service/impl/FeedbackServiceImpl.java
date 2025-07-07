@@ -11,6 +11,7 @@ import com.example.gender_healthcare_service.service.FeedbackService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 @Service
 public class FeedbackServiceImpl implements FeedbackService {
@@ -67,7 +68,7 @@ public class FeedbackServiceImpl implements FeedbackService {
         feedback.setComment(feedbackDTO.getComment());
         feedback.setRating(feedbackDTO.getRating());
         feedback.setIsDeleted(false);
-        feedback.setCreatedAt(java.time.Instant.now());
+        feedback.setCreatedAt(LocalDate.now());
 
         Feedback saved = feedBackRepo.save(feedback);
 

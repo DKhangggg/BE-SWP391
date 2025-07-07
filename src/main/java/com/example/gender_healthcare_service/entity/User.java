@@ -141,7 +141,9 @@ public class User implements UserDetails {
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<GrantedAuthority> authorities = new ArrayList<>();
         if(this.roleName != null) {
+            // Add both the original role and the ROLE_ prefixed version for compatibility
             authorities.add(() -> this.roleName);
+            authorities.add(() -> "ROLE_" + this.roleName);
         }
         return authorities;
     }
