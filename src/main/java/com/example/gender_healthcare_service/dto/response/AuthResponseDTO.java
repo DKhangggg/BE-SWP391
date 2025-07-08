@@ -6,15 +6,15 @@ import lombok.Data;
 public class AuthResponseDTO {
     private String accessToken;
     private String refreshToken;
-    private String username; // Added field
-    private String role; // Added field
+    private String username;
+    private String role;
 
     public AuthResponseDTO(String accessToken, String refreshToken) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
     }
 
-    // Added constructor
+
     public AuthResponseDTO(String accessToken, String refreshToken, String username, String role) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;

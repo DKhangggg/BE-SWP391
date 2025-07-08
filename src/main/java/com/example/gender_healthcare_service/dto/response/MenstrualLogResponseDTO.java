@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MenstrualLogResponseDTO {
+    private Integer userId;
     private LocalDate logDate;
     private String notes;
 }
-
