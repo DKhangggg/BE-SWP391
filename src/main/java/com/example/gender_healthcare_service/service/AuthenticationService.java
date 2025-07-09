@@ -14,7 +14,7 @@ public interface AuthenticationService {
      void setConsultantUser(Integer Userid);
      UserDetails loadUserByUsername(String username);
      ResponseEntity<?> refreshAccessToken(String refreshToken);
-     ResponseEntity<?> sendResetPasswordEmail(String email);
+     ResponseEntity<?> sendResetPasswordEmail(String email,String otpVerificationLink);
      ResponseEntity<?> validateOtp(String email, String otp);
      ResponseEntity<?> resetPassword(OTPRequestDTO otpRequest);
      UserResponseDTO findUserById(Integer userId);

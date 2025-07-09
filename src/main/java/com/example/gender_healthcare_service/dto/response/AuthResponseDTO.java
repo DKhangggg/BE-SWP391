@@ -8,6 +8,7 @@ public class AuthResponseDTO {
     private String refreshToken;
     private String username;
     private String role;
+    private String email;
 
     public AuthResponseDTO(String accessToken, String refreshToken) {
         this.accessToken = accessToken;
@@ -15,10 +16,11 @@ public class AuthResponseDTO {
     }
 
 
-    public AuthResponseDTO(String accessToken, String refreshToken, String username, String role) {
+    public AuthResponseDTO(String accessToken, String refreshToken, String username, String role,String mail) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.username = username;
         this.role = role;
+        this.email= mail;
     }
 }

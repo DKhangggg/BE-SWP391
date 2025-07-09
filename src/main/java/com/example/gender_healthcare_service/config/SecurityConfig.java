@@ -43,7 +43,7 @@ public class SecurityConfig {
         return http.cors(Customizer.withDefaults()).authorizeHttpRequests(auth->
                 auth.requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password").permitAll() // Added this line
+                        .requestMatchers(HttpMethod.POST, "/api/auth/forgot-password").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/list").hasRole("STAFF")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/auth/login-by-google", "/api/auth/refresh-token").permitAll()

@@ -5,5 +5,5 @@ public interface EmailService {
      String resetPasswordEmail(String email, String otp);
      String forgotPasswordEmail(String email, String otp);
      String welcomeEmail(String email, String userName);
-     String sendOTPEmail(String email, String userName, String otpCode);
+     String sendOTPEmail(String email, String userName, String otpCode, String validationLink);
 }

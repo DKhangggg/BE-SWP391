@@ -16,8 +16,10 @@ import com.example.gender_healthcare_service.repository.UserRepository;
 import com.example.gender_healthcare_service.service.AuthenticationService;
 import com.example.gender_healthcare_service.service.EmailService;
 import com.example.gender_healthcare_service.service.JwtService;
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -68,15 +71,21 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
     @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String googleClientId;
 
+    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
+    private String googleClientSecret;
+
+    @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
+    private String googleRedirectUri;
+
     public ResponseEntity<?> registerUser(RegisterRequest RegisterUser) {
         if(RegisterUser != null && RegisterUser.getUsername() != null) {
             if (userRepository.findUserByUsername(RegisterUser.getUsername()) != null) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("User already exists with username: " + RegisterUser.getUsername());
+                        .body("Tên người dùng đã tồn tại: " + RegisterUser.getUsername());
             }
             if(userRepository.findUserByEmail(RegisterUser.getEmail())!= null) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("Email already exists: " + RegisterUser.getEmail());
+                        .body("Email đã tồn tại: " + RegisterUser.getEmail());
             }
             User newUser = new User();
             newUser.setUsername(RegisterUser.getUsername());
@@ -99,9 +108,9 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             String jwt = jwtService.generateToken(authentication);
             String refreshToken = jwtService.generateRefreshToken(authentication);
             emailService.welcomeEmail(newUser.getEmail(), newUser.getFullName());
-            return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken, newUser.getUsername(), newUser.getRoleName()));
+            return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken, newUser.getUsername(), newUser.getRoleName(),newUser.getEmail()));
         }
-        return ResponseEntity.badRequest().body("Invalid registration request");
+        return ResponseEntity.badRequest().body("Yêu cầu đăng ký không hợp lệ");
     }
 
 
@@ -138,7 +147,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             UserResponseDTO userDTO = modelMapper.map(user, UserResponseDTO.class);
             String jwt = jwtService.generateToken(authentication);
             String refreshToken = jwtService.generateRefreshToken(authentication);
-            return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken,user.getFullName(), user.getRoleName()));
+            return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken,user.getFullName(), user.getRoleName(),user.getEmail()));
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Login failed. Error: " + e.getMessage());
@@ -235,19 +244,29 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
     @Override
     public ResponseEntity<?> loginByGoogle(SocialLoginRequestDTO requestDTO) {
 
-        System.out.println("DEBUG: Attempting Google login. Client ID: " + googleClientId);
-        if (requestDTO != null && requestDTO.getIdToken() != null) {
-            System.out.println("DEBUG: Received ID Token (first 30 chars): " + requestDTO.getIdToken().substring(0, Math.min(requestDTO.getIdToken().length(), 30)));
-        } else {
-            System.out.println("DEBUG: SocialLoginRequestDTO or ID Token is null.");
-            return ResponseEntity.badRequest().body("ID token is missing.");
+        if (requestDTO == null || requestDTO.getCode() == null || requestDTO.getCode().isEmpty()) {
+            return ResponseEntity.badRequest().body("Authorization code is missing.");
         }
+
         try {
+            // Exchange authorization code for an ID token
+            GoogleTokenResponse tokenResponse = new GoogleAuthorizationCodeTokenRequest(
+                    new NetHttpTransport(),
+                    GsonFactory.getDefaultInstance(),
+                    googleClientId,
+                    googleClientSecret,
+                    requestDTO.getCode(),
+                    googleRedirectUri)
+                    .execute();
+
+            String idTokenString = tokenResponse.getIdToken();
+
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                   new NetHttpTransport(),new GsonFactory())
-                    .setAudience(List.of(googleClientId))
+                   new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
                     .build();
-            GoogleIdToken idToken = verifier.verify(requestDTO.getIdToken());
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+
             if (idToken == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body("Invalid Google ID token");
@@ -287,7 +306,8 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
                     accessToken,
                     refreshToken,
                     user.getUsername(),
-                    user.getRoleName()
+                    user.getRoleName(),
+                    user.getEmail()
             );
 
             return ResponseEntity.ok(response);
@@ -308,7 +328,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
     }
 
     @Transactional
-    public ResponseEntity<?> sendResetPasswordEmail(String email) {
+    public ResponseEntity<?> sendResetPasswordEmail(String email, String otpVerificationLink) {
         System.out.println("[LOG] Received password reset request for email: " + email);
         User user = userRepository.findUserByEmail(email);
         if (user == null) {
@@ -325,9 +345,8 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
         PasswordResetOTP passwordResetOTP = new PasswordResetOTP(otpCode, user);
         passwordResetOTPRepository.save(passwordResetOTP);
         System.out.println("[LOG] Saved new OTP code to database. OTP ID: " + passwordResetOTP.getId() + ", Expiry: " + passwordResetOTP.getExpiryDate());
-
         System.out.println("[LOG] Calling emailService.sendOTPEmail for email: " + user.getEmail() + " with OTP: " + otpCode);
-        emailService.sendOTPEmail(user.getEmail(), user.getFullName(), otpCode);
+        emailService.sendOTPEmail(user.getEmail(), user.getFullName(), otpCode, otpVerificationLink);
         System.out.println("[LOG] sendOTPEmail service call completed.");
 
         return ResponseEntity.ok().body("If your email address is in our database, you will receive an OTP code shortly.");
@@ -341,17 +360,17 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
 
         if (resetOTP == null) {
             System.out.println("[LOG] Invalid OTP code for email: " + email);
-            return ResponseEntity.badRequest().body("Invalid OTP code.");
+            return ResponseEntity.badRequest().body("Mã OTP không hợp lệ.");
         }
 
         if (resetOTP.isExpired()) {
             System.out.println("[LOG] OTP code expired for email: " + email);
             passwordResetOTPRepository.delete(resetOTP);
-            return ResponseEntity.badRequest().body("OTP code has expired.");
+            return ResponseEntity.badRequest().body("Mã OTP đã hết hạn.");
         }
 
         System.out.println("[LOG] OTP code valid for email: " + email);
-        return ResponseEntity.ok().body("OTP code is valid.");
+        return ResponseEntity.ok().body("Mã OTP hợp lệ.");
     }
 
     @Transactional

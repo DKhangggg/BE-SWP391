@@ -39,7 +39,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             "/api/auth/reset-password",
             "/api/auth/login-by-google",
             "/api/auth/register",
-            "/api/auth/forgot-password",
+            "/api/auth/validate-otp",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/favicon.ico",

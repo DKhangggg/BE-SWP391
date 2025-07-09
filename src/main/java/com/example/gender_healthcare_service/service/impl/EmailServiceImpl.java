@@ -122,7 +122,7 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public String sendOTPEmail(String email, String userName, String otpCode) {
+    public String sendOTPEmail(String email, String userName, String otpCode ,String validationLink) {
         SimpleMailMessage message = new SimpleMailMessage();
         try {
             message.setFrom(fromEmail);
@@ -134,6 +134,9 @@ public class EmailServiceImpl implements EmailService {
                     You requested a password reset for your account.
                     Your One-Time Password (OTP) code is: %s
 
+                    Alternatively, you can click the link below to verify:
+                    %s
+
                     Please enter this code on the password reset verification page.
                     This OTP code is valid for 10 minutes.
                     
@@ -141,7 +144,7 @@ public class EmailServiceImpl implements EmailService {
 
                     Thanks,
                     The Gender Healthcare Service Team
-                    """, userName, otpCode));
+                    """, userName, otpCode, validationLink));
             MailSender.send(message);
             return "Password reset OTP code has been sent";
         } catch (Exception e) {

@@ -5,10 +5,13 @@ import com.example.gender_healthcare_service.dto.response.AuthResponseDTO;
 import com.example.gender_healthcare_service.service.AuthenticationService;
 import com.example.gender_healthcare_service.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 
 
 @RequestMapping("/api/auth")
@@ -46,13 +49,29 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponseDTO> register(@RequestBody RegisterRequest register) {
-        ResponseEntity<?> serviceResponse = authenticationService.registerUser(register);
-        if (serviceResponse.getStatusCode().is2xxSuccessful()) {
-            AuthResponseDTO authResponseDTO = (AuthResponseDTO) serviceResponse.getBody();
-            return ResponseEntity.ok(authResponseDTO);
-        } else {
-            return ResponseEntity.status(serviceResponse.getStatusCode()).body(null);
+    public ResponseEntity<?> register(@RequestBody RegisterRequest register) {
+        System.out.println("DEBUG: AuthController.register called.");
+        try {
+            if (register == null) {
+                System.out.println("DEBUG: RegisterRequest is null.");
+                return ResponseEntity.badRequest().body("Request body is missing or empty.");
+            }
+            System.out.println("DEBUG: RegisterRequest received: " + register.toString());
+
+            ResponseEntity<?> serviceResponse = authenticationService.registerUser(register);
+
+            System.out.println("DEBUG: Service response status: " + serviceResponse.getStatusCode());
+            if (serviceResponse.getBody() != null) {
+                System.out.println("DEBUG: Service response body: " + serviceResponse.getBody().toString());
+            } else {
+                System.out.println("DEBUG: Service response body is null.");
+            }
+
+            return serviceResponse;
+        } catch (Exception e) {
+            System.err.println("ERROR in register endpoint: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("An unexpected error occurred during registration.");
         }
     }
 
@@ -63,7 +82,7 @@ public class AuthController {
         }
         return authenticationService.refreshAccessToken(requestDTO.getRefreshToken());
     }
-    // Initiate Password Reset - Generates and sends OTP
+
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequestDTO requestDTO) {
         System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] Received request for /forgot-password");
@@ -74,7 +93,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Email is required (email field is null/empty).");
         }
         System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] Email from DTO: " + requestDTO.getEmail());
-        return authenticationService.sendResetPasswordEmail(requestDTO.getEmail());
+        return authenticationService.sendResetPasswordEmail(requestDTO.getEmail(), requestDTO.getOtpVerificationLink());
     }
 
     // Validate OTP - Checks if OTP is valid without changing password
@@ -82,15 +101,25 @@ public class AuthController {
     public ResponseEntity<?> validateOtp(@RequestBody ValidateOtpRequestDTO requestDTO) {
         System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] Received request for /validate-otp");
         if (requestDTO == null) {
-            return ResponseEntity.badRequest().body("Email and OTP are required (DTO is null).");
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Vui lòng cung cấp email và OTP."));
         }
         if (requestDTO.getEmail() == null || requestDTO.getEmail().isEmpty() ||
                 requestDTO.getOtpCode() == null || requestDTO.getOtpCode().isEmpty()) {
-            return ResponseEntity.badRequest().body("Email and OTP are required (fields are null/empty).");
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "Vui lòng cung cấp đầy đủ email và OTP."));
         }
         System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] Email: " + requestDTO.getEmail() + ", OTP: " + requestDTO.getOtpCode());
-        return authenticationService.validateOtp(requestDTO.getEmail(), requestDTO.getOtpCode());
+
+        ResponseEntity<?> serviceResponse = authenticationService.validateOtp(requestDTO.getEmail(), requestDTO.getOtpCode());
+
+        if (serviceResponse.getStatusCode().is2xxSuccessful()) {
+            System.out.println("[PASSWORD_RESET_CONTROLLER_LOG] OTP is valid.");
+            return ResponseEntity.ok(Map.of("success", true, "message", "Mã OTP hợp lệ."));
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("success", false, "message", "Mã OTP không hợp lệ hoặc đã hết hạn."));
+        }
     }
+
+
     // Reset Password - Resets password using OTP
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody OTPRequestDTO requestDTO) {
@@ -110,10 +139,11 @@ public class AuthController {
     @PostMapping("/login-by-google")
     public ResponseEntity<?> loginByGoogle(@RequestBody SocialLoginRequestDTO requestDTO) {
         System.out.println("DEBUG: AuthController.loginByGoogle called.");
-        if (requestDTO != null && requestDTO.getIdToken() != null) {
-            System.out.println("DEBUG: AuthController received ID Token (first 30 chars): " + requestDTO.getIdToken().substring(0, Math.min(requestDTO.getIdToken().length(), 30)));
+        System.out.println("DEBUG: AuthController received requestDTO: " + requestDTO);
+        if (requestDTO != null && requestDTO.getCode() != null) {
+            System.out.println("DEBUG: AuthController received code(first 30 chars): " + requestDTO.getCode().substring(0, Math.min(requestDTO.getCode().length(), 30)));
         } else {
-            System.out.println("DEBUG: AuthController: SocialLoginRequestDTO or ID Token is null.");
+            System.out.println("DEBUG: AuthController: SocialLoginRequestDTO or code is null.");
         }
         return authenticationService.loginByGoogle(requestDTO);
     }
