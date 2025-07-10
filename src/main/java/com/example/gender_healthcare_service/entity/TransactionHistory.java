@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -36,7 +36,7 @@ public class TransactionHistory {
 
 
     @Column(name = "TransactionDate")
-    private LocalDate transactionDate;
+    private LocalDateTime transactionDate;
 
 
     @Column(name = "Status", nullable = false, length = 255)
@@ -46,7 +46,7 @@ public class TransactionHistory {
     private String notes;
 
     @Column(name = "CreatedAt")
-    private LocalDate createdAt; // DB default GETDATE()
+    private LocalDateTime createdAt; // DB default GETDATE()
 
     @Column(name = "IsDeleted")
     private Boolean isDeleted = false; // DB default 0

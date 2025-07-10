@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -85,11 +86,11 @@ public class User implements UserDetails {
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     @ColumnDefault("getdate()")
     @Column(name = "UpdatedAt")
-    private LocalDate updatedAt;
+    private LocalDateTime updatedAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")

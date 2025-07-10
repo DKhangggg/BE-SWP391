@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.List;
@@ -58,17 +59,26 @@ public class UserServiceImpl implements UserService {
     public UserResponseDTO updateUser(UserProfileRequest userProfile) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (user != null && userProfile != null) {
-            user.setFullName(userProfile.getFullName());
-            user.setEmail(userProfile.getEmail());
-            user.setPhoneNumber(userProfile.getPhoneNumber());
-            user.setGender(userProfile.getGender());
-            try {
-                LocalDate birthDate = LocalDate.parse(userProfile.getDateOfBirth().toString());
-                user.setDateOfBirth(birthDate);
-            } catch (Exception e) {
-                System.out.println("Invalid date format: " + e.getMessage());
+            if(userProfile.getFullName() != null) {
+                user.setFullName(userProfile.getFullName());
             }
-            user.setUpdatedAt(LocalDate.now());
+            if(userProfile.getEmail() != null) {
+                user.setEmail(userProfile.getEmail());
+            }
+            if(userProfile.getPhoneNumber() != null) {
+                user.setPhoneNumber(userProfile.getPhoneNumber());
+            }
+            if (userProfile.getAddress() != null) {
+                user.setAddress(userProfile.getAddress());
+            }
+
+            if (userProfile.getGender() != null) {
+                user.setGender(userProfile.getGender());
+            }
+            if (userProfile.getDateOfBirth() != null) {
+               user.setDateOfBirth(userProfile.getDateOfBirth());
+            }
+            user.setUpdatedAt(LocalDateTime.now());
             userRepository.save(user);
             return modelMapper.map(user, UserResponseDTO.class);
         }

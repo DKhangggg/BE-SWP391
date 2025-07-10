@@ -2,18 +2,18 @@ package com.example.gender_healthcare_service.service;
 
 import com.example.gender_healthcare_service.dto.response.DashboardReportDTO;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public interface ReportService {
-    DashboardReportDTO generateDashboardReport(LocalDate startDate, LocalDate endDate);
+    DashboardReportDTO generateDashboardReport(LocalDateTime startDate, LocalDateTime endDate);
 
     DashboardReportDTO.OverviewStats getOverviewStats();
 
-    Object generateBookingsReport(LocalDate startDate, LocalDate endDate, String period);
+    Object generateBookingsReport(LocalDateTime startDate, LocalDateTime endDate, String period);
 
-    Object generateFinancialsReport(LocalDate startDate, LocalDate endDate, String period);
+    Object generateFinancialsReport(LocalDateTime startDate, LocalDateTime endDate, String period);
 
-    Object generateUsersReport(LocalDate startDate, LocalDate endDate, String period);
+    Object generateUsersReport(LocalDateTime startDate, LocalDateTime endDate, String period);
 
     Object generateConsultantsReport();
 

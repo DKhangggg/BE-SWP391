@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -27,17 +27,17 @@ public class TimeSlot {
 
 
     @Column(name = "StartTime", nullable = false)
-    private LocalDate startTime;
+    private LocalDateTime startTime;
 
 
     @Column(name = "EndTime", nullable = false)
-    private LocalDate endTime;
+    private LocalDateTime endTime;
 
     @Column(name = "Description", length = 100)
     private String description;
 
     @Column(name = "CreatedAt")
-    private LocalDate createdAt; // DB default GETDATE()
+    private LocalDateTime createdAt;
 
     @Column(name = "IsDeleted")
     private Boolean isDeleted = false; // DB default 0

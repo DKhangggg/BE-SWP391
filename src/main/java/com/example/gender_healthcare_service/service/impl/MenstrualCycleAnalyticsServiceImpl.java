@@ -8,7 +8,7 @@ import com.example.gender_healthcare_service.service.MenstrualCycleAnalyticsServ
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -40,8 +40,8 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
         Integer avgPeriodDuration = calculateAveragePeriodDuration(cycles);
 
         MenstrualCycle lastCycle = cycles.get(0);
-        LocalDate nextPeriodDate = lastCycle.getStartDate().plusDays(weightedAverage.intValue());
-        LocalDate periodEndDate = nextPeriodDate.plusDays(avgPeriodDuration - 1);
+        LocalDateTime nextPeriodDate = lastCycle.getStartDate().plusDays(weightedAverage.intValue());
+        LocalDateTime periodEndDate = nextPeriodDate.plusDays(avgPeriodDuration - 1);
 
         Double confidence = calculatePredictionConfidence(cycles);
 
@@ -49,10 +49,10 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
             nextPeriodDate,
             periodEndDate,
             confidence,
-            "weighted_average",
+            "Prediction based on historical data",
             weightedAverage.intValue(),
             avgPeriodDuration,
-            confidence > 0.8 ? "High confidence" : confidence > 0.6 ? "Medium confidence" : "Low confidence"
+            "Reliability based on cycle history"
         );
     }
 
@@ -65,9 +65,9 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
         }
 
         // Ovulation typically occurs 14 days before next period
-        LocalDate ovulationDate = nextPeriod.getNextPeriodDate().minusDays(14);
-        LocalDate fertileStart = ovulationDate.minusDays(5); // Sperm can survive 5 days
-        LocalDate fertileEnd = ovulationDate.plusDays(1); // Egg survives 1 day
+        LocalDateTime ovulationDate = nextPeriod.getNextPeriodDate().minusDays(14);
+        LocalDateTime fertileStart = ovulationDate.minusDays(5); // Sperm can survive 5 days
+        LocalDateTime fertileEnd = ovulationDate.plusDays(1); // Egg survives 1 day
 
         String fertilityStatus = determineFertilityStatus(ovulationDate);
 
@@ -110,7 +110,7 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
     @Override
     public List<SymptomPatternDTO> analyzeSymptomPatterns(Integer userId) {
         List<SymptomLog> symptomLogs = symptomLogRepository.findByUserIdAndDateRange(
-            userId, LocalDate.now().minusMonths(6), LocalDate.now()
+            userId, LocalDateTime.now().minusMonths(6), LocalDateTime.now()
         );
 
         Map<Symptom, List<SymptomLog>> groupedBySymptom = symptomLogs.stream()
@@ -193,8 +193,8 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
 
     // Helper methods
     private PeriodPredictionDTO createBasicPrediction(MenstrualCycle lastCycle) {
-        LocalDate nextPeriodDate = lastCycle != null ?
-            lastCycle.getStartDate().plusDays(28) : LocalDate.now().plusDays(28);
+        LocalDateTime nextPeriodDate = lastCycle != null ?
+            lastCycle.getStartDate().plusDays(28) : LocalDateTime.now().plusDays(28);
 
         return new PeriodPredictionDTO(
             nextPeriodDate,
@@ -220,8 +220,8 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
         return 0.5;
     }
 
-    private String determineFertilityStatus(LocalDate ovulationDate) {
-        LocalDate today = LocalDate.now();
+    private String determineFertilityStatus(LocalDateTime ovulationDate) {
+        LocalDateTime today = LocalDateTime.now();
         long daysToOvulation = ChronoUnit.DAYS.between(today, ovulationDate);
 
         if (Math.abs(daysToOvulation) <= 1) return "HIGH";
@@ -358,7 +358,7 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
             .mapToInt(log -> log.getSeverity().ordinal() + 1)
             .average().orElse(0.0);
 
-        List<LocalDate> occurrenceDates = logs.stream()
+        List<LocalDateTime> occurrenceDates = logs.stream()
             .map(log -> log.getMenstrualLog().getLogDate())
             .sorted()
             .collect(Collectors.toList());
@@ -378,13 +378,13 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
         );
     }
 
-    private String analyzeTemporalPattern(List<LocalDate> dates) {
+    private String analyzeTemporalPattern(List<LocalDateTime> dates) {
         if (dates.size() < 3) return "Insufficient data";
 
         // Simple pattern analysis - could be enhanced with more sophisticated algorithms
         List<Long> intervals = new ArrayList<>();
         for (int i = 1; i < dates.size(); i++) {
-            intervals.add(ChronoUnit.DAYS.between(dates.get(i-1), dates.get(i)));
+            intervals.add(ChronoUnit.DAYS.between(dates.get(i - 1), dates.get(i)));
         }
 
         double avgInterval = intervals.stream().mapToLong(Long::longValue).average().orElse(0);

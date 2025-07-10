@@ -42,6 +42,7 @@ import org.springframework.beans.factory.annotation.Value; // Added import
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -94,8 +95,8 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             newUser.setPasswordHash(passwordEncoder.encode(RegisterUser.getPassword()));
             newUser.setRoleName(Role.ROLE_CUSTOMER.name());
             newUser.setIsDeleted(false);
-            newUser.setCreatedAt(LocalDate.now());
-            newUser.setUpdatedAt(LocalDate.now());
+            newUser.setCreatedAt(LocalDateTime.now());
+            newUser.setUpdatedAt(LocalDateTime.now());
             userRepository.save(newUser);
             UserResponseDTO response = modelMapper.map(newUser, UserResponseDTO.class);
 
@@ -184,7 +185,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             Consultant existingConsultant = consultantRepository.findByUserId(Userid);
             if (existingConsultant == null) {
                 Consultant consultant = new Consultant();
-                user.setUpdatedAt(LocalDate.now());
+                user.setUpdatedAt(LocalDateTime.now());
                 consultant.setUser(user);
                 consultant.setIsDeleted(false);
                 consultantRepository.save(consultant);
@@ -229,6 +230,14 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             otp.append(characters.charAt(index));
         }
         return otp.toString();
+    }
+
+    private LocalDateTime generateOTPExpiry() {
+        return LocalDateTime.now().plusMinutes(10);
+    }
+
+    public void setPasswordResetOTPExpiry(PasswordResetOTP otp) {
+        otp.setExpiryDate(generateOTPExpiry());
     }
 
     @Override

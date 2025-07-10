@@ -13,7 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,9 +58,9 @@ public class ReminderServiceImpl implements ReminderService {
         reminder.setUser(user);
         reminder.setReminderType(reminderRequestDTO.getReminderType());
         reminder.setMessage(reminderRequestDTO.getMessage());
-        reminder.setReminderDate(reminderRequestDTO.getReminderDate());
+        reminder.setReminderDate(reminderRequestDTO.getReminderDate().atStartOfDay());
         reminder.setIsSent(false);
-        reminder.setCreatedAt(LocalDate.now());
+        reminder.setCreatedAt(LocalDateTime.now());
         reminder.setIsDeleted(false);
 
         Reminder savedReminder = reminderRepository.save(reminder);
@@ -91,7 +91,7 @@ public class ReminderServiceImpl implements ReminderService {
         }
 
         if (reminderRequestDTO.getReminderDate() != null) {
-            existingReminder.setReminderDate(reminderRequestDTO.getReminderDate());
+            existingReminder.setReminderDate(reminderRequestDTO.getReminderDate().atStartOfDay());
         }
 
         Reminder updatedReminder = reminderRepository.save(existingReminder);
@@ -124,7 +124,7 @@ public class ReminderServiceImpl implements ReminderService {
         dto.setId(reminder.getId());
         dto.setReminderType(reminder.getReminderType());
         dto.setMessage(reminder.getMessage());
-        dto.setReminderDate(reminder.getReminderDate());
+        dto.setReminderDate(reminder.getReminderDate().atStartOfDay());
         dto.setIsSent(reminder.getIsSent());
         dto.setCreatedAt(reminder.getCreatedAt());
         dto.setUserId(reminder.getUser().getId());

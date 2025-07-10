@@ -21,8 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -46,21 +45,19 @@ public class QnAServiceImpl implements QAService {
 
     @Override
     public QuestionResponseDTO submitQuestion(QuestionRequestDTO questionRequest) {
-        if(questionRequest.getContent()==null||questionRequest.getUserId()==null){
+        if (questionRequest.getContent() == null || questionRequest.getUserId() == null) {
             throw new IllegalArgumentException("Question content and user ID must not be null");
         }
-        User user = userRepository.findById(questionRequest.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + questionRequest.getUserId()));
+
         Question question = new Question();
         question.setContent(questionRequest.getContent());
-        question.setUser(user);
+        question.setCreatedAt(LocalDateTime.now());
+        question.setUpdatedAt(LocalDateTime.now());
         question.setStatus(QuestionStatus.PENDING);
-        question.setCreatedAt(LocalDate.now());
-        question.setPublic(true);
-        question.setUpdatedAt(LocalDate.now());
-        question.setCategory(questionRequest.getCategory());
-        questionRepository.save(question);
-        return modelMapper.map(question, QuestionResponseDTO.class);
+        question.setUser(userRepository.findById(questionRequest.getUserId()).orElseThrow(() -> new RuntimeException("User not found")));
+
+        Question savedQuestion = questionRepository.save(question);
+        return modelMapper.map(savedQuestion, QuestionResponseDTO.class);
     }
 
     @Override
@@ -118,8 +115,8 @@ public class QnAServiceImpl implements QAService {
         answer.setContent(answerRequest.getContent());
         answer.setConsultant(consultant);
         answer.setQuestion(question);
-        answer.setCreatedAt(LocalDate.now());
-        answer.setUpdatedAt(LocalDate.now());
+        answer.setCreatedAt(LocalDateTime.now());
+        answer.setUpdatedAt(LocalDateTime.now());
         answerRepository.save(answer);
 
         return modelMapper.map(answer, AnswerResponseDTO.class);
@@ -135,7 +132,7 @@ public class QnAServiceImpl implements QAService {
         }
 
         answer.setContent(answerRequest.getContent());
-        answer.setUpdatedAt(LocalDate.now());
+        answer.setUpdatedAt(LocalDateTime.now());
         answerRepository.save(answer);
 
         return modelMapper.map(answer, AnswerResponseDTO.class);
@@ -162,7 +159,7 @@ public class QnAServiceImpl implements QAService {
             throw new IllegalArgumentException("Question not found with ID: " + questionId);
         }
         question.setPublic(isPublic);
-        question.setUpdatedAt(LocalDate.now());
+        question.setUpdatedAt(LocalDateTime.now());
         questionRepository.save(question);
         return modelMapper.map(question, QuestionResponseDTO.class);
     }

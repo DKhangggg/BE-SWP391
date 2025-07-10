@@ -19,7 +19,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
-@PreAuthorize("hasAuthority('ROLE_CUSTOMER')")
 public class UserController {
     @Autowired
     private UserService userService;
@@ -34,7 +33,7 @@ public class UserController {
     private ReminderService reminderService;
 
     @PutMapping("/profile")
-    public ResponseEntity<?> updateProfile(@RequestBody UserProfileRequest userProfileUpdate) {
+    public ResponseEntity<?> updateProfile(@RequestBody(required = false) UserProfileRequest userProfileUpdate) {
         UserResponseDTO updatedUser = userService.updateUser(userProfileUpdate);
         if (updatedUser != null) {
             return ResponseEntity.ok(updatedUser);

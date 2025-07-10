@@ -5,7 +5,7 @@ import com.example.gender_healthcare_service.dto.request.MenstrualCycleRequestDT
 import com.example.gender_healthcare_service.dto.request.MenstrualLogRequestDTO;
 import com.example.gender_healthcare_service.dto.response.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MenstrualCycleService {
@@ -21,7 +21,7 @@ public interface MenstrualCycleService {
     CycleAnalyticsDTO getCycleAnalytics(Integer userId);
     List<SymptomPatternDTO> getSymptomPatterns(Integer userId);
     List<String> getHealthInsights(Integer userId);
-    List<MenstrualLogResponseDTO> getMenstrualLogsByDateRange(Integer userId, LocalDate startDate, LocalDate endDate);
+    List<MenstrualLogResponseDTO> getMenstrualLogsByDateRange(Integer userId, LocalDateTime startDate, LocalDateTime endDate);
 
     // Consultant features for managing user menstrual data
     void logMenstrualDataForUser(Integer userId, EnhancedMenstrualLogRequestDTO requestDTO, Integer consultantId);

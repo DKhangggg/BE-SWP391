@@ -8,8 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.Instant;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -37,11 +36,11 @@ public class Booking {
 
     @NotNull
     @Column(name = "BookingDate", nullable = false)
-    private LocalDate bookingDate;
+    private LocalDateTime bookingDate;
 
     @NotNull
     @Column(name = "BookingTime", nullable = false)
-    private LocalDate bookingTime;
+    private LocalDateTime bookingTime;
 
     @Size(max = 255)
     @NotNull
@@ -55,11 +54,11 @@ public class Booking {
     private String result;
 
     @Column(name = "ResultDate")
-    private Instant resultDate;
+    private LocalDateTime resultDate;
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")

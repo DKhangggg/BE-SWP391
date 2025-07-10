@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,13 +30,13 @@ public class BlogCategory {
     private String description;
 
     @Column(name = "CreatedAt")
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "IsDeleted")
     private Boolean isDeleted = false;
 
     @Column(name = "UpdatedAt")
-    private LocalDate updatedAt;
+    private LocalDateTime updatedAt;
 
     @ManyToMany(mappedBy = "categories")
     private Set<BlogPost> blogPosts = new HashSet<>();

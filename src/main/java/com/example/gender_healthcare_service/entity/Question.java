@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,12 +41,12 @@ public class Question {
     private boolean isPublic;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
     @Column(name="updated_at")
-    private  LocalDate updatedAt;
+    private  LocalDateTime updatedAt;
     @Column(name = "isDeleted")
     private boolean isDeleted = false;
     @Column(name = "QuestionDate")
-    private LocalDate questionDate;
+    private LocalDateTime questionDate;
 
 }

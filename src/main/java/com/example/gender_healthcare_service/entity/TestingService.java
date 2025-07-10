@@ -10,6 +10,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -42,11 +43,11 @@ public class TestingService {
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
     @ColumnDefault("getdate()")
     @Column(name = "UpdatedAt")
-    private Instant updatedAt;
+    private LocalDateTime updatedAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")

@@ -9,9 +9,9 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List; // Added for Payments
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -35,15 +35,15 @@ public class Consultation {
 
     @NotNull
     @Column(name = "ConsultationDate", nullable = false)
-    private Instant consultationDate;
+    private LocalDateTime consultationDate;
 
     @NotNull
     @Column(name = "StartTime", nullable = false)
-    private LocalDate startTime;
+    private LocalDateTime startTime;
 
     @NotNull
     @Column(name = "EndTime", nullable = false)
-    private LocalDate endTime;
+    private LocalDateTime endTime;
 
     @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Payment> payments; // If a consultation can have multiple payments
@@ -65,7 +65,7 @@ public class Consultation {
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")
@@ -74,7 +74,7 @@ public class Consultation {
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
-            createdAt = Instant.now();
+            createdAt = LocalDateTime.now();
         }
     }
 

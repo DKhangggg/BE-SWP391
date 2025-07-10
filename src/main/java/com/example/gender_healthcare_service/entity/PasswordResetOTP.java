@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "password_reset_otp")
@@ -22,15 +23,15 @@ public class PasswordResetOTP {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private LocalDate expiryDate;
+    private LocalDateTime expiryDate;
 
     public PasswordResetOTP(String otpCode, User user) {
         this.otpCode = otpCode;
         this.user = user;
-        this.expiryDate = LocalDate.now().plusDays(1);
+        this.expiryDate = LocalDateTime.now().plusMinutes(15);
     }
 
     public boolean isExpired() {
-        return LocalDate.now().isAfter(this.expiryDate);
+        return LocalDateTime.now().isAfter(this.expiryDate);
     }
 }

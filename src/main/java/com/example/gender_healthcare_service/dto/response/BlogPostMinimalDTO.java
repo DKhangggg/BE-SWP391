@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -12,5 +12,5 @@ import java.time.LocalDate;
 public class BlogPostMinimalDTO {
     private Integer id;
     private String title;
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 }

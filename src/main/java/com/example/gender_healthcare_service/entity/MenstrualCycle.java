@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,7 +27,7 @@ public class MenstrualCycle {
     private User user;
 
     @Column(name = "StartDate", nullable = false)
-    private LocalDate startDate;
+    private LocalDateTime startDate;
 
     @Column(name = "CycleLength")
     private Integer cycleLength;
@@ -52,10 +51,10 @@ public class MenstrualCycle {
     private LocalDate nextPredictedPeriod;
 
     @Column(name = "FertilityWindowStart")
-    private LocalDate fertilityWindowStart;
+    private LocalDateTime fertilityWindowStart;
 
     @Column(name = "FertilityWindowEnd")
-    private LocalDate fertilityWindowEnd;
+    private LocalDateTime fertilityWindowEnd;
 
     @Column(name = "OvulationDate")
     private LocalDate ovulationDate;
@@ -64,10 +63,10 @@ public class MenstrualCycle {
     private List<MenstrualLog> menstrualLogs;
 
     @Column(name = "CreatedAt")
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "UpdatedAt")
-    private LocalDate updatedAt;
+    private LocalDateTime updatedAt;
 
     @Column(name = "IsDeleted")
     private Boolean isDeleted = false;

@@ -11,7 +11,7 @@ import com.example.gender_healthcare_service.service.BlogCategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,8 +46,8 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
         BlogCategory blogCategory = new BlogCategory();
         blogCategory.setCategoryName(blogCategoryRequestDTO.getName());
         blogCategory.setDescription(blogCategoryRequestDTO.getDescription());
-        blogCategory.setCreatedAt(LocalDate.now());
-        blogCategory.setUpdatedAt(LocalDate.now());
+        blogCategory.setCreatedAt(LocalDateTime.now());
+        blogCategory.setUpdatedAt(LocalDateTime.now());
 
         return blogCategoryRepository.save(blogCategory);
     }
@@ -64,7 +64,7 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
 
         existingCategory.setCategoryName(blogCategoryRequestDTO.getName());
         existingCategory.setDescription(blogCategoryRequestDTO.getDescription());
-        existingCategory.setUpdatedAt(LocalDate.now());
+        existingCategory.setUpdatedAt(LocalDateTime.now());
 
         return blogCategoryRepository.save(existingCategory);
     }
@@ -120,7 +120,7 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
         return new BlogPostMinimalDTO(
                 post.getPostID(),
                 post.getTitle(),
-                post.getCreatedAt() != null ? post.getCreatedAt() : null
+                post.getCreatedAt()
         );
     }
 }

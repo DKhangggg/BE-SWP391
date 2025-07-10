@@ -6,8 +6,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Getter
 @Setter
@@ -31,7 +31,7 @@ public class ConsultantSchedule {
 
     @NotNull
     @Column(name = "ScheduleDate", nullable = false)
-    private LocalDate scheduleDate;
+    private LocalDateTime scheduleDate;
 
     @NotNull
     @Column(name = "Status", nullable = false)
@@ -50,4 +50,8 @@ public class ConsultantSchedule {
 
     @OneToOne(mappedBy = "consultantSchedule", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Booking booking;
+
+    @NotNull
+    @Column(name = "StartTime", nullable = false)
+    private LocalTime startTime;
 }

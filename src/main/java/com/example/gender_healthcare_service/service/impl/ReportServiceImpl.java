@@ -8,7 +8,7 @@ import com.example.gender_healthcare_service.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -38,7 +38,7 @@ public class ReportServiceImpl implements ReportService {
     private FeedbackRepository feedbackRepository;
 
     @Override
-    public DashboardReportDTO generateDashboardReport(LocalDate startDate, LocalDate endDate) {
+    public DashboardReportDTO generateDashboardReport(LocalDateTime startDate, LocalDateTime endDate) {
         DashboardReportDTO report = new DashboardReportDTO();
 
         report.setOverviewStats(getOverviewStats());
@@ -77,7 +77,7 @@ public class ReportServiceImpl implements ReportService {
         stats.setTotalRevenue(calculateTotalRevenue());
 
         // Active users (users who have made bookings in last 30 days)
-        LocalDate thirtyDaysAgo = LocalDate.now().minus(30, ChronoUnit.DAYS);
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minus(30, ChronoUnit.DAYS);
 
         // Booking status counts
         stats.setCompletedBookings(bookingRepository.countByStatus("COMPLETED"));
@@ -88,7 +88,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Object generateBookingsReport(LocalDate startDate, LocalDate endDate, String period) {
+    public Object generateBookingsReport(LocalDateTime startDate, LocalDateTime endDate, String period) {
         List<DashboardReportDTO.BookingStats> bookingStats = generateBookingStatsList(startDate, endDate);
 
         Map<String, Object> report = new HashMap<>();
@@ -102,7 +102,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Object generateFinancialsReport(LocalDate startDate, LocalDate endDate, String period) {
+    public Object generateFinancialsReport(LocalDateTime startDate, LocalDateTime endDate, String period) {
         List<DashboardReportDTO.RevenueStats> revenueStats = generateRevenueStatsList(startDate, endDate);
 
         Map<String, Object> report = new HashMap<>();
@@ -114,7 +114,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    public Object generateUsersReport(LocalDate startDate, LocalDate endDate, String period) {
+    public Object generateUsersReport(LocalDateTime startDate, LocalDateTime endDate, String period) {
         List<DashboardReportDTO.UserStats> userStats = generateUserStatsList(startDate, endDate);
 
         Map<String, Object> report = new HashMap<>();
@@ -152,19 +152,18 @@ public class ReportServiceImpl implements ReportService {
         return report;
     }
 
-    private List<DashboardReportDTO.BookingStats> generateBookingStatsList(LocalDate startDate, LocalDate endDate) {
+    private List<DashboardReportDTO.BookingStats> generateBookingStatsList(LocalDateTime startDate, LocalDateTime endDate) {
         List<DashboardReportDTO.BookingStats> stats = new ArrayList<>();
-
-        LocalDate current = startDate;
+        LocalDateTime current = startDate;
         while (!current.isAfter(endDate)) {
             DashboardReportDTO.BookingStats dayStat = new DashboardReportDTO.BookingStats();
-            dayStat.setDate(current);
+            dayStat.setDate(current.toLocalDate());
             dayStat.setPeriod("daily");
 
-            dayStat.setTotalBookings(bookingRepository.countByBookingDate(current));
-            dayStat.setCompletedBookings(bookingRepository.countByBookingDateAndStatus(current, "COMPLETED"));
-            dayStat.setPendingBookings(bookingRepository.countByBookingDateAndStatus(current, "PENDING"));
-            dayStat.setCancelledBookings(bookingRepository.countByBookingDateAndStatus(current, "CANCELLED"));
+            dayStat.setTotalBookings(bookingRepository.countByBookingDate(current.toLocalDate()));
+            dayStat.setCompletedBookings(bookingRepository.countByBookingDateAndStatus(current.toLocalDate(), "COMPLETED"));
+            dayStat.setPendingBookings(bookingRepository.countByBookingDateAndStatus(current.toLocalDate(), "PENDING"));
+            dayStat.setCancelledBookings(bookingRepository.countByBookingDateAndStatus(current.toLocalDate(), "CANCELLED"));
 
             stats.add(dayStat);
             current = current.plusDays(1);
@@ -173,18 +172,18 @@ public class ReportServiceImpl implements ReportService {
         return stats;
     }
 
-    private List<DashboardReportDTO.RevenueStats> generateRevenueStatsList(LocalDate startDate, LocalDate endDate) {
+    private List<DashboardReportDTO.RevenueStats> generateRevenueStatsList(LocalDateTime startDate, LocalDateTime endDate) {
         List<DashboardReportDTO.RevenueStats> stats = new ArrayList<>();
 
-        LocalDate current = startDate;
+        LocalDateTime current = startDate;
         while (!current.isAfter(endDate)) {
             DashboardReportDTO.RevenueStats dayStat = new DashboardReportDTO.RevenueStats();
-            dayStat.setDate(current);
+            dayStat.setDate(current.toLocalDate());
             dayStat.setPeriod("daily");
 
             // Mock data - replace with actual repository calls
             dayStat.setTotalRevenue(calculateDailyRevenue(current));
-            dayStat.setTransactionCount(transactionHistoryRepository.countByTransactionDate(current));
+            dayStat.setTransactionCount(transactionHistoryRepository.countByTransactionDate(current.toLocalDate()));
             dayStat.setAverageTransactionValue(
                 dayStat.getTransactionCount() > 0 ?
                 dayStat.getTotalRevenue() / dayStat.getTransactionCount() : 0.0
@@ -197,18 +196,18 @@ public class ReportServiceImpl implements ReportService {
         return stats;
     }
 
-    private List<DashboardReportDTO.UserStats> generateUserStatsList(LocalDate startDate, LocalDate endDate) {
+    private List<DashboardReportDTO.UserStats> generateUserStatsList(LocalDateTime startDate, LocalDateTime endDate) {
         List<DashboardReportDTO.UserStats> stats = new ArrayList<>();
 
-        LocalDate current = startDate;
+        LocalDateTime current = startDate;
         while (!current.isAfter(endDate)) {
             DashboardReportDTO.UserStats dayStat = new DashboardReportDTO.UserStats();
-            dayStat.setDate(current);
+            dayStat.setDate(current.toLocalDate());
             dayStat.setPeriod("daily");
 
-            dayStat.setNewUsers(userRepository.countByRegistrationDate(current, current.plusDays(1)));
-            dayStat.setActiveUsers(userRepository.countActiveUsersByDate(current));
-            dayStat.setTotalUsers(userRepository.countByRegistrationDateBefore(current.plusDays(1)));
+            dayStat.setNewUsers(userRepository.countByRegistrationDate(current.toLocalDate(), current.toLocalDate().plusDays(1)));
+            dayStat.setActiveUsers(userRepository.countActiveUsersByDate(current.toLocalDate()));
+            dayStat.setTotalUsers(userRepository.countByRegistrationDateBefore(current.toLocalDate().plusDays(1)));
 
             stats.add(dayStat);
             current = current.plusDays(1);
@@ -251,7 +250,7 @@ public class ReportServiceImpl implements ReportService {
         return 50000.0;
     }
 
-    private Double calculateDailyRevenue(LocalDate date) {
+    private Double calculateDailyRevenue(LocalDateTime date) {
         // Mock implementation - replace with actual calculation
         return 1000.0 + (date.getDayOfMonth() * 50);
     }

@@ -14,6 +14,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,7 +56,8 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = new Booking();
         booking.setCustomerID(currentUser);
         booking.setService(service);
-        booking.setBookingDate(bookingRequestDTO.getBookingDate());
+        LocalDateTime bookingDate = bookingRequestDTO.getBookingDate().atTime(LocalTime.now());
+        booking.setBookingDate(bookingDate);
         booking.setTimeSlot(timeSlot);
         booking.setStatus("Scheduled");
         // booking.setNotes(bookingRequestDTO.getNotes()); // Uncomment if notes are used
@@ -66,10 +69,10 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public List<BookingResponseDTO> getUserBookings() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentPrincipalName = authentication.getName();
-        User currentUser = userRepository.findUserByUsername(currentPrincipalName);
+        String userName = authentication.getName();
+        User currentUser = userRepository.findUserByUsername(userName);
                 if(currentUser== null) {
-                throw new ServiceNotFoundException("User not found: " + currentPrincipalName);
+                throw new ServiceNotFoundException("User not found: " + userName);
                 }
         return bookingRepository.findByCustomerID(currentUser).stream()
                 .map(this::convertToDto)
@@ -165,8 +168,8 @@ public class BookingServiceImpl implements BookingService {
         dto.setServiceId(booking.getService().getId());
         dto.setServiceName(booking.getService().getServiceName());
         dto.setTimeSlotId(booking.getTimeSlot().getTimeSlotID());
-        dto.setStartTime(booking.getTimeSlot().getStartTime());
-        dto.setEndTime(booking.getTimeSlot().getEndTime());
+        dto.setStartTime(booking.getTimeSlot().getStartTime().toLocalDate());
+        dto.setEndTime(booking.getTimeSlot().getEndTime().toLocalDate());
         return dto;
     }
 }

@@ -8,8 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.Instant;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -47,10 +46,10 @@ public class Chat {
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "AnsweredAt")
-    private LocalDate answeredAt;
+    private LocalDateTime answeredAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")

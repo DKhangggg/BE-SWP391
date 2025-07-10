@@ -8,8 +8,8 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.Instant;
-import java.time.LocalDate;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -34,11 +34,11 @@ public class Reminder {
 
     @NotNull
     @Column(name = "ReminderDate", nullable = false)
-    private LocalDate reminderDate;
+    private LocalDateTime reminderDate;
 
     @NotNull
     @Column(name = "ReminderTime", nullable = false)
-    private LocalDate reminderTime;
+    private LocalDateTime reminderTime;
 
     @Size(max = 200)
     @Nationalized
@@ -51,7 +51,7 @@ public class Reminder {
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")

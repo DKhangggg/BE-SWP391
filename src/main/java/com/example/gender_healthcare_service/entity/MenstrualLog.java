@@ -8,7 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -30,7 +29,7 @@ public class MenstrualLog {
     private MenstrualCycle menstrualCycle;
 
     @Column(name = "LogDate", nullable = false)
-    private LocalDate logDate;
+    private LocalDateTime logDate;
 
     @Column(name = "IsActualPeriod")
     private Boolean isActualPeriod = false;

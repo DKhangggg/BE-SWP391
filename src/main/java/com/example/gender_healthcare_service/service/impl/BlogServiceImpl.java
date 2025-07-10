@@ -17,7 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -68,8 +68,8 @@ public class BlogServiceImpl implements BlogService {
             blogPost.setContent(blogPostRequestDTO.getContent());
             blogPost.setCategories(blogCategories);
             blogPost.setAuthor(user);
-            blogPost.setCreatedAt(LocalDate.now());
-            blogPost.setUpdatedAt(LocalDate.now());
+            blogPost.setCreatedAt(LocalDateTime.now());
+            blogPost.setUpdatedAt(LocalDateTime.now());
             BlogPost savedPost = blogPostRepository.save(blogPost);
             return true;
         } catch (Exception e) {
@@ -98,7 +98,7 @@ public class BlogServiceImpl implements BlogService {
         }
         existingPost.setTitle(blogPostRequestDTO.getTitle());
         existingPost.setContent(blogPostRequestDTO.getContent());
-        existingPost.setUpdatedAt(LocalDate.now());
+        existingPost.setUpdatedAt(LocalDateTime.now());
         return blogPostRepository.save(existingPost);
     }
     @Override

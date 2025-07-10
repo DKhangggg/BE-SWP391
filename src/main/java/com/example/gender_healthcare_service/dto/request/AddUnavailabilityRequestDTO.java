@@ -13,6 +13,6 @@ public class AddUnavailabilityRequestDTO {
     private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;
-    private String reason; // Optional
+    private String reason;
 }
 

@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -48,12 +49,21 @@ public class ConsultantScheduleServiceImpl implements ConsultantScheduleService 
                     continue;
                 }
                 for (TimeSlot slot : allTimeSlots) {
-                    ConsultantSchedule schedule = new ConsultantSchedule();
-                    schedule.setConsultant(consultant);
-                    schedule.setScheduleDate(currentDate);
-                    schedule.setTimeSlot(slot);
-                    schedule.setStatus("Available");
-                    consultantScheduleRepository.save(schedule);
+                    LocalTime[] timeSlots = {
+                        LocalTime.of(9, 0),
+                        LocalTime.of(12, 0),
+                        LocalTime.of(15, 0),
+                        LocalTime.of(18, 0)
+                    };
+                    for (LocalTime time : timeSlots) {
+                        ConsultantSchedule schedule = new ConsultantSchedule();
+                        schedule.setConsultant(consultant);
+                        schedule.setScheduleDate(currentDate.atStartOfDay());
+                        schedule.setTimeSlot(slot);
+                        schedule.setStartTime(time);
+                        schedule.setStatus("Available");
+                        consultantScheduleRepository.save(schedule);
+                    }
                 }
                 currentDate = currentDate.plusDays(1);
             }

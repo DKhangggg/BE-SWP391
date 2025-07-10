@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import jakarta.persistence.*;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "consultant_unavailability")
@@ -24,10 +24,10 @@ public class ConsultantUnavailability {
     private Consultant consultant;
 
     @Column(name = "start_time", nullable = false)
-    private LocalDate startTime;
+    private LocalDateTime startTime;
 
     @Column(name = "end_time", nullable = false)
-    private LocalDate endTime;
+    private LocalDateTime endTime;
 
     private String reason;
 
@@ -35,10 +35,10 @@ public class ConsultantUnavailability {
     private RequestStatus status;
 
     @Column(name = "createDate", updatable = false)
-    private LocalDate createDate;
+    private LocalDateTime createDate;
 
     @PrePersist
     protected void onCreate() {
-        createDate = LocalDate.now();
+        createDate = LocalDateTime.now();
     }
 }

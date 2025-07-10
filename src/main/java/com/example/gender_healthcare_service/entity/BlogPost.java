@@ -7,8 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
-import java.time.Instant;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -46,14 +45,15 @@ public class BlogPost {
 
     @ColumnDefault("getdate()")
     @Column(name = "PublishedDate")
-    private LocalDate publishedDate;
+    private LocalDateTime publishedDate;
 
     @ColumnDefault("getdate()")
     @Column(name = "UpdatedAt")
-    private LocalDate updatedAt;
+    private LocalDateTime updatedAt;
 
+    @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "IsPublished")
     private Boolean isPublished = false;

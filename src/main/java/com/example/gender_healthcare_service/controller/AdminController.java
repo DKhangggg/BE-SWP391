@@ -377,7 +377,7 @@ public class AdminController {
             if (startDate == null) {
                 startDate = endDate.minusDays(30);
             }
-            DashboardReportDTO report = reportService.generateDashboardReport(startDate, endDate);
+            DashboardReportDTO report = reportService.generateDashboardReport(startDate.atStartOfDay(), endDate.atStartOfDay());
             return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate dashboard report: " + e.getMessage());
@@ -406,7 +406,7 @@ public class AdminController {
             if (startDate == null) {
                 startDate = endDate.minusDays(30);
             }
-            Object report = reportService.generateBookingsReport(startDate, endDate, period);
+            Object report = reportService.generateBookingsReport(startDate.atStartOfDay(), endDate.atStartOfDay(), period);
             return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate bookings report: " + e.getMessage());
@@ -425,7 +425,7 @@ public class AdminController {
             if (startDate == null) {
                 startDate = endDate.minusDays(30);
             }
-            Object report = reportService.generateFinancialsReport(startDate, endDate, period);
+            Object report = reportService.generateFinancialsReport(startDate.atStartOfDay(), endDate.atStartOfDay(), period);
             return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate financials report: " + e.getMessage());
@@ -444,7 +444,7 @@ public class AdminController {
             if (startDate == null) {
                 startDate = endDate.minusDays(30);
             }
-            Object report = reportService.generateUsersReport(startDate, endDate, period);
+            Object report = reportService.generateUsersReport(startDate.atStartOfDay(), endDate.atStartOfDay(), period);
             return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate users report: " + e.getMessage());

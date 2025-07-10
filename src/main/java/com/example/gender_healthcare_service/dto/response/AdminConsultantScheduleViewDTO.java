@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Data
@@ -14,7 +14,7 @@ public class AdminConsultantScheduleViewDTO {
     private Integer scheduleId;
     private Integer consultantId;
     private String consultantName;
-    private LocalDate scheduleDate;
+    private LocalDateTime scheduleDate;
     private LocalTime startTime;
     private LocalTime endTime;
     private String status;
@@ -22,4 +22,3 @@ public class AdminConsultantScheduleViewDTO {
     private Integer customerId;
     private String customerName;
 }
-

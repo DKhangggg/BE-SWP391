@@ -19,6 +19,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -43,6 +44,7 @@ public class EnhancedMenstrualCycleController {
     @PostMapping("/log-enhanced")
     public ResponseEntity<?> logEnhancedMenstrualData(@RequestBody EnhancedMenstrualLogRequestDTO requestDTO) {
         try {
+            requestDTO.setLogDate(LocalDateTime.now().toLocalDate());
             menstrualCycleService.logEnhancedMenstrualData(requestDTO);
             return ResponseEntity.ok("Enhanced menstrual data logged successfully");
         } catch (Exception e) {
@@ -65,7 +67,7 @@ public class EnhancedMenstrualCycleController {
             if (startDate == null) startDate = LocalDate.now().minusMonths(3);
             if (endDate == null) endDate = LocalDate.now();
 
-            List<MenstrualLogResponseDTO> logs = menstrualCycleService.getMenstrualLogsByDateRange(userId, startDate, endDate);
+            List<MenstrualLogResponseDTO> logs = menstrualCycleService.getMenstrualLogsByDateRange(userId, startDate.atStartOfDay(), endDate.atStartOfDay().plusDays(1));
             return ResponseEntity.ok(logs);
         } catch (Exception e) {
             logger.error("Error getting menstrual logs for user by consultant: {}", e.getMessage(), e);
@@ -193,7 +195,7 @@ public class EnhancedMenstrualCycleController {
             if (endDate == null) endDate = LocalDate.now();
 
             Integer userId = getCurrentUserId();
-            List<MenstrualLogResponseDTO> logs = menstrualCycleService.getMenstrualLogsByDateRange(userId, startDate, endDate);
+            List<MenstrualLogResponseDTO> logs = menstrualCycleService.getMenstrualLogsByDateRange(userId, startDate.atStartOfDay(), endDate.atStartOfDay().plusDays(1));
             return ResponseEntity.ok(logs);
         } catch (Exception e) {
             logger.error("Error getting menstrual logs by date range: {}", e.getMessage(), e);

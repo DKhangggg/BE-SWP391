@@ -3,8 +3,7 @@ package com.example.gender_healthcare_service.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.Instant;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Entity(name="Answers")
@@ -26,13 +25,12 @@ public class Answer {
     private String content;
 
     @Column(name = "created_at")
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    private LocalDate updatedAt;
+    private LocalDateTime updatedAt;
 
     @Column(name = "isDeleted")
     private boolean isDeleted = false;
 
 }
-
