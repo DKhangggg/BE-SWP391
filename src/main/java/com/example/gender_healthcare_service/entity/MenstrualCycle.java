@@ -27,7 +27,7 @@ public class MenstrualCycle {
     private User user;
 
     @Column(name = "StartDate", nullable = false)
-    private LocalDateTime startDate;
+    private LocalDate startDate;
 
     @Column(name = "CycleLength")
     private Integer cycleLength;
@@ -51,10 +51,10 @@ public class MenstrualCycle {
     private LocalDate nextPredictedPeriod;
 
     @Column(name = "FertilityWindowStart")
-    private LocalDateTime fertilityWindowStart;
+    private LocalDate fertilityWindowStart;
 
     @Column(name = "FertilityWindowEnd")
-    private LocalDateTime fertilityWindowEnd;
+    private LocalDate fertilityWindowEnd;
 
     @Column(name = "OvulationDate")
     private LocalDate ovulationDate;

@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -40,8 +41,8 @@ public class TestingServiceServiceImpl implements TestingServiceService {
 
     @Override
     public boolean createService(TestingService service) {
-        service.setCreatedAt(Instant.now());
-        service.setUpdatedAt(Instant.now());
+        service.setCreatedAt(LocalDateTime.now());
+        service.setUpdatedAt(LocalDateTime.now());
         service.setIsDeleted(false);
         try {
             testingServiceRepository.save(service);
@@ -63,7 +64,7 @@ public class TestingServiceServiceImpl implements TestingServiceService {
         existingService.setDescription(serviceDetails.getDescription());
         existingService.setPrice(serviceDetails.getPrice());
         existingService.setDurationMinutes(serviceDetails.getDuration());
-        existingService.setUpdatedAt(Instant.now());
+        existingService.setUpdatedAt(LocalDateTime.now());
         testingServiceRepository.save(existingService);
         TestingServiceResponseDTO responseDTO = modelMapper.map(existingService, TestingServiceResponseDTO.class);
         return responseDTO;
@@ -73,7 +74,7 @@ public class TestingServiceServiceImpl implements TestingServiceService {
     public void deleteService(Integer id ,boolean isDeleted) {
         TestingService service = getServiceById(id);
         service.setIsDeleted(isDeleted);
-        service.setUpdatedAt(Instant.now());
+        service.setUpdatedAt(LocalDateTime.now());
         testingServiceRepository.save(service);
     }
 }

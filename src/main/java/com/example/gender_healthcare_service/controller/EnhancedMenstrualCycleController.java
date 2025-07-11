@@ -44,7 +44,7 @@ public class EnhancedMenstrualCycleController {
     @PostMapping("/log-enhanced")
     public ResponseEntity<?> logEnhancedMenstrualData(@RequestBody EnhancedMenstrualLogRequestDTO requestDTO) {
         try {
-            requestDTO.setLogDate(LocalDateTime.now().toLocalDate());
+            requestDTO.setLogDate(LocalDateTime.now());
             menstrualCycleService.logEnhancedMenstrualData(requestDTO);
             return ResponseEntity.ok("Enhanced menstrual data logged successfully");
         } catch (Exception e) {

@@ -62,7 +62,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
                 existingCycle.setStartDate(requestDTO.getStartDate());
             }
             LocalDate predictedNextPeriodStartDate = requestDTO.getPeriodDay().plusDays(DEFAULT_CYCLE_LENGTH);
-            existingCycle.setUpdatedAt(LocalDate.now());
+            existingCycle.setUpdatedAt(LocalDateTime.now());
             existingCycle.setPeriodDay(predictedNextPeriodStartDate);
             menstrualCycleRepository.save(existingCycle);
             return modelMapper.map(existingCycle, MenstrualCycleResponseDTO.class);
@@ -75,8 +75,8 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             newCycle.setStartDate(requestDTO.getStartDate());
             LocalDate predictedNextPeriodStartDate = requestDTO.getPeriodDay().plusDays(DEFAULT_CYCLE_LENGTH);
             newCycle.setPeriodDay(predictedNextPeriodStartDate);
-            newCycle.setCreatedAt(LocalDate.now());
-            newCycle.setUpdatedAt(LocalDate.now());
+            newCycle.setCreatedAt(LocalDateTime.now());
+            newCycle.setUpdatedAt(LocalDateTime.now());
             menstrualCycleRepository.save(newCycle);
             return modelMapper.map(newCycle, MenstrualCycleResponseDTO.class);
         }
@@ -96,7 +96,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         }
         MenstrualLog menstrualLog = new MenstrualLog();
         menstrualLog.setMenstrualCycle(currentCycle);
-        menstrualLog.setLogDate(LocalDate.now());
+        menstrualLog.setLogDate(LocalDateTime.now());
         menstrualLog.setNotes(logDTO.getNotes());
         menstrualLog.setCreatedAt(LocalDateTime.now());
         menstrualLog.setUpdatedAt(LocalDateTime.now());
@@ -137,30 +137,28 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             throw new UsernameNotFoundException("User not found in the system");
         }
 
-        // Check if user is female before allowing menstrual cycle tracking
         if (!"FEMALE".equalsIgnoreCase(user.getGender()) && !"Female".equalsIgnoreCase(user.getGender())) {
             throw new RuntimeException("Menstrual cycle tracking is only available for female users");
         }
 
-        // Find or create menstrual cycle for the user
         MenstrualCycle currentCycle = menstrualCycleRepository.findByUserId(user.getId());
         if (currentCycle == null) {
             // Create a new menstrual cycle for the user
             currentCycle = new MenstrualCycle();
             currentCycle.setUser(user);
-            currentCycle.setStartDate(requestDTO.getLogDate() != null ? requestDTO.getLogDate() : LocalDate.now());
+            currentCycle.setStartDate(requestDTO.getLogDate() != null ? requestDTO.getLogDate().toLocalDate() : LocalDate.now());
             currentCycle.setCycleLength(DEFAULT_CYCLE_LENGTH);
             currentCycle.setPeriodDuration(5); // Default period duration
             currentCycle.setIsRegular(true);
-            currentCycle.setCreatedAt(LocalDate.now());
-            currentCycle.setUpdatedAt(LocalDate.now());
+            currentCycle.setCreatedAt(LocalDateTime.now());
+            currentCycle.setUpdatedAt(LocalDateTime.now());
             currentCycle = menstrualCycleRepository.save(currentCycle);
         }
 
         // Create enhanced menstrual log
         MenstrualLog menstrualLog = new MenstrualLog();
         menstrualLog.setMenstrualCycle(currentCycle);
-        menstrualLog.setLogDate(requestDTO.getLogDate() != null ? requestDTO.getLogDate() : LocalDate.now());
+        menstrualLog.setLogDate(requestDTO.getLogDate() != null ? requestDTO.getLogDate() : LocalDateTime.now());
         menstrualLog.setIsActualPeriod(requestDTO.getIsActualPeriod());
         menstrualLog.setFlowIntensity(requestDTO.getFlowIntensity());
         menstrualLog.setMood(requestDTO.getMood());
@@ -217,8 +215,8 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
     }
 
     @Override
-    public List<MenstrualLogResponseDTO> getMenstrualLogsByDateRange(Integer userId, LocalDate startDate, LocalDate endDate) {
-        List<MenstrualLog> logs = menstrualLogRepository.findByUserIdAndDateRange(userId, startDate, endDate);
+    public List<MenstrualLogResponseDTO> getMenstrualLogsByDateRange(Integer userId, LocalDateTime startDate, LocalDateTime endDate) {
+        List<MenstrualLog> logs = menstrualLogRepository.findByUserIdAndDateRange(userId, startDate.toLocalDate(), endDate.toLocalDate());
         return logs.stream()
                 .map(log -> modelMapper.map(log, MenstrualLogResponseDTO.class))
                 .collect(Collectors.toList());
@@ -269,7 +267,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             LocalDate predictedNextPeriodStartDate = requestDTO.getPeriodDay().plusDays(DEFAULT_CYCLE_LENGTH);
             cycle.setPeriodDay(predictedNextPeriodStartDate);
         }
-        cycle.setUpdatedAt(LocalDate.now());
+        cycle.setUpdatedAt(LocalDateTime.now());
         menstrualCycleRepository.save(cycle);
         analyticsService.updateCycleStatistics(userId);
         return modelMapper.map(cycle, MenstrualCycleResponseDTO.class);
@@ -278,7 +276,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
     @Override
     public List<MenstrualLogResponseDTO> getUserMenstrualHistory(Integer userId, Integer consultantId) {
         validateConsultantAccess(consultantId, userId);
-        return getMenstrualLogsByDateRange(userId, LocalDate.now().minusYears(1), LocalDate.now());
+        return getMenstrualLogsByDateRange(userId, LocalDateTime.now().minusYears(1), LocalDateTime.now());
     }
 
     @Override
@@ -384,15 +382,15 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         // For now, we assume any consultant can access any female user's data.
     }
 
-    private MenstrualCycle createNewMenstrualCycleForUser(User user, LocalDate startDate) {
+    private MenstrualCycle createNewMenstrualCycleForUser(User user, LocalDateTime startDate) {
         MenstrualCycle newCycle = new MenstrualCycle();
         newCycle.setUser(user);
-        newCycle.setStartDate(startDate != null ? startDate : LocalDate.now());
+        newCycle.setStartDate(startDate != null ? startDate.toLocalDate() : LocalDate.now());
         newCycle.setCycleLength(DEFAULT_CYCLE_LENGTH);
         newCycle.setPeriodDuration(5);
         newCycle.setIsRegular(true);
-        newCycle.setCreatedAt(LocalDate.now());
-        newCycle.setUpdatedAt(LocalDate.now());
+        newCycle.setCreatedAt(LocalDateTime.now());
+        newCycle.setUpdatedAt(LocalDateTime.now());
         return menstrualCycleRepository.save(newCycle);
     }
 
@@ -400,7 +398,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         MenstrualLog menstrualLog = new MenstrualLog();
         modelMapper.map(requestDTO, menstrualLog);
         menstrualLog.setMenstrualCycle(cycle);
-        menstrualLog.setLogDate(requestDTO.getLogDate() != null ? requestDTO.getLogDate() : LocalDate.now());
+        menstrualLog.setLogDate(requestDTO.getLogDate() != null ? requestDTO.getLogDate() : LocalDateTime.now());
         menstrualLog.setCreatedAt(LocalDateTime.now());
         menstrualLog.setUpdatedAt(LocalDateTime.now());
         return menstrualLogRepository.save(menstrualLog);

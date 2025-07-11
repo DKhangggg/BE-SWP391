@@ -8,13 +8,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class EnhancedMenstrualLogRequestDTO {
-    private LocalDate logDate;
+    private LocalDateTime logDate;
     private Boolean isActualPeriod;
     private FlowIntensity flowIntensity;
     private MoodType mood;

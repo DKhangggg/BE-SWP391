@@ -19,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -103,8 +104,8 @@ public class ConsultantServiceImpl implements ConsultantService {
         user.setGender(request.getGender());
         user.setAddress(request.getAddress());
         user.setMedicalHistory(request.getMedicalHistory());
-        user.setCreatedAt(LocalDate.now());
-        user.setUpdatedAt(LocalDate.now());
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
 
         User savedUser = userRepository.save(user);
         Consultant c = new Consultant();
@@ -185,18 +186,17 @@ public class ConsultantServiceImpl implements ConsultantService {
         Consultant consultant = consultantRepository.findById(unavailabilityRequest.getConsultantId())
                 .orElseThrow(() -> new RuntimeException("Consultant not found with ID: " + unavailabilityRequest.getConsultantId()));
 
-        LocalDate startDate = LocalDate.parse(unavailabilityRequest.getStartDate());
-        List<ConsultantUnavailability> existingUnavailability = consultantUnavailabilityRepository.findByConsultantAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(consultant,startDate, startDate.plusDays(30));
+        List<ConsultantUnavailability> existingUnavailability = consultantUnavailabilityRepository.findByConsultantAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(consultant,unavailabilityRequest.getStartDate(),unavailabilityRequest.getEndDate().plusDays(30));
 
         if (!existingUnavailability.isEmpty()) {
             throw new RuntimeException("Unavailability already exists for this date.");
         }
         ConsultantUnavailability unavailability = new ConsultantUnavailability();
         unavailability.setConsultant(consultant);
-        unavailability.setStartTime(startDate);
-        unavailability.setEndTime(LocalDate.parse(unavailabilityRequest.getEndDate()));
+        unavailability.setStartTime(unavailabilityRequest.getStartDate());
+        unavailability.setEndTime(unavailabilityRequest.getEndDate().plusHours(23).plusMinutes(59));
         unavailability.setStatus(RequestStatus.IN_PROGRESS);
-        unavailability.setCreateDate(LocalDate.now());
+        unavailability.setCreateDate(LocalDateTime.now());
         unavailability.setReason(unavailabilityRequest.getReason());
         consultantUnavailabilityRepository.save(unavailability);
         return true;
@@ -211,6 +211,6 @@ public class ConsultantServiceImpl implements ConsultantService {
         }
         Consultant consultant = consultantRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new RuntimeException("Consultant not found for the current user."));
-        return consultantUnavailabilityRepository.findByConsultantAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(consultant,localDate, localDate.plusDays(30));
+        return consultantUnavailabilityRepository.findByConsultantAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(consultant,LocalDateTime.now(), LocalDateTime.now().plusDays(30));
     }
 }

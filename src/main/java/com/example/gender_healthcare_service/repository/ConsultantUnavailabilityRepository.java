@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -15,7 +16,7 @@ public interface ConsultantUnavailabilityRepository extends JpaRepository<Consul
     List<ConsultantUnavailability> findByConsultant(Consultant consultant);
 
     List<ConsultantUnavailability> findByConsultantAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(
-            Consultant consultant, LocalDate endDate, LocalDate startDate);
+            Consultant consultant, LocalDateTime endDate, LocalDateTime startDate);
 
     @Query("SELECT cu FROM ConsultantUnavailability cu WHERE cu.consultant = :consultant " +
             "AND :date BETWEEN cu.startTime AND cu.endTime")

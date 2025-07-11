@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface SymptomLogRepository extends JpaRepository<SymptomLog, Integer> {
@@ -15,7 +16,7 @@ public interface SymptomLogRepository extends JpaRepository<SymptomLog, Integer>
     List<SymptomLog> findBySymptom(Symptom symptom);
 
     @Query("SELECT sl FROM SymptomLog sl JOIN sl.menstrualLog ml WHERE ml.menstrualCycle.user.id = :userId AND ml.logDate BETWEEN :startDate AND :endDate")
-    List<SymptomLog> findByUserIdAndDateRange(@Param("userId") Integer userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    List<SymptomLog> findByUserIdAndDateRange(@Param("userId") Integer userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 
     @Query("SELECT sl.symptom, COUNT(sl) FROM SymptomLog sl JOIN sl.menstrualLog ml WHERE ml.menstrualCycle.user.id = :userId GROUP BY sl.symptom ORDER BY COUNT(sl) DESC")
     List<Object[]> findMostCommonSymptomsByUserId(@Param("userId") Integer userId);

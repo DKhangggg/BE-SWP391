@@ -124,7 +124,7 @@ public class ReminderServiceImpl implements ReminderService {
         dto.setId(reminder.getId());
         dto.setReminderType(reminder.getReminderType());
         dto.setMessage(reminder.getMessage());
-        dto.setReminderDate(reminder.getReminderDate().atStartOfDay());
+        dto.setReminderDate(reminder.getReminderDate());
         dto.setIsSent(reminder.getIsSent());
         dto.setCreatedAt(reminder.getCreatedAt());
         dto.setUserId(reminder.getUser().getId());

@@ -4,14 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PeriodPredictionDTO {
-    private LocalDateTime nextPeriodDate;
-    private LocalDateTime periodEndDate;
+    private LocalDate nextPeriodDate;
+    private LocalDate periodEndDate;
     private Double confidence; // 0.0 to 1.0
     private String predictionMethod; // "historical_average", "weighted_average", "pattern_analysis"
     private Integer predictedCycleLength;
