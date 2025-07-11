@@ -35,7 +35,7 @@ public class ServiceController {
     public ResponseEntity<?> getService() {
         List<TestingService> services = testingService.getAllServices();
         if(services.isEmpty()){
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
         else {
             List<TestingServiceResponseDTO> dtos = services.stream()
@@ -63,4 +63,5 @@ public class ServiceController {
         }
         return new ResponseEntity<>(booking, HttpStatus.OK);
     }
+
 }

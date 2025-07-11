@@ -25,7 +25,6 @@ public class TimeSlot {
     @Column(name = "SlotNumber", nullable = false, unique = true)
     private Integer slotNumber;
 
-
     @Column(name = "StartTime", nullable = false)
     private LocalDateTime startTime;
 
