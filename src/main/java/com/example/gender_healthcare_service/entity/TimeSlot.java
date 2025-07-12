@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Getter
@@ -22,28 +23,37 @@ public class TimeSlot {
     @Column(name = "TimeSlotID")
     private Integer timeSlotID;
 
-    @Column(name = "SlotNumber", nullable = false, unique = true)
+    @Column(name = "SlotNumber", nullable = false)
     private Integer slotNumber;
 
     @Column(name = "StartTime", nullable = false)
-    private LocalDateTime startTime;
-
+    private LocalTime startTime;
 
     @Column(name = "EndTime", nullable = false)
-    private LocalDateTime endTime;
+    private LocalTime endTime;
+    
+    @Column(name = "Duration", nullable = false)
+    private Integer duration; // Duration in minutes
 
     @Column(name = "Description", length = 100)
     private String description;
+    
+    @Column(name = "IsActive", nullable = false)
+    private Boolean isActive = true;
 
     @Column(name = "CreatedAt")
     private LocalDateTime createdAt;
 
     @Column(name = "IsDeleted")
-    private Boolean isDeleted = false; // DB default 0
+    private Boolean isDeleted = false;
 
+    // Relationship với ConsultantAvailability thay vì ConsultantSchedule trực tiếp
     @OneToMany(mappedBy = "timeSlot", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Booking> bookings;
+    private List<ConsultantAvailability> consultantAvailabilities;
 
     @OneToMany(mappedBy = "timeSlot", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ConsultantSchedule> consultantSchedules;
+
+    @OneToMany(mappedBy = "timeSlot", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Booking> bookings;
 }

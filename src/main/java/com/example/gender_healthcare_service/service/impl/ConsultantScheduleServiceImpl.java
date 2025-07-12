@@ -58,9 +58,10 @@ public class ConsultantScheduleServiceImpl implements ConsultantScheduleService 
                     for (LocalTime time : timeSlots) {
                         ConsultantSchedule schedule = new ConsultantSchedule();
                         schedule.setConsultant(consultant);
-                        schedule.setScheduleDate(currentDate.atStartOfDay());
+                        schedule.setScheduleDate(currentDate);
                         schedule.setTimeSlot(slot);
                         schedule.setStartTime(time);
+                        schedule.setEndTime(time.plusHours(1)); // Assuming 1 hour duration
                         schedule.setStatus("Available");
                         consultantScheduleRepository.save(schedule);
                     }

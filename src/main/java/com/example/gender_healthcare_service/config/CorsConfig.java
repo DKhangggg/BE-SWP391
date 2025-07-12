@@ -15,41 +15,32 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow multiple frontend origins (both development and production)
-        configuration.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:3000",     // React default dev server
-            "http://localhost:5173",     // Vite dev server  
-            "http://localhost:4000",     // Alternative dev port
-            "http://127.0.0.1:3000",     // Alternative localhost
-            "http://127.0.0.1:5173",     // Alternative localhost
-            "http://192.168.*.*:*"       // Local network access
-        ));
+        // Allow all origins for development - change in production
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         
-        // Allow all HTTP methods
+        // Allow common HTTP methods
         configuration.setAllowedMethods(Arrays.asList(
-            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"
+            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
         
-        // Allow all headers
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        
-        // Allow credentials (cookies, authorization headers)
-        configuration.setAllowCredentials(true);
-        
-        // How long the response from a pre-flight request can be cached
-        configuration.setMaxAge(3600L);
-        
-        // Expose headers to frontend
-        configuration.setExposedHeaders(Arrays.asList(
-            "Authorization", 
-            "Content-Type", 
-            "X-Requested-With",
-            "Accept",
-            "Origin",
-            "Access-Control-Request-Method",
+        // Allow common headers
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization", "Content-Type", "X-Requested-With", 
+            "Accept", "Origin", "Access-Control-Request-Method",
             "Access-Control-Request-Headers"
         ));
-
+        
+        // Allow credentials
+        configuration.setAllowCredentials(true);
+        
+        // Expose headers
+        configuration.setExposedHeaders(Arrays.asList(
+            "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials"
+        ));
+        
+        // Cache preflight response
+        configuration.setMaxAge(3600L);
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         

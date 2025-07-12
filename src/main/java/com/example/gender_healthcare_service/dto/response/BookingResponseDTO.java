@@ -19,9 +19,10 @@ public class BookingResponseDTO {
     private Integer serviceId;
     private String serviceName;
     private LocalDate bookingDate;
+    private LocalTime bookingTime;
     private Integer timeSlotId;
-    private LocalDate startTime;
-    private LocalDate endTime;
+    private LocalTime startTime;
+    private LocalTime endTime;
     private String status;
     private String notes;
 }

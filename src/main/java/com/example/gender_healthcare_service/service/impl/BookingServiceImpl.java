@@ -7,6 +7,7 @@ import com.example.gender_healthcare_service.entity.*;
 import com.example.gender_healthcare_service.repository.*;
 import com.example.gender_healthcare_service.exception.ServiceNotFoundException;
 import com.example.gender_healthcare_service.service.BookingService;
+import com.example.gender_healthcare_service.service.BookingTrackingService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.core.Authentication;
@@ -14,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final TestingServiceRepository testingServiceRepository;
     private final TimeSlotRepository timeSlotRepository;
+    private final BookingTrackingService bookingTrackingService;
     private final ModelMapper modelMapper;
 
     @Override
@@ -56,13 +59,18 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = new Booking();
         booking.setCustomerID(currentUser);
         booking.setService(service);
-        LocalDateTime bookingDate = bookingRequestDTO.getBookingDate().atTime(LocalTime.now());
-        booking.setBookingDate(bookingDate);
+        booking.setBookingDate(bookingRequestDTO.getBookingDate());
+        booking.setBookingTime(timeSlot.getStartTime());
+        booking.setEndTime(timeSlot.getEndTime());
         booking.setTimeSlot(timeSlot);
         booking.setStatus("Scheduled");
         // booking.setNotes(bookingRequestDTO.getNotes()); // Uncomment if notes are used
 
         Booking savedBooking = bookingRepository.save(booking);
+        
+        // Send real-time notification for new booking
+        bookingTrackingService.notifyNewBooking(savedBooking);
+        
         return convertToDto(savedBooking);
     }
 
@@ -105,9 +113,18 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ServiceNotFoundException("Booking not found with ID: " + bookingId));
 
+        String previousStatus = booking.getStatus();
+        String newStatus = statusRequestDTO.getStatus();
+        
         // TODO: Add validation for allowed status transitions if necessary
-        booking.setStatus(statusRequestDTO.getStatus());
+        booking.setStatus(newStatus);
         Booking updatedBooking = bookingRepository.save(booking);
+        
+        // Send real-time notification for status change
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String updatedBy = authentication != null ? authentication.getName() : "System";
+        bookingTrackingService.notifyBookingStatusChange(updatedBooking, newStatus, previousStatus, updatedBy);
+        
         return convertToDto(updatedBooking);
     }
 
@@ -134,8 +151,13 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalStateException("Booking is already " + booking.getStatus() + " and cannot be cancelled.");
         }
 
+        String previousStatus = booking.getStatus();
         booking.setStatus("Cancelled");
         Booking cancelledBooking = bookingRepository.save(booking);
+        
+        // Send real-time notification for cancellation
+        bookingTrackingService.notifyBookingStatusChange(cancelledBooking, "Cancelled", previousStatus, currentPrincipalName);
+        
         return convertToDto(cancelledBooking);
     }
 
@@ -168,8 +190,11 @@ public class BookingServiceImpl implements BookingService {
         dto.setServiceId(booking.getService().getId());
         dto.setServiceName(booking.getService().getServiceName());
         dto.setTimeSlotId(booking.getTimeSlot().getTimeSlotID());
-        dto.setStartTime(booking.getTimeSlot().getStartTime().toLocalDate());
-        dto.setEndTime(booking.getTimeSlot().getEndTime().toLocalDate());
+        // Set booking date and time correctly
+        dto.setBookingDate(booking.getBookingDate());
+        dto.setBookingTime(booking.getBookingTime());
+        dto.setStartTime(booking.getTimeSlot().getStartTime());
+        dto.setEndTime(booking.getTimeSlot().getEndTime());
         return dto;
     }
 }
