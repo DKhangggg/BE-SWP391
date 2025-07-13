@@ -6,68 +6,52 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalTime;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface TimeSlotRepository extends JpaRepository<TimeSlot, Integer> {
     
-    // Tìm tất cả time slots active
-    List<TimeSlot> findByIsDeletedFalseAndIsActiveTrueOrderByStartTime();
+    // Find available time slots for a specific date
+    @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotDate = :date AND ts.isAvailable = true AND ts.bookedCount < ts.capacity")
+    List<TimeSlot> findAvailableTimeSlotsByDate(@Param("date") LocalDate date);
     
-    // Tìm time slots theo thời gian bắt đầu
-    List<TimeSlot> findByStartTimeAndIsDeletedFalseAndIsActiveTrue(LocalTime startTime);
+    // Find available time slots for a specific consultant and date
+    @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotDate = :date AND ts.consultant.id = :consultantId AND ts.isAvailable = true AND ts.bookedCount < ts.capacity")
+    List<TimeSlot> findAvailableTimeSlotsByDateAndConsultant(@Param("date") LocalDate date, @Param("consultantId") Integer consultantId);
     
-    // Tìm time slots trong khoảng thời gian
-    @Query("SELECT ts FROM TimeSlot ts WHERE ts.startTime >= :startTime AND ts.endTime <= :endTime " +
-           "AND ts.isDeleted = false AND ts.isActive = true ORDER BY ts.startTime")
-    List<TimeSlot> findTimeSlotsBetween(@Param("startTime") LocalTime startTime, 
-                                       @Param("endTime") LocalTime endTime);
+    // Find facility time slots (consultant is null) for a specific date
+    @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotDate = :date AND ts.consultant IS NULL AND ts.isAvailable = true AND ts.bookedCount < ts.capacity")
+    List<TimeSlot> findAvailableFacilityTimeSlotsByDate(@Param("date") LocalDate date);
     
-    // Tìm time slot theo slot number
-    Optional<TimeSlot> findBySlotNumberAndIsDeletedFalseAndIsActiveTrue(Integer slotNumber);
+    // Find facility time slots from today onwards
+    @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotDate >= :date AND ts.consultant IS NULL AND ts.isAvailable = true AND ts.bookedCount < ts.capacity ORDER BY ts.slotDate, ts.startTime")
+    List<TimeSlot> findAvailableFacilityTimeSlotsFromDate(@Param("date") LocalDate date);
     
-    // Tìm time slots có duration cụ thể
-    List<TimeSlot> findByDurationAndIsDeletedFalseAndIsActiveTrueOrderByStartTime(Integer duration);
+    // Find time slots by slot type
+    @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotType = :slotType AND ts.isAvailable = true")
+    List<TimeSlot> findBySlotType(@Param("slotType") String slotType);
     
-    // Tìm time slots có overlap với thời gian cho trước
-    @Query("SELECT ts FROM TimeSlot ts WHERE " +
-           "(ts.startTime < :endTime AND ts.endTime > :startTime) " +
-           "AND ts.isDeleted = false AND ts.isActive = true")
-    List<TimeSlot> findOverlappingTimeSlots(@Param("startTime") LocalTime startTime, 
-                                           @Param("endTime") LocalTime endTime);
+    // Find time slots by consultant
+    @Query("SELECT ts FROM TimeSlot ts WHERE ts.consultant.id = :consultantId AND ts.isAvailable = true")
+    List<TimeSlot> findByConsultantId(@Param("consultantId") Integer consultantId);
     
-    // Tìm time slots available cho booking (có ít nhất 1 consultant available)
-    @Query("SELECT DISTINCT ts FROM TimeSlot ts " +
-           "JOIN ts.consultantAvailabilities ca " +
-           "WHERE ca.dayOfWeek = :dayOfWeek AND ca.isAvailable = true " +
-           "AND ca.isDeleted = false AND ts.isDeleted = false AND ts.isActive = true " +
-           "ORDER BY ts.startTime")
-    List<TimeSlot> findAvailableTimeSlotsForDay(@Param("dayOfWeek") java.time.DayOfWeek dayOfWeek);
+    // Find time slots by date range
+    @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotDate BETWEEN :startDate AND :endDate AND ts.isAvailable = true")
+    List<TimeSlot> findByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     
-    // Đếm số lượng time slots active
-    @Query("SELECT COUNT(ts) FROM TimeSlot ts WHERE ts.isDeleted = false AND ts.isActive = true")
-    long countActiveTimeSlots();
-    
-    // Tìm time slots theo duration range
-    @Query("SELECT ts FROM TimeSlot ts WHERE ts.duration BETWEEN :minDuration AND :maxDuration " +
-           "AND ts.isDeleted = false AND ts.isActive = true ORDER BY ts.startTime")
-    List<TimeSlot> findByDurationRange(@Param("minDuration") Integer minDuration, 
-                                      @Param("maxDuration") Integer maxDuration);
-    
-    // Tìm time slot gần nhất với thời gian cho trước
-    @Query("SELECT ts FROM TimeSlot ts WHERE ts.startTime >= :targetTime " +
-           "AND ts.isDeleted = false AND ts.isActive = true " +
-           "ORDER BY ts.startTime ASC")
-    List<TimeSlot> findNextAvailableTimeSlots(@Param("targetTime") LocalTime targetTime);
-    
-    // Lấy tất cả time slots được sử dụng bởi consultant
-    @Query("SELECT DISTINCT ts FROM TimeSlot ts " +
-           "JOIN ts.consultantAvailabilities ca " +
-           "WHERE ca.consultant.id = :consultantId AND ca.isDeleted = false " +
-           "AND ts.isDeleted = false AND ts.isActive = true " +
-           "ORDER BY ts.startTime")
-    List<TimeSlot> findTimeSlotsByConsultant(@Param("consultantId") Integer consultantId);
+    // Check if time slot exists for specific date and time
+    @Query("SELECT COUNT(ts) > 0 FROM TimeSlot ts WHERE ts.slotDate = :date AND ts.startTime = :startTime AND ts.endTime = :endTime AND ts.consultant.id = :consultantId")
+    boolean existsByDateAndTimeAndConsultant(@Param("date") LocalDate date, @Param("startTime") String startTime, 
+                                           @Param("endTime") String endTime, @Param("consultantId") Integer consultantId);
+
+    // Find active time slots ordered by start time
+    @Query("SELECT ts FROM TimeSlot ts WHERE ts.isAvailable = true ORDER BY ts.startTime")
+    List<TimeSlot> findByIsAvailableTrueOrderByStartTime();
+
+    @Query("SELECT t FROM TimeSlot t WHERE t.consultant.id = :consultantId AND t.slotDate BETWEEN :fromDate AND :toDate AND t.isAvailable = true")
+    List<TimeSlot> findAvailableByConsultantAndDateRange(@Param("consultantId") Integer consultantId,
+                                                     @Param("fromDate") LocalDate fromDate,
+                                                     @Param("toDate") LocalDate toDate);
 }
 

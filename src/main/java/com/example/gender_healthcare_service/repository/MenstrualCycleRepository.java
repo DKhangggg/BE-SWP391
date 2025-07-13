@@ -12,7 +12,8 @@ import java.util.Optional;
 
 public interface MenstrualCycleRepository extends JpaRepository<MenstrualCycle, Integer> {
     List<MenstrualCycle> findByUser(User user);
-    MenstrualCycle findByUserId(Integer userId);
+    // Xóa method trả về 1 bản ghi duy nhất
+    // MenstrualCycle findByUserId(Integer userId);
 
     @Query("SELECT mc FROM MenstrualCycle mc WHERE mc.user.id = :userId AND mc.startDate BETWEEN :startDate AND :endDate ORDER BY mc.startDate DESC")
     List<MenstrualCycle> findByUserIdAndDateRange(@Param("userId") Integer userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);

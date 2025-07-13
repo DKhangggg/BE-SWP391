@@ -4,6 +4,8 @@ import com.example.gender_healthcare_service.dto.request.TestingServiceRequestDT
 import com.example.gender_healthcare_service.dto.request.TestingServiceUpdateDTO;
 import com.example.gender_healthcare_service.dto.response.TestingServiceResponseDTO;
 import com.example.gender_healthcare_service.entity.TestingService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface TestingServiceService {
@@ -12,5 +14,6 @@ public interface TestingServiceService {
     boolean createService(TestingService service);
     TestingServiceResponseDTO updateService(Integer id, TestingServiceUpdateDTO serviceDetails);
     void deleteService(Integer id,boolean isDeleted);
+    Page<TestingService> getAllServices(Pageable pageable);
 }
 

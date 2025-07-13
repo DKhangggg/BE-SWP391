@@ -3,6 +3,7 @@ package com.example.gender_healthcare_service.controller;
 import com.example.gender_healthcare_service.dto.request.*;
 import com.example.gender_healthcare_service.dto.response.*;
 import com.example.gender_healthcare_service.dto.response.DashboardReportDTO;
+import com.example.gender_healthcare_service.dto.response.PageResponse;
 
 import com.example.gender_healthcare_service.entity.TestingService;
 import com.example.gender_healthcare_service.service.*;
@@ -20,6 +21,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import com.example.gender_healthcare_service.entity.User;
+import org.modelmapper.ModelMapper;
 
 @RequestMapping("/api/admin")
 @RestController()
@@ -50,6 +56,8 @@ public class AdminController {
     private ReminderService reminderService;
     @Autowired
     private ReportService reportService;
+    @Autowired
+    private ModelMapper modelMapper;
 
     // Testing Services Management
    @PostMapping("/testing-services")
@@ -79,9 +87,21 @@ public class AdminController {
     }
 
     @GetMapping("/testing-services/bookings")
-    public ResponseEntity<?> viewAllTestBookings() {
-        List<BookingResponseDTO> bookings = bookingService.getAllBookingsForStaff();
-        return new ResponseEntity<>(bookings, HttpStatus.OK);
+    public ResponseEntity<PageResponse<BookingResponseDTO>> viewAllTestBookings(
+        @RequestParam(defaultValue = "1") int pageNumber,
+        @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
+        BookingPageResponseDTO bookings = bookingService.getAllBookingsForStaff(pageable);
+        PageResponse<BookingResponseDTO> response = new PageResponse<>();
+        response.setContent(bookings.getContent());
+        response.setPageNumber(bookings.getPageNumber());
+        response.setPageSize(bookings.getPageSize());
+        response.setTotalElements(bookings.getTotalElements());
+        response.setTotalPages(bookings.getTotalPages());
+        response.setHasNext(bookings.isHasNext());
+        response.setHasPrevious(bookings.isHasPrevious());
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/testing-services/bookings/{bookingId}/results")
@@ -209,12 +229,14 @@ public class AdminController {
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
     @GetMapping("/users")
-    public ResponseEntity<?> getUsersAdmin() {
-       List<UserResponseDTO> users = userService.getAllUsers();
-        if (users.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        return new ResponseEntity<>(users, HttpStatus.OK);
+    public ResponseEntity<?> getUsersAdmin(
+        @RequestParam(defaultValue = "1") int pageNumber,
+        @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
+        Page<User> usersPage = userService.getAllUsers(pageable);
+        Page<UserResponseDTO> dtoPage = usersPage.map(user -> modelMapper.map(user, UserResponseDTO.class));
+        return ResponseEntity.ok(dtoPage);
     }
 
     @PutMapping("/users/{userId}")
@@ -240,20 +262,28 @@ public class AdminController {
 
     // Consultation Booking Management by Admin
     @GetMapping("/consultation-bookings")
-    public ResponseEntity<?> getAllConsultationBookingsAdmin(
+    public ResponseEntity<PageResponse<ConsultationBookingResponseDTO>> getAllConsultationBookingsAdmin(
             @RequestParam(required = false) LocalDate date,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer userId,
-            @RequestParam(required = false) Integer consultantId) {
+            @RequestParam(required = false) Integer consultantId,
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize) {
         try {
-            List<ConsultationBookingResponseDTO> bookings = consultationService.getAllConsultationBookingsForAdmin(date, status, userId, consultantId);
-            if (bookings.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-            }
-            return new ResponseEntity<>(bookings, HttpStatus.OK);
+            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
+            Page<ConsultationBookingResponseDTO> bookings = consultationService.getAllConsultationBookingsForAdminPaginated(date, status, userId, consultantId, pageable);
+            PageResponse<ConsultationBookingResponseDTO> response = new PageResponse<>();
+            response.setContent(bookings.getContent());
+            response.setPageNumber(bookings.getNumber() + 1);
+            response.setPageSize(bookings.getSize());
+            response.setTotalElements(bookings.getTotalElements());
+            response.setTotalPages(bookings.getTotalPages());
+            response.setHasNext(bookings.hasNext());
+            response.setHasPrevious(bookings.hasPrevious());
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error fetching consultation bookings for admin: {}", e.getMessage(), e);
-            return new ResponseEntity<>("Failed to fetch consultation bookings.", HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -469,5 +499,23 @@ public class AdminController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate services report: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/orders")
+    public ResponseEntity<PageResponse<BookingResponseDTO>> getOrders(
+        @RequestParam(defaultValue = "1") int pageNumber,
+        @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
+        BookingPageResponseDTO orders = bookingService.getAllBookingsForStaff(pageable);
+        PageResponse<BookingResponseDTO> response = new PageResponse<>();
+        response.setContent(orders.getContent());
+        response.setPageNumber(orders.getPageNumber());
+        response.setPageSize(orders.getPageSize());
+        response.setTotalElements(orders.getTotalElements());
+        response.setTotalPages(orders.getTotalPages());
+        response.setHasNext(orders.isHasNext());
+        response.setHasPrevious(orders.isHasPrevious());
+        return ResponseEntity.ok(response);
     }
 }

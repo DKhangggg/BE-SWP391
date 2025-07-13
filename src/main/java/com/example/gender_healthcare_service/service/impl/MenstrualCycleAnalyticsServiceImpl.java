@@ -127,7 +127,8 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
         Double avgCycleLength = menstrualCycleRepository.calculateAverageCycleLength(userId);
         Double avgPeriodDuration = menstrualCycleRepository.calculateAveragePeriodDuration(userId);
 
-        MenstrualCycle currentCycle = menstrualCycleRepository.findByUserId(userId);
+        List<MenstrualCycle> cycles = menstrualCycleRepository.findByUserIdOrderByStartDateDesc(userId);
+        MenstrualCycle currentCycle = (cycles != null && !cycles.isEmpty()) ? cycles.get(0) : null;
         if (currentCycle != null) {
             currentCycle.setAverageCycleLength(avgCycleLength);
             currentCycle.setAveragePeriodDuration(avgPeriodDuration);
@@ -222,7 +223,7 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
     }
 
     private String determineFertilityStatus(LocalDate ovulationDate) {
-        LocalDateTime today = LocalDateTime.now();
+        LocalDate today = LocalDate.now();
         long daysToOvulation = ChronoUnit.DAYS.between(today, ovulationDate);
 
         if (Math.abs(daysToOvulation) <= 1) return "HIGH";
@@ -306,19 +307,25 @@ public class MenstrualCycleAnalyticsServiceImpl implements MenstrualCycleAnalyti
     }
 
     private Map<String, Double> analyzeMoodPatterns(Integer userId) {
-        List<MenstrualLog> moodLogs = menstrualLogRepository.findMoodLogsByUserId(userId);
+        try {
+            List<MenstrualLog> moodLogs = menstrualLogRepository.findMoodLogsByUserId(userId);
 
-        Map<MoodType, Long> moodCounts = moodLogs.stream()
-            .filter(log -> log.getMood() != null)
-            .collect(Collectors.groupingBy(MenstrualLog::getMood, Collectors.counting()));
+            Map<MoodType, Long> moodCounts = moodLogs.stream()
+                .filter(log -> log.getMood() != null)
+                .collect(Collectors.groupingBy(MenstrualLog::getMood, Collectors.counting()));
 
-        long total = moodCounts.values().stream().mapToLong(Long::longValue).sum();
+            long total = moodCounts.values().stream().mapToLong(Long::longValue).sum();
 
-        return moodCounts.entrySet().stream()
-            .collect(Collectors.toMap(
-                entry -> entry.getKey().name(),
-                entry -> (double) entry.getValue() / total * 100
-            ));
+            return moodCounts.entrySet().stream()
+                .collect(Collectors.toMap(
+                    entry -> entry.getKey().name(),
+                    entry -> (double) entry.getValue() / total * 100
+                ));
+        } catch (Exception e) {
+            // Log error và trả về map rỗng nếu có lỗi enum
+            System.err.println("Error analyzing mood patterns: " + e.getMessage());
+            return new HashMap<>();
+        }
     }
 
     private Map<String, Integer> analyzeSymptomFrequency(Integer userId) {

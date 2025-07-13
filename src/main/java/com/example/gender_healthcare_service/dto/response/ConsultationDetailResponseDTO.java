@@ -14,8 +14,6 @@ public class ConsultationDetailResponseDTO {
     private Integer userId;
     private String userName;
     private String userEmail;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
     private String status;
     private String consultationType;
     private LocalDateTime createdAt;
@@ -23,4 +21,7 @@ public class ConsultationDetailResponseDTO {
     private String notes;
     private String meetingLink;
     private List<String> consultationNotes;
+
+    private LocationResponseDTO location;
+    private TimeSlotResponseDTO timeSlot;
 }

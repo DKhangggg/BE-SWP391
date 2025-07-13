@@ -1,15 +1,23 @@
 package com.example.gender_healthcare_service.service.impl;
 
 import com.example.gender_healthcare_service.dto.request.BookingRequestDTO;
+import com.example.gender_healthcare_service.dto.request.BookingFilterRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateBookingStatusRequestDTO;
 import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
+import com.example.gender_healthcare_service.dto.response.BookingPageResponseDTO;
+import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.entity.*;
 import com.example.gender_healthcare_service.repository.*;
 import com.example.gender_healthcare_service.exception.ServiceNotFoundException;
+import com.example.gender_healthcare_service.exception.BookingConflictException;
 import com.example.gender_healthcare_service.service.BookingService;
 import com.example.gender_healthcare_service.service.BookingTrackingService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -17,11 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,30 +45,36 @@ public class BookingServiceImpl implements BookingService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentPrincipalName = authentication.getName();
         User currentUser = userRepository.findUserByUsername(currentPrincipalName);
-        if(currentUser== null) {
+        if(currentUser == null) {
             throw new ServiceNotFoundException("User not found: " + currentPrincipalName);
         }
+
         TestingService service = testingServiceRepository.findById(bookingRequestDTO.getServiceId())
                 .orElseThrow(() -> new ServiceNotFoundException("TestingService not found with ID: " + bookingRequestDTO.getServiceId()));
 
         TimeSlot timeSlot = timeSlotRepository.findById(bookingRequestDTO.getTimeSlotId())
                 .orElseThrow(() -> new ServiceNotFoundException("TimeSlot not found with ID: " + bookingRequestDTO.getTimeSlotId()));
-        if (bookingRepository.existsByCustomerIDAndBookingDateAndTimeSlotTimeSlotID(currentUser, bookingRequestDTO.getBookingDate(), timeSlot.getTimeSlotID())) {
-            throw new IllegalStateException("You already have a booking at this date and time slot.");
+
+        // Validate time slot is available
+        if (!timeSlot.isAvailable()) {
+            throw new IllegalStateException("This time slot is not available for booking.");
         }
-        if (bookingRepository.existsByBookingDateAndTimeSlotTimeSlotIDAndStatusNot(bookingRequestDTO.getBookingDate(), timeSlot.getTimeSlotID(), "Cancelled")) {
-            throw new IllegalStateException("This time slot is already booked.");
+
+        // Check if user already has a booking for this time slot
+        if (bookingRepository.existsByCustomerIDAndTimeSlotAndStatusNot(currentUser, timeSlot, "CANCELLED")) {
+            throw new BookingConflictException("Bạn đã đặt lịch cho khung giờ này.");
         }
 
         Booking booking = new Booking();
         booking.setCustomerID(currentUser);
         booking.setService(service);
-        booking.setBookingDate(bookingRequestDTO.getBookingDate());
-        booking.setBookingTime(timeSlot.getStartTime());
-        booking.setEndTime(timeSlot.getEndTime());
         booking.setTimeSlot(timeSlot);
-        booking.setStatus("Scheduled");
-        // booking.setNotes(bookingRequestDTO.getNotes()); // Uncomment if notes are used
+        booking.setStatus("PENDING");
+        booking.setBookingDate(LocalDateTime.now()); // Set booking date
+
+        // Increment booked count in time slot
+        timeSlot.incrementBookedCount();
+        timeSlotRepository.save(timeSlot);
 
         Booking savedBooking = bookingRepository.save(booking);
         
@@ -79,9 +89,9 @@ public class BookingServiceImpl implements BookingService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userName = authentication.getName();
         User currentUser = userRepository.findUserByUsername(userName);
-                if(currentUser== null) {
-                throw new ServiceNotFoundException("User not found: " + userName);
-                }
+        if(currentUser == null) {
+            throw new ServiceNotFoundException("User not found: " + userName);
+        }
         return bookingRepository.findByCustomerID(currentUser).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -116,7 +126,11 @@ public class BookingServiceImpl implements BookingService {
         String previousStatus = booking.getStatus();
         String newStatus = statusRequestDTO.getStatus();
         
-        // TODO: Add validation for allowed status transitions if necessary
+        // Validate status transition
+        if (!isValidStatusTransition(previousStatus, newStatus)) {
+            throw new IllegalStateException("Invalid status transition from " + previousStatus + " to " + newStatus);
+        }
+        
         booking.setStatus(newStatus);
         Booking updatedBooking = bookingRepository.save(booking);
         
@@ -134,9 +148,10 @@ public class BookingServiceImpl implements BookingService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentPrincipalName = authentication.getName();
         User currentUser = userRepository.findUserByUsername(currentPrincipalName);
-                if(currentUser==null) {
-                throw  new ServiceNotFoundException("User not found: " + currentPrincipalName);
-                }
+        if(currentUser == null) {
+            throw new ServiceNotFoundException("User not found: " + currentPrincipalName);
+        }
+        
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ServiceNotFoundException("Booking not found with ID: " + bookingId));
 
@@ -147,25 +162,144 @@ public class BookingServiceImpl implements BookingService {
             throw new org.springframework.security.access.AccessDeniedException("You are not authorized to cancel this booking.");
         }
 
-        if ("Completed".equalsIgnoreCase(booking.getStatus()) || "Cancelled".equalsIgnoreCase(booking.getStatus())) {
-            throw new IllegalStateException("Booking is already " + booking.getStatus() + " and cannot be cancelled.");
+        if (!booking.canBeCancelled()) {
+            throw new IllegalStateException("Booking cannot be cancelled in current status: " + booking.getStatus());
         }
 
         String previousStatus = booking.getStatus();
-        booking.setStatus("Cancelled");
+        booking.setStatus("CANCELLED");
+        
+        // Decrement booked count in time slot
+        TimeSlot timeSlot = booking.getTimeSlot();
+        timeSlot.decrementBookedCount();
+        timeSlotRepository.save(timeSlot);
+        
         Booking cancelledBooking = bookingRepository.save(booking);
         
         // Send real-time notification for cancellation
-        bookingTrackingService.notifyBookingStatusChange(cancelledBooking, "Cancelled", previousStatus, currentPrincipalName);
+        bookingTrackingService.notifyBookingStatusChange(cancelledBooking, "CANCELLED", previousStatus, currentPrincipalName);
         
         return convertToDto(cancelledBooking);
     }
 
     @Override
-    public List<BookingResponseDTO> getAllBookingsForStaff() {
-        return bookingRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    @Transactional
+    public ApiResponse cancelBookingWithResponse(Integer bookingId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentPrincipalName = authentication.getName();
+        User currentUser = userRepository.findUserByUsername(currentPrincipalName);
+        if(currentUser == null) {
+            throw new ServiceNotFoundException("User not found: " + currentPrincipalName);
+        }
+        
+        Booking booking = bookingRepository.findByIdAndCustomerIdAndIsDeletedFalse(bookingId, currentUser.getId())
+                .orElseThrow(() -> new ServiceNotFoundException("Không tìm thấy booking hoặc bạn không có quyền hủy booking này"));
+
+        if (!booking.getStatus().equals("PENDING")) {
+            throw new IllegalStateException("Chỉ có thể hủy booking khi trạng thái là PENDING");
+        }
+
+        String previousStatus = booking.getStatus();
+        booking.setStatus("CANCELLED");
+        booking.setIsDeleted(true);
+        bookingRepository.save(booking);
+
+        // Giảm bookedCount của TimeSlot
+        TimeSlot timeSlot = booking.getTimeSlot();
+        timeSlot.setBookedCount(timeSlot.getBookedCount() - 1);
+        if (timeSlot.getBookedCount() < timeSlot.getCapacity()) {
+            timeSlot.setIsAvailable(true);
+        }
+        timeSlotRepository.save(timeSlot);
+        
+        // Send real-time notification for cancellation
+        bookingTrackingService.notifyBookingStatusChange(booking, "CANCELLED", previousStatus, currentPrincipalName);
+        
+        return new ApiResponse(true, "Hủy booking thành công");
+    }
+
+    // New pagination methods
+    @Override
+    public BookingPageResponseDTO getAllBookingsForStaff(Pageable pageable) {
+        Page<Booking> bookingsPage = bookingRepository.findAllActive(pageable);
+        return createBookingPageResponse(bookingsPage);
+    }
+
+    @Override
+    public BookingPageResponseDTO getBookingsWithFilters(BookingFilterRequestDTO filter, Pageable pageable) {
+        // Create sort based on filter
+        Sort sort = createSort(filter.getSortBy(), filter.getSortDirection());
+        Pageable pageableWithSort = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        
+        Page<Booking> bookingsPage = bookingRepository.findByFilters(
+            filter.getStatus(),
+            filter.getCustomerId(),
+            filter.getServiceId(),
+            filter.getFromDate(),
+            filter.getToDate(),
+            filter.getCustomerName(),
+            filter.getServiceName(),
+            pageableWithSort
+        );
+        
+        return createBookingPageResponse(bookingsPage);
+    }
+
+    @Override
+    public BookingPageResponseDTO getBookingsByStatus(String status, Pageable pageable) {
+        Page<Booking> bookingsPage = bookingRepository.findByStatus(status, pageable);
+        return createBookingPageResponse(bookingsPage);
+    }
+
+    @Override
+    public BookingPageResponseDTO getBookingsByCustomer(Integer customerId, Pageable pageable) {
+        Page<Booking> bookingsPage = bookingRepository.findByCustomerId(customerId, pageable);
+        return createBookingPageResponse(bookingsPage);
+    }
+
+    @Override
+    public BookingPageResponseDTO getBookingsByService(Integer serviceId, Pageable pageable) {
+        Page<Booking> bookingsPage = bookingRepository.findByServiceId(serviceId, pageable);
+        return createBookingPageResponse(bookingsPage);
+    }
+
+    @Override
+    public BookingPageResponseDTO getBookingsByDateRange(LocalDate fromDate, LocalDate toDate, Pageable pageable) {
+        Page<Booking> bookingsPage = bookingRepository.findByDateRange(fromDate, toDate, pageable);
+        return createBookingPageResponse(bookingsPage);
+    }
+
+    // Statistics methods
+    @Override
+    public long getTotalBookings() {
+        return bookingRepository.countAllActive();
+    }
+
+    @Override
+    public long getBookingsByStatus(String status) {
+        return bookingRepository.countByStatusActive(status);
+    }
+
+    @Override
+    public long getBookingsByCustomer(Integer customerId) {
+        return bookingRepository.countByCustomerId(customerId);
+    }
+
+    @Override
+    public long getBookingsByService(Integer serviceId) {
+        return bookingRepository.countByServiceIdActive(serviceId);
+    }
+
+    @Override
+    public long getBookingsByDateRange(LocalDate fromDate, LocalDate toDate) {
+        return bookingRepository.countByDateRange(fromDate, toDate);
+    }
+
+    // Legacy method for backward compatibility
+    @Override
+    public Page<BookingResponseDTO> getAllBookingsForStaffLegacy(Pageable pageable) {
+        Page<Booking> bookingsPage = bookingRepository.findAll(pageable);
+        return bookingsPage.map(this::convertToDto);
     }
 
     @Override
@@ -176,25 +310,100 @@ public class BookingServiceImpl implements BookingService {
         }
         Booking booking = bookingRepository.findByIdAndCustomerID(bookingId, currentUser)
                 .orElseThrow(() -> new ServiceNotFoundException("Booking not found with ID: " + bookingId + " for user " + username));
-         if (booking.getIsDeleted() != null && booking.getIsDeleted()) {
-             throw new ServiceNotFoundException("Booking not found with ID: " + bookingId + " for user " + username);
+        if (booking.getIsDeleted() != null && booking.getIsDeleted()) {
+            throw new ServiceNotFoundException("Booking not found with ID: " + bookingId + " for user " + username);
         }
         return convertToDto(booking);
     }
 
+    // Helper methods
+    private BookingPageResponseDTO createBookingPageResponse(Page<Booking> bookingsPage) {
+        List<BookingResponseDTO> bookingDtos = bookingsPage.getContent().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+
+        BookingPageResponseDTO response = new BookingPageResponseDTO();
+        response.setContent(bookingDtos);
+        response.setPageNumber(bookingsPage.getNumber() + 1);
+        response.setPageSize(bookingsPage.getSize());
+        response.setTotalElements(bookingsPage.getTotalElements());
+        response.setTotalPages(bookingsPage.getTotalPages());
+        response.setHasNext(bookingsPage.hasNext());
+        response.setHasPrevious(bookingsPage.hasPrevious());
+        
+        // Add statistics
+        response.setTotalBookings(getTotalBookings());
+        response.setPendingBookings(getBookingsByStatus("PENDING"));
+        response.setCompletedBookings(getBookingsByStatus("COMPLETED"));
+        response.setCancelledBookings(getBookingsByStatus("CANCELLED"));
+        
+        return response;
+    }
+
+    private Sort createSort(String sortBy, String sortDirection) {
+        Sort.Direction direction = "ASC".equalsIgnoreCase(sortDirection) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        
+        switch (sortBy.toLowerCase()) {
+            case "createdat":
+                return Sort.by(direction, "createdAt");
+            case "status":
+                return Sort.by(direction, "status");
+            case "customername":
+                return Sort.by(direction, "customerID.fullName");
+            case "servicename":
+                return Sort.by(direction, "service.serviceName");
+            case "slotdate":
+                return Sort.by(direction, "timeSlot.slotDate");
+            default:
+                return Sort.by(direction, "createdAt");
+        }
+    }
 
     private BookingResponseDTO convertToDto(Booking booking) {
-        BookingResponseDTO dto = modelMapper.map(booking, BookingResponseDTO.class);
+        BookingResponseDTO dto = new BookingResponseDTO();
+        
+        // Manual mapping để tránh ModelMapper errors
+        dto.setBookingId(booking.getId());
         dto.setCustomerId(booking.getCustomerID().getId());
-        dto.setCustomerName(booking.getCustomerID().getFullName());
+        dto.setCustomerFullName(booking.getCustomerID().getFullName());
+        dto.setCustomerEmailAddress(booking.getCustomerID().getEmail());
+        dto.setCustomerPhone(booking.getCustomerID().getPhoneNumber());
         dto.setServiceId(booking.getService().getId());
         dto.setServiceName(booking.getService().getServiceName());
-        dto.setTimeSlotId(booking.getTimeSlot().getTimeSlotID());
-        // Set booking date and time correctly
+        dto.setServiceDescription(booking.getService().getDescription());
+        dto.setServicePrice(booking.getService().getPrice());
+        dto.setStatus(booking.getStatus());
+        dto.setResult(booking.getResult());
+        dto.setResultDate(booking.getResultDate());
+        dto.setCreatedAt(booking.getCreatedAt());
         dto.setBookingDate(booking.getBookingDate());
-        dto.setBookingTime(booking.getBookingTime());
-        dto.setStartTime(booking.getTimeSlot().getStartTime());
-        dto.setEndTime(booking.getTimeSlot().getEndTime());
+        
+        // Time slot mapping with null check
+        if (booking.getTimeSlot() != null) {
+            dto.setTimeSlotId(booking.getTimeSlot().getTimeSlotID());
+            dto.setSlotDate(booking.getTimeSlot().getSlotDate());
+            dto.setStartTime(booking.getTimeSlot().getStartTime());
+            dto.setEndTime(booking.getTimeSlot().getEndTime());
+            dto.setSlotType(booking.getTimeSlot().getSlotType());
+        }
+        
         return dto;
+    }
+
+    private boolean isValidStatusTransition(String currentStatus, String newStatus) {
+        switch (currentStatus) {
+            case "PENDING":
+                return "SAMPLE_COLLECTED".equals(newStatus) || "CANCELLED".equals(newStatus);
+            case "SAMPLE_COLLECTED":
+                return "TESTING".equals(newStatus) || "CANCELLED".equals(newStatus);
+            case "TESTING":
+                return "COMPLETED".equals(newStatus) || "CANCELLED".equals(newStatus);
+            case "COMPLETED":
+                return false; // Cannot change from completed
+            case "CANCELLED":
+                return false; // Cannot change from cancelled
+            default:
+                return false;
+        }
     }
 }

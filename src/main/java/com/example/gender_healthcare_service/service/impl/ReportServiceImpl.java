@@ -160,10 +160,10 @@ public class ReportServiceImpl implements ReportService {
             dayStat.setDate(current.toLocalDate());
             dayStat.setPeriod("daily");
 
-            dayStat.setTotalBookings(bookingRepository.countByBookingDate(current.toLocalDate()));
-            dayStat.setCompletedBookings(bookingRepository.countByBookingDateAndStatus(current.toLocalDate(), "COMPLETED"));
-            dayStat.setPendingBookings(bookingRepository.countByBookingDateAndStatus(current.toLocalDate(), "PENDING"));
-            dayStat.setCancelledBookings(bookingRepository.countByBookingDateAndStatus(current.toLocalDate(), "CANCELLED"));
+            dayStat.setTotalBookings(bookingRepository.countByTimeSlot_SlotDate(current.toLocalDate()));
+            dayStat.setCompletedBookings(bookingRepository.countByTimeSlot_SlotDateAndStatus(current.toLocalDate(), "COMPLETED"));
+            dayStat.setPendingBookings(bookingRepository.countByTimeSlot_SlotDateAndStatus(current.toLocalDate(), "PENDING"));
+            dayStat.setCancelledBookings(bookingRepository.countByTimeSlot_SlotDateAndStatus(current.toLocalDate(), "CANCELLED"));
 
             stats.add(dayStat);
             current = current.plusDays(1);

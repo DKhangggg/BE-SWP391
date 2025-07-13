@@ -18,13 +18,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/menstrual-cycle")
-@PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN') or hasAuthority('CUSTOMER') or hasAuthority('ROLE_USER') or hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_CUSTOMER') or hasAuthority('ROLE_CONSULTANT')")
+@PreAuthorize("isAuthenticated()")
+//@PreAuthorize("hasAuthority('CUSTOMER') or hasAuthority('ROLE_CUSTOMER') or hasRole('CUSTOMER') or hasRole('ROLE_CUSTOMER') or hasAuthority('USER') or hasAuthority('ROLE_USER') or hasRole('USER') or hasRole('ROLE_USER') or hasAuthority('ADMIN') or hasAuthority('ROLE_ADMIN') or hasRole('ADMIN') or hasRole('ROLE_ADMIN') or hasAuthority('ROLE_CONSULTANT') or hasRole('ROLE_CONSULTANT')")
 public class EnhancedMenstrualCycleController {
 
     private static final Logger logger = LoggerFactory.getLogger(EnhancedMenstrualCycleController.class);
@@ -38,13 +41,10 @@ public class EnhancedMenstrualCycleController {
     @Autowired
     private INotificationService notificationService;
 
-    /**
-     * Log enhanced menstrual data with symptoms, mood, and flow tracking
-     */
     @PostMapping("/log-enhanced")
     public ResponseEntity<?> logEnhancedMenstrualData(@RequestBody EnhancedMenstrualLogRequestDTO requestDTO) {
         try {
-            requestDTO.setLogDate(LocalDateTime.now());
+            if(requestDTO.getLogDate()==null){requestDTO.setLogDate(LocalDateTime.now());}
             menstrualCycleService.logEnhancedMenstrualData(requestDTO);
             return ResponseEntity.ok("Enhanced menstrual data logged successfully");
         } catch (Exception e) {
@@ -54,9 +54,6 @@ public class EnhancedMenstrualCycleController {
         }
     }
 
-    /**
-     * Consultant views a user's menstrual logs
-     */
     @GetMapping("/consultant/view/{userId}")
     @PreAuthorize("hasAuthority('ROLE_CONSULTANT')")
     public ResponseEntity<?> getMenstrualLogsForUserByConsultant(
@@ -76,9 +73,6 @@ public class EnhancedMenstrualCycleController {
         }
     }
 
-    /**
-     * Consultant updates a user's menstrual log
-     */
     @PutMapping("/consultant/log/{logId}")
     @PreAuthorize("hasAuthority('ROLE_CONSULTANT')")
     public ResponseEntity<?> updateMenstrualLogByConsultant(
@@ -208,22 +202,48 @@ public class EnhancedMenstrualCycleController {
      * Get comprehensive dashboard data for menstrual cycle tracking
      */
     @GetMapping("/dashboard")
-    public ResponseEntity<?> getMenstrualCycleDashboard() {
+    public ResponseEntity<?> getMenstrualCycleDashboard(HttpServletRequest request) {
         try {
-            Integer userId = getCurrentUserId();
+            // Lấy token từ header
+            String authHeader = request.getHeader("Authorization");
+            logger.info("[DASHBOARD] Authorization header: {}", authHeader);
 
-            // Collect all relevant data for dashboard
+            // Lấy user từ SecurityContext
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            String username = "unknown";
+            Collection<?> authorities = null;
+            if (principal instanceof UserDetails) {
+                username = ((UserDetails) principal).getUsername();
+                authorities = ((UserDetails) principal).getAuthorities();
+            }
+            logger.info("[DASHBOARD] Username: {}", username);
+            logger.info("[DASHBOARD] Authorities: {}", authorities);
+
+            Integer userId = getCurrentUserId();
+            logger.info("[DASHBOARD] userId: {}", userId);
+
             PeriodPredictionDTO prediction = menstrualCycleService.getPeriodPrediction(userId);
             FertilityWindowDTO fertilityWindow = menstrualCycleService.getFertilityWindow(userId);
             CycleAnalyticsDTO analytics = menstrualCycleService.getCycleAnalytics(userId);
             List<String> insights = menstrualCycleService.getHealthInsights(userId);
 
-            // Create dashboard response
+            boolean isEmpty = (prediction == null || prediction.getNextPeriodDate() == null)
+                    && (fertilityWindow == null || fertilityWindow.getOvulationDate() == null)
+                    && (analytics == null || analytics.getTotalCyclesTracked() == 0);
+
             MenstrualCycleDashboardDTO dashboard = new MenstrualCycleDashboardDTO();
-            dashboard.setPeriodPrediction(prediction);
-            dashboard.setFertilityWindow(fertilityWindow);
-            dashboard.setCycleAnalytics(analytics);
-            dashboard.setHealthInsights(insights);
+            if (isEmpty) {
+                // Trả về dashboard mẫu nếu chưa có dữ liệu
+                dashboard.setPeriodPrediction(null);
+                dashboard.setFertilityWindow(null);
+                dashboard.setCycleAnalytics(null);
+                dashboard.setHealthInsights(List.of("Bạn chưa có dữ liệu chu kỳ nào. Hãy nhập nhật ký chu kỳ đầu tiên trong tháng này!"));
+            } else {
+                dashboard.setPeriodPrediction(prediction);
+                dashboard.setFertilityWindow(fertilityWindow);
+                dashboard.setCycleAnalytics(analytics);
+                dashboard.setHealthInsights(insights);
+            }
 
             return ResponseEntity.ok(dashboard);
         } catch (Exception e) {

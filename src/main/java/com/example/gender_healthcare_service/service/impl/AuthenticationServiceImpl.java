@@ -162,16 +162,17 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
         if (user == null) {
             throw new UsernameNotFoundException("User not found with username: " + username);
         }
+        String role = user.getRoleName();
+        if (!role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
+        }
 
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority(user.getRoleName()));
-
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername())
-                .password(user.getPasswordHash())
-                .disabled(user.getIsDeleted() != null && user.getIsDeleted())
-                .authorities(authorities)
-                .build();
+        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPasswordHash(),
+                authorities
+        );
     }
 
 

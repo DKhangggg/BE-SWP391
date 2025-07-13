@@ -18,6 +18,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -41,10 +43,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
+    }
+
+    @Override
     public UserResponseDTO getInfo() {
         try {
-            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            User userValid = userRepository.findUserByUsername(currentUser.getUsername());
+            String username =  SecurityContextHolder.getContext().getAuthentication().getName();
+            User userValid = userRepository.findUserByUsername(username);
             if (userValid == null) {
                throw new RuntimeException("User not found");
             }

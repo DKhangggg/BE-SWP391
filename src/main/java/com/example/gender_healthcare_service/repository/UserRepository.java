@@ -23,7 +23,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Query("SELECT count(u) FROM User u WHERE u.createdAt >= :startDate AND u.createdAt < :endDate")
     long countByRegistrationDate(LocalDate startDate, LocalDate endDate);
 
-    @Query("SELECT COUNT(DISTINCT b.customerID) FROM Booking b WHERE b.bookingDate = :date")
+    @Query("SELECT COUNT(DISTINCT b.customerID) FROM Booking b WHERE b.timeSlot.slotDate = :date AND b.isDeleted = false")
     long countActiveUsersByDate(LocalDate date);
 
     @Query("SELECT count(u) FROM User u WHERE u.createdAt < :endDate")

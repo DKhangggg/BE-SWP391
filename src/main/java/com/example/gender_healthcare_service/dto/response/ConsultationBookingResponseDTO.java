@@ -11,7 +11,6 @@ public class ConsultationBookingResponseDTO {
     private Integer userId;
     private String userName;
     private LocalDateTime startTime;
-    private LocalDateTime endTime;
     private String status;
     private String consultationType;
     private LocalDateTime createdAt;

@@ -4,9 +4,11 @@ import com.example.gender_healthcare_service.dto.request.QuestionRequestDTO;
 import com.example.gender_healthcare_service.dto.request.AnswerRequestDTO;
 import com.example.gender_healthcare_service.dto.response.QuestionResponseDTO;
 import com.example.gender_healthcare_service.dto.response.AnswerResponseDTO;
+import com.example.gender_healthcare_service.dto.response.PageResponse;
 import com.example.gender_healthcare_service.service.QAService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,20 +36,41 @@ public class QAController {
 
     @GetMapping("/user/questions")
     @PreAuthorize("hasAuthority('ROLE_CUSTOMER')")
-    public ResponseEntity<Page<QuestionResponseDTO>> getUserQuestions(
+    public ResponseEntity<PageResponse<QuestionResponseDTO>> getUserQuestions(
             @RequestParam(required = false) Integer userId,
-            String status, Pageable pageable) {
-        Page<QuestionResponseDTO> questions = qaService.getUserQuestions( userId,status, pageable);
-        return ResponseEntity.ok(questions);
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
+        Page<QuestionResponseDTO> questions = qaService.getUserQuestions(userId, status, pageable);
+        PageResponse<QuestionResponseDTO> response = new PageResponse<>();
+        response.setContent(questions.getContent());
+        response.setPageNumber(questions.getNumber() + 1);
+        response.setPageSize(questions.getSize());
+        response.setTotalElements(questions.getTotalElements());
+        response.setTotalPages(questions.getTotalPages());
+        response.setHasNext(questions.hasNext());
+        response.setHasPrevious(questions.hasPrevious());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/consultant/questions")
     @PreAuthorize("hasAuthority('ROLE_CONSULTANT')")
-    public ResponseEntity<Page<QuestionResponseDTO>> getUnansweredQuestions(
+    public ResponseEntity<PageResponse<QuestionResponseDTO>> getUnansweredQuestions(
             @RequestParam(required = false) String category,
-            Pageable pageable) {
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
         Page<QuestionResponseDTO> questions = qaService.getConsultantQuestions(category, pageable);
-        return ResponseEntity.ok(questions);
+        PageResponse<QuestionResponseDTO> response = new PageResponse<>();
+        response.setContent(questions.getContent());
+        response.setPageNumber(questions.getNumber() + 1);
+        response.setPageSize(questions.getSize());
+        response.setTotalElements(questions.getTotalElements());
+        response.setTotalPages(questions.getTotalPages());
+        response.setHasNext(questions.hasNext());
+        response.setHasPrevious(questions.hasPrevious());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/questions/{questionId}")
@@ -104,15 +127,25 @@ public class QAController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<Page<QuestionResponseDTO>> searchQuestions(
+    public ResponseEntity<PageResponse<QuestionResponseDTO>> searchQuestions(
             @RequestParam(required = false) String query,
-            Pageable pageable) {
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
         Page<QuestionResponseDTO> questions = qaService.searchQuestions(query, pageable);
         if(questions.isEmpty()){
             return ResponseEntity.noContent().build();
         }
         else {
-            return ResponseEntity.ok(questions);
+            PageResponse<QuestionResponseDTO> response = new PageResponse<>();
+            response.setContent(questions.getContent());
+            response.setPageNumber(questions.getNumber() + 1);
+            response.setPageSize(questions.getSize());
+            response.setTotalElements(questions.getTotalElements());
+            response.setTotalPages(questions.getTotalPages());
+            response.setHasNext(questions.hasNext());
+            response.setHasPrevious(questions.hasPrevious());
+            return ResponseEntity.ok(response);
         }
     }
 }

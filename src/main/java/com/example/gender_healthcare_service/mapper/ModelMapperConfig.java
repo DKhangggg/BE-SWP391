@@ -23,6 +23,7 @@ public class ModelMapperConfig {
         configureServiceMapping(modelMapper);
         configureQuestionMapping(modelMapper);
         configureBlogCategoryMapping(modelMapper);
+        // Bỏ qua configureBookingMapping vì sử dụng manual mapping trong service
         return modelMapper;
     }
 
@@ -123,5 +124,82 @@ public class ModelMapperConfig {
                     mapper.map(src -> src.getName(), BlogCategory::setCategoryName);
                     mapper.map(src -> src.getDescription(), BlogCategory::setDescription);
                 });
+    }
+
+    private void configureBookingMapping(ModelMapper modelMapper) {
+        TypeMap<Booking, BookingResponseDTO> typeMap = modelMapper.createTypeMap(Booking.class, BookingResponseDTO.class);
+        typeMap.addMappings(mapper -> {
+            // Explicitly map each field to avoid conflicts
+            mapper.map(Booking::getId, BookingResponseDTO::setBookingId);
+            mapper.map(src -> src.getCustomerID().getId(), BookingResponseDTO::setCustomerId);
+            mapper.map(src -> src.getCustomerID().getFullName(), BookingResponseDTO::setCustomerFullName);
+            mapper.map(src -> src.getCustomerID().getEmail(), BookingResponseDTO::setCustomerEmailAddress);
+            mapper.map(src -> src.getCustomerID().getPhoneNumber(), BookingResponseDTO::setCustomerPhone);
+            mapper.map(src -> src.getService().getId(), BookingResponseDTO::setServiceId);
+            mapper.map(src -> src.getService().getServiceName(), BookingResponseDTO::setServiceName);
+            mapper.map(src -> src.getService().getDescription(), BookingResponseDTO::setServiceDescription);
+            mapper.map(src -> src.getService().getPrice(), BookingResponseDTO::setServicePrice);
+            mapper.map(Booking::getStatus, BookingResponseDTO::setStatus);
+            mapper.map(Booking::getResult, BookingResponseDTO::setResult);
+            mapper.map(Booking::getResultDate, BookingResponseDTO::setResultDate);
+            mapper.map(Booking::getCreatedAt, BookingResponseDTO::setCreatedAt);
+            
+            // Time slot mapping with safe null check
+            mapper.map(src -> {
+                try {
+                    return src.getTimeSlot() != null ? src.getTimeSlot().getTimeSlotID() : null;
+                } catch (Exception e) {
+                    return null;
+                }
+            }, BookingResponseDTO::setTimeSlotId);
+            
+            mapper.map(src -> {
+                try {
+                    return src.getTimeSlot() != null ? src.getTimeSlot().getSlotDate() : null;
+                } catch (Exception e) {
+                    return null;
+                }
+            }, BookingResponseDTO::setSlotDate);
+            
+            mapper.map(src -> {
+                try {
+                    return src.getTimeSlot() != null ? src.getTimeSlot().getStartTime() : null;
+                } catch (Exception e) {
+                    return null;
+                }
+            }, BookingResponseDTO::setStartTime);
+            
+            mapper.map(src -> {
+                try {
+                    return src.getTimeSlot() != null ? src.getTimeSlot().getEndTime() : null;
+                } catch (Exception e) {
+                    return null;
+                }
+            }, BookingResponseDTO::setEndTime);
+            
+            mapper.map(src -> {
+                try {
+                    return src.getTimeSlot() != null ? src.getTimeSlot().getSlotType() : null;
+                } catch (Exception e) {
+                    return null;
+                }
+            }, BookingResponseDTO::setSlotType);
+            
+            // Skip any other fields to avoid conflicts
+            mapper.skip(BookingResponseDTO::setNotes);
+            mapper.skip(BookingResponseDTO::setDisplayInfo);
+        });
+    }
+
+    // Thêm mapping cho Consultation → ConsultationBookingResponseDTO
+    private void configureConsultationMapping(ModelMapper modelMapper) {
+        modelMapper.typeMap(Consultation.class, ConsultationBookingResponseDTO.class)
+            .addMapping(src -> src.getConsultant().getId(), ConsultationBookingResponseDTO::setConsultantId)
+            .addMapping(src -> src.getConsultant().getFullName(), ConsultationBookingResponseDTO::setConsultantName)
+            .addMapping(src -> src.getCustomer().getId(), ConsultationBookingResponseDTO::setUserId)
+            .addMapping(src -> src.getCustomer().getFullName(), ConsultationBookingResponseDTO::setUserName)
+            .addMapping(Consultation::getStatus, ConsultationBookingResponseDTO::setStatus)
+            .addMapping(Consultation::getNotes, ConsultationBookingResponseDTO::setNotes)
+            .addMapping(Consultation::getCreatedAt, ConsultationBookingResponseDTO::setCreatedAt);
     }
 }

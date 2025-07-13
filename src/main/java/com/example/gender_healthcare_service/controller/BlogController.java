@@ -4,12 +4,14 @@ import com.example.gender_healthcare_service.dto.request.BlogCategoryRequestDTO;
 import com.example.gender_healthcare_service.dto.request.BlogPostRequestDTO;
 import com.example.gender_healthcare_service.dto.response.BlogCategoryWithPostsDTO;
 import com.example.gender_healthcare_service.dto.response.BlogPostResponseDTO;
+import com.example.gender_healthcare_service.dto.response.PageResponse;
 import com.example.gender_healthcare_service.entity.BlogCategory;
 import com.example.gender_healthcare_service.entity.BlogPost;
 import com.example.gender_healthcare_service.service.BlogCategoryService;
 import com.example.gender_healthcare_service.service.BlogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,15 +32,27 @@ public class BlogController {
 
     // Blog Post APIs
     @GetMapping("/posts")
-    public ResponseEntity<?> getBlogPosts(Pageable pageable) {
+    public ResponseEntity<PageResponse<BlogPostResponseDTO>> getBlogPosts(
+        @RequestParam(defaultValue = "1") int pageNumber,
+        @RequestParam(defaultValue = "10") int pageSize
+    ) {
         try {
+            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
             Page<BlogPostResponseDTO> blogPosts = blogService.getBlogPosts(pageable);
             if(blogPosts.getTotalElements() == 0) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("No posts found");
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
-            return ResponseEntity.ok(blogPosts);
+            PageResponse<BlogPostResponseDTO> response = new PageResponse<>();
+            response.setContent(blogPosts.getContent());
+            response.setPageNumber(blogPosts.getNumber() + 1);
+            response.setPageSize(blogPosts.getSize());
+            response.setTotalElements(blogPosts.getTotalElements());
+            response.setTotalPages(blogPosts.getTotalPages());
+            response.setHasNext(blogPosts.hasNext());
+            response.setHasPrevious(blogPosts.hasPrevious());
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching blog posts: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -93,41 +107,85 @@ public class BlogController {
     }
 
     @GetMapping("/posts/category/{categoryId}")
-    public ResponseEntity<?> getBlogPostsByCategory(@PathVariable Integer categoryId, Pageable pageable) {
+    public ResponseEntity<PageResponse<BlogPostResponseDTO>> getBlogPostsByCategory(
+        @PathVariable Integer categoryId,
+        @RequestParam(defaultValue = "1") int pageNumber,
+        @RequestParam(defaultValue = "10") int pageSize
+    ) {
         try {
+            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
             Page<BlogPost> blogPosts = blogService.getBlogPostsByCategory(categoryId, pageable);
             if(blogPosts.getTotalElements() == 0) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("No posts found for this category");
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
-            return ResponseEntity.ok(blogPosts);
+            PageResponse<BlogPostResponseDTO> response = new PageResponse<>();
+            response.setContent(blogPosts.getContent().stream()
+                .map(post -> org.modelmapper.ModelMapper.class.cast(blogService).map(post, BlogPostResponseDTO.class))
+                .collect(java.util.stream.Collectors.toList()));
+            response.setPageNumber(blogPosts.getNumber() + 1);
+            response.setPageSize(blogPosts.getSize());
+            response.setTotalElements(blogPosts.getTotalElements());
+            response.setTotalPages(blogPosts.getTotalPages());
+            response.setHasNext(blogPosts.hasNext());
+            response.setHasPrevious(blogPosts.hasPrevious());
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @GetMapping("/posts/search")
-    public ResponseEntity<?> searchBlogPosts(@RequestParam String keyword, Pageable pageable) {
+    public ResponseEntity<PageResponse<BlogPostResponseDTO>> searchBlogPosts(
+        @RequestParam String keyword,
+        @RequestParam(defaultValue = "1") int pageNumber,
+        @RequestParam(defaultValue = "10") int pageSize
+    ) {
         try {
+            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
             Page<BlogPost> blogPosts = blogService.searchBlogPosts(keyword, pageable);
             if(blogPosts.getTotalElements() == 0) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("No posts found for your search");
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
-            return ResponseEntity.ok(blogPosts);
+            PageResponse<BlogPostResponseDTO> response = new PageResponse<>();
+            response.setContent(blogPosts.getContent().stream()
+                .map(post -> org.modelmapper.ModelMapper.class.cast(blogService).map(post, BlogPostResponseDTO.class))
+                .collect(java.util.stream.Collectors.toList()));
+            response.setPageNumber(blogPosts.getNumber() + 1);
+            response.setPageSize(blogPosts.getSize());
+            response.setTotalElements(blogPosts.getTotalElements());
+            response.setTotalPages(blogPosts.getTotalPages());
+            response.setHasNext(blogPosts.hasNext());
+            response.setHasPrevious(blogPosts.hasPrevious());
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @GetMapping("/posts/featured")
-    public ResponseEntity<?> getFeaturedBlogPosts(Pageable pageable) {
+    public ResponseEntity<PageResponse<BlogPostResponseDTO>> getFeaturedBlogPosts(
+        @RequestParam(defaultValue = "1") int pageNumber,
+        @RequestParam(defaultValue = "10") int pageSize
+    ) {
         try {
+            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
             Page<BlogPost> featuredPosts = blogService.getFeaturedBlogPosts(pageable);
             if(featuredPosts.getTotalElements() == 0) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("No featured posts found");
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
             }
-            return ResponseEntity.ok(featuredPosts);
+            PageResponse<BlogPostResponseDTO> response = new PageResponse<>();
+            response.setContent(featuredPosts.getContent().stream()
+                .map(post -> org.modelmapper.ModelMapper.class.cast(blogService).map(post, BlogPostResponseDTO.class))
+                .collect(java.util.stream.Collectors.toList()));
+            response.setPageNumber(featuredPosts.getNumber() + 1);
+            response.setPageSize(featuredPosts.getSize());
+            response.setTotalElements(featuredPosts.getTotalElements());
+            response.setTotalPages(featuredPosts.getTotalPages());
+            response.setHasNext(featuredPosts.hasNext());
+            response.setHasPrevious(featuredPosts.hasPrevious());
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 

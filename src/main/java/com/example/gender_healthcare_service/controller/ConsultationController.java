@@ -49,7 +49,7 @@ public class ConsultationController {
     }
 
     @GetMapping("/consultant-bookings")
-    @PreAuthorize("hasAuthority('ROLE_CONSULTANT')")
+    @PreAuthorize("hasAuthority('ROLE_CONSULTANT') or hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<ConsultationBookingResponseDTO>> getConsultantBookings(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) String status) {
@@ -69,6 +69,9 @@ public class ConsultationController {
     @GetMapping("/{consultationId}")
     public ResponseEntity<ConsultationDetailResponseDTO> getConsultationDetails(@PathVariable Integer consultationId) {
         ConsultationDetailResponseDTO details = consultationService.getConsultationDetails(consultationId);
+        if(details==null){
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(details);
     }
 

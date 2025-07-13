@@ -161,7 +161,6 @@ public class ConsultantAvailabilityServiceImpl implements ConsultantAvailability
                     ConsultantSchedule schedule = new ConsultantSchedule();
                     schedule.setConsultant(consultant);
                     schedule.setTimeSlot(availability.getTimeSlot());
-                    schedule.setConsultantAvailability(availability);
                     schedule.setScheduleDate(date);
                     schedule.setStartTime(availability.getTimeSlot().getStartTime());
                     schedule.setEndTime(availability.getTimeSlot().getEndTime());
@@ -255,7 +254,7 @@ public class ConsultantAvailabilityServiceImpl implements ConsultantAvailability
         log.info("Creating default availability template for consultant {}", consultant.getId());
 
         // Lấy tất cả time slots active
-        List<TimeSlot> timeSlots = timeSlotRepository.findByIsDeletedFalseAndIsActiveTrueOrderByStartTime();
+        List<TimeSlot> timeSlots = timeSlotRepository.findByIsAvailableTrueOrderByStartTime();
         
         // Tạo availability cho thứ 2-6 (9AM-5PM)
         List<DayOfWeek> workingDays = Arrays.asList(

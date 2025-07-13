@@ -11,18 +11,26 @@ import com.example.gender_healthcare_service.entity.User;
 import com.example.gender_healthcare_service.repository.ConsultantRepository;
 import com.example.gender_healthcare_service.repository.ConsultantUnavailabilityRepository;
 import com.example.gender_healthcare_service.repository.UserRepository;
+import com.example.gender_healthcare_service.repository.ChatRepository;
+import com.example.gender_healthcare_service.repository.PaymentRepository;
+import com.example.gender_healthcare_service.entity.Payment;
 import com.example.gender_healthcare_service.service.ConsultantScheduleService;
 import com.example.gender_healthcare_service.service.ConsultantService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -45,6 +53,12 @@ public class ConsultantServiceImpl implements ConsultantService {
 
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
+
+    @Autowired
+    private ChatRepository chatRepository;
+
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Override
     public ConsultantDTO getConsultantById(Integer consultantId) {
@@ -181,36 +195,89 @@ public class ConsultantServiceImpl implements ConsultantService {
         Optional<Consultant> consultantOptional = consultantRepository.findById(userId);
         return consultantOptional.orElse(null);
     }
+
     @Override
-    public boolean addUnavailability(UnavailabilityRequest unavailabilityRequest){
-        Consultant consultant = consultantRepository.findById(unavailabilityRequest.getConsultantId())
-                .orElseThrow(() -> new RuntimeException("Consultant not found with ID: " + unavailabilityRequest.getConsultantId()));
-
-        List<ConsultantUnavailability> existingUnavailability = consultantUnavailabilityRepository.findByConsultantAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(consultant,unavailabilityRequest.getStartDate(),unavailabilityRequest.getEndDate().plusDays(30));
-
-        if (!existingUnavailability.isEmpty()) {
-            throw new RuntimeException("Unavailability already exists for this date.");
+    public boolean addUnavailability(UnavailabilityRequest unavailabilityRequest) {
+        try {
+            ConsultantUnavailability unavailability = new ConsultantUnavailability();
+            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            Consultant consultant = consultantRepository.findById(currentUser.getId())
+                    .orElseThrow(() -> new RuntimeException("Consultant not found"));
+            
+            unavailability.setConsultant(consultant);
+            unavailability.setStartTime(unavailabilityRequest.getStartDate());
+            unavailability.setEndTime(unavailabilityRequest.getEndDate());
+            unavailability.setReason(unavailabilityRequest.getReason());
+            unavailability.setStatus(RequestStatus.IN_PROGRESS);
+            
+            consultantUnavailabilityRepository.save(unavailability);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
-        ConsultantUnavailability unavailability = new ConsultantUnavailability();
-        unavailability.setConsultant(consultant);
-        unavailability.setStartTime(unavailabilityRequest.getStartDate());
-        unavailability.setEndTime(unavailabilityRequest.getEndDate().plusHours(23).plusMinutes(59));
-        unavailability.setStatus(RequestStatus.IN_PROGRESS);
-        unavailability.setCreateDate(LocalDateTime.now());
-        unavailability.setReason(unavailabilityRequest.getReason());
-        consultantUnavailabilityRepository.save(unavailability);
-        return true;
     }
 
     @Override
     public List<ConsultantUnavailability> getUnavailabilityByDate(String date) {
-        LocalDate localDate = LocalDate.parse(date);
-        User currentUser = (User) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (currentUser == null) {
-            throw new RuntimeException("No user is currently authenticated.");
+        try {
+            LocalDate localDate = LocalDate.parse(date);
+            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            Consultant consultant = consultantRepository.findById(currentUser.getId())
+                    .orElseThrow(() -> new RuntimeException("Consultant not found"));
+            
+            return consultantUnavailabilityRepository.findByConsultantAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(
+                consultant, LocalDateTime.now(), LocalDateTime.now().plusDays(30));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
         }
-        Consultant consultant = consultantRepository.findById(currentUser.getId())
-                .orElseThrow(() -> new RuntimeException("Consultant not found for the current user."));
-        return consultantUnavailabilityRepository.findByConsultantAndStartTimeLessThanEqualAndEndTimeGreaterThanEqual(consultant,LocalDateTime.now(), LocalDateTime.now().plusDays(30));
+    }
+
+    // Dashboard APIs
+    @Override
+    public long getUnreadMessagesCount() {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return chatRepository.findByConsultant(currentUser).stream()
+                .filter(chat -> "PENDING".equalsIgnoreCase(chat.getStatus()))
+                .count();
+    }
+
+    @Override
+    public Map<String, Object> getRevenue(String date, String month) {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Map<String, Object> result = new HashMap<>();
+        
+        if (date != null && !date.isEmpty()) {
+            LocalDate localDate = LocalDate.parse(date);
+            LocalDateTime start = localDate.atStartOfDay();
+            LocalDateTime end = localDate.plusDays(1).atStartOfDay();
+            BigDecimal total = paymentRepository.findByConsultation_ConsultantAndPaymentDateBetweenAndIsDeletedFalse(currentUser, start, end)
+                    .stream().map(Payment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            result.put("amount", total);
+        } else if (month != null && !month.isEmpty()) {
+            YearMonth ym = YearMonth.parse(month);
+            LocalDateTime start = ym.atDay(1).atStartOfDay();
+            LocalDateTime end = ym.plusMonths(1).atDay(1).atStartOfDay();
+            BigDecimal total = paymentRepository.findByConsultation_ConsultantAndPaymentDateBetweenAndIsDeletedFalse(currentUser, start, end)
+                    .stream().map(Payment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+            result.put("amount", total);
+        } else {
+            result.put("amount", BigDecimal.ZERO);
+        }
+        
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> getTotalRevenue() {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Map<String, Object> result = new HashMap<>();
+        
+        BigDecimal total = paymentRepository.findByConsultation_ConsultantAndIsDeletedFalse(currentUser)
+                .stream().map(Payment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        result.put("amount", total);
+        
+        return result;
     }
 }

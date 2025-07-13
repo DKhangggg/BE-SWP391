@@ -17,12 +17,19 @@ import org.springframework.web.bind.annotation.*;
 import com.example.gender_healthcare_service.dto.response.ConsultationBookingResponseDTO;
 import com.example.gender_healthcare_service.entity.ConsultantUnavailability;
 import com.example.gender_healthcare_service.service.ConsultationService;
+import com.example.gender_healthcare_service.entity.User;
+import org.springframework.security.core.context.SecurityContextHolder;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.math.BigDecimal;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/consultant")
-@PreAuthorize("hasAuthority('ROLE_CONSULTANT')")
+@PreAuthorize("hasAuthority('ROLE_CONSULTANT') or hasAuthority('ROLE_ADMIN')")
 public class ConsultantController {
     @Autowired
     private ConsultantService consultantService;
@@ -149,6 +156,39 @@ public class ConsultantController {
             return ResponseEntity.ok().body("Reminder deleted successfully");
         } catch (Exception e) {
             return ResponseEntity.status(400).body("Failed to delete reminder: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/messages/unread-count")
+    public ResponseEntity<?> getUnreadMessagesCount() {
+        try {
+            long count = consultantService.getUnreadMessagesCount();
+            return ResponseEntity.ok(count);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Failed to get unread messages count: " + e.getMessage());
+        }
+    }
+
+
+    @GetMapping("/revenue")
+    public ResponseEntity<?> getRevenue(
+            @RequestParam(value = "date", required = false) String date,
+            @RequestParam(value = "month", required = false) String month) {
+        try {
+            Map<String, Object> result = consultantService.getRevenue(date, month);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Failed to get revenue: " + e.getMessage());
+        }
+    }
+    
+    @GetMapping("/revenue/total")
+    public ResponseEntity<?> getTotalRevenue() {
+        try {
+            Map<String, Object> result = consultantService.getTotalRevenue();
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Failed to get total revenue: " + e.getMessage());
         }
     }
 }

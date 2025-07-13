@@ -9,7 +9,6 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,24 +33,20 @@ public class Consultation {
     private User consultant;
 
     @NotNull
-    @Column(name = "ConsultationDate", nullable = false)
-    private LocalDateTime consultationDate;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "TimeSlotID", nullable = false)
+    private TimeSlot timeSlot;
 
-    @NotNull
-    @Column(name = "StartTime", nullable = false)
-    private LocalDateTime startTime;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "LocationID")
+    private Location location;
 
-    @NotNull
-    @Column(name = "EndTime", nullable = false)
-    private LocalDateTime endTime;
-
-    @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Payment> payments; // If a consultation can have multiple payments
-
-    @NotNull
     @Enumerated(EnumType.STRING)
+    @Size(max = 255)
+    @NotNull
+    @Nationalized
     @Column(name = "Status", nullable = false)
-    private ConsultationStatus status;
+    private ConsultationStatus status; // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED, NO_SHOW
 
     @Size(max = 200)
     @Nationalized
@@ -71,6 +66,9 @@ public class Consultation {
     @Column(name = "IsDeleted")
     private Boolean isDeleted = false;
 
+    @OneToMany(mappedBy = "consultation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Payment> payments;
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
@@ -78,4 +76,32 @@ public class Consultation {
         }
     }
 
+    // Helper methods
+    public boolean isScheduled() {
+        return "SCHEDULED".equals(status);
+    }
+
+    public boolean isInProgress() {
+        return "IN_PROGRESS".equals(status);
+    }
+
+    public boolean isCompleted() {
+        return "COMPLETED".equals(status);
+    }
+
+    public boolean isCancelled() {
+        return "CANCELLED".equals(status);
+    }
+
+    public boolean isNoShow() {
+        return "NO_SHOW".equals(status);
+    }
+
+    public boolean canBeCancelled() {
+        return isScheduled() || isInProgress();
+    }
+
+    public boolean canBeUpdated() {
+        return !isCompleted() && !isCancelled() && !isNoShow();
+    }
 }

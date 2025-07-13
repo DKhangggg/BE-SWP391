@@ -1,6 +1,7 @@
 package com.example.gender_healthcare_service.controller;
 
 import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
+import com.example.gender_healthcare_service.dto.response.PageResponse;
 import com.example.gender_healthcare_service.dto.response.TestingServiceResponseDTO;
 import com.example.gender_healthcare_service.entity.Booking;
 import com.example.gender_healthcare_service.entity.TestingService;
@@ -16,6 +17,9 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping("/api/services")
@@ -32,17 +36,21 @@ public class ServiceController {
 
 
     @GetMapping("/testing-services")
-    public ResponseEntity<?> getService() {
-        List<TestingService> services = testingService.getAllServices();
-        if(services.isEmpty()){
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        else {
-            List<TestingServiceResponseDTO> dtos = services.stream()
-                    .map(service -> mapper.map(service, TestingServiceResponseDTO.class))
-                    .collect(Collectors.toList());
-            return new ResponseEntity<>(dtos, HttpStatus.OK);
-        }
+    public ResponseEntity<PageResponse<TestingServiceResponseDTO>> getService(
+        @RequestParam(defaultValue = "1") int pageNumber,
+        @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
+        Page<TestingService> services = testingService.getAllServices(pageable);
+        PageResponse<TestingServiceResponseDTO> response = new PageResponse<>();
+        response.setContent(services.getContent().stream().map(service -> mapper.map(service, TestingServiceResponseDTO.class)).collect(Collectors.toList()));
+        response.setPageNumber(services.getNumber() + 1);
+        response.setPageSize(services.getSize());
+        response.setTotalElements(services.getTotalElements());
+        response.setTotalPages(services.getTotalPages());
+        response.setHasNext(services.hasNext());
+        response.setHasPrevious(services.hasPrevious());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/testing-services/{serviceId}")

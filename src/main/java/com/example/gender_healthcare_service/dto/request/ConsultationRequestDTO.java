@@ -10,13 +10,13 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class BookingRequestDTO {
-    @NotNull(message = "Service ID is required")
-    private Integer serviceId;
+public class ConsultationRequestDTO {
+    @NotNull(message = "Consultant ID is required")
+    private Integer consultantId;
     
     @NotNull(message = "Time slot ID is required")
     private Integer timeSlotId;
     
     private String notes;
-}
-
+    private String meetingLink;
+} 

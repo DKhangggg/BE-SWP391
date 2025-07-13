@@ -12,7 +12,7 @@ import java.util.List;
 public interface MenstrualLogRepository extends JpaRepository<MenstrualLog, Integer> {
     List<MenstrualLog> findByMenstrualCycle(MenstrualCycle menstrualCycle);
 
-    @Query("SELECT ml FROM MenstrualLog ml WHERE ml.menstrualCycle.user.id = :userId AND ml.logDate BETWEEN :startDate AND :endDate ORDER BY ml.logDate DESC")
+    @Query("SELECT ml FROM MenstrualLog ml WHERE ml.menstrualCycle.user.id = :userId AND CAST(ml.logDate AS date) BETWEEN :startDate AND :endDate ORDER BY ml.logDate DESC")
     List<MenstrualLog> findByUserIdAndDateRange(@Param("userId") Integer userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT ml FROM MenstrualLog ml WHERE ml.menstrualCycle.user.id = :userId AND ml.isActualPeriod = true ORDER BY ml.logDate DESC")
@@ -21,9 +21,11 @@ public interface MenstrualLogRepository extends JpaRepository<MenstrualLog, Inte
     @Query("SELECT ml FROM MenstrualLog ml WHERE ml.menstrualCycle.user.id = :userId AND ml.mood IS NOT NULL ORDER BY ml.logDate DESC")
     List<MenstrualLog> findMoodLogsByUserId(@Param("userId") Integer userId);
 
-    @Query("SELECT COUNT(ml) FROM MenstrualLog ml WHERE ml.menstrualCycle.user.id = :userId AND ml.isActualPeriod = true AND ml.logDate BETWEEN :startDate AND :endDate")
+    @Query("SELECT COUNT(ml) FROM MenstrualLog ml WHERE ml.menstrualCycle.user.id = :userId AND ml.isActualPeriod = true AND CAST(ml.logDate AS date) BETWEEN :startDate AND :endDate")
     Long countPeriodDaysInRange(@Param("userId") Integer userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     @Query("SELECT ml.mood, COUNT(ml) FROM MenstrualLog ml WHERE ml.menstrualCycle.user.id = :userId AND ml.mood IS NOT NULL GROUP BY ml.mood")
     List<Object[]> findMoodDistributionByUserId(@Param("userId") Integer userId);
+
+    List<MenstrualLog> findByMenstrualCycleOrderByLogDateDesc(MenstrualCycle cycle);
 }

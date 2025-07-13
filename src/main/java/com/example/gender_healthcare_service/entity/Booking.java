@@ -8,9 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
 @Getter
@@ -32,32 +30,19 @@ public class Booking {
     @JoinColumn(name = "ServiceID", nullable = false)
     private TestingService service;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "TimeSlotID", nullable = false)
     private TimeSlot timeSlot;
-    
-    @NotNull
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ScheduleID", nullable = false)
-    private ConsultantSchedule consultantSchedule;
 
-    @NotNull
-    @Column(name = "BookingDate", nullable = false)
-    private LocalDate bookingDate;
-
-    @NotNull
-    @Column(name = "BookingTime", nullable = false)
-    private LocalTime bookingTime;
-    
-    @NotNull
-    @Column(name = "EndTime", nullable = false)
-    private LocalTime endTime;
+    @Column(name = "BookingDate")
+    private LocalDateTime bookingDate;
 
     @Size(max = 255)
     @NotNull
     @Nationalized
     @Column(name = "Status", nullable = false)
-    private String status; // PENDING, CONFIRMED, COMPLETED, CANCELLED, RESCHEDULED
+    private String status; // PENDING, SAMPLE_COLLECTED, TESTING, COMPLETED, CANCELLED
 
     @Size(max = 500)
     @Nationalized
@@ -66,21 +51,10 @@ public class Booking {
 
     @Column(name = "ResultDate")
     private LocalDateTime resultDate;
-    
-    @Nationalized
-    @Column(name = "CustomerNotes", length = 1000)
-    private String customerNotes;
-    
-    @Nationalized
-    @Column(name = "ConsultantNotes", length = 1000)
-    private String consultantNotes;
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
     private LocalDateTime createdAt;
-    
-    @Column(name = "UpdatedAt")
-    private LocalDateTime updatedAt;
 
     @ColumnDefault("0")
     @Column(name = "IsDeleted")
@@ -95,23 +69,9 @@ public class Booking {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-        // Tự động set thời gian từ timeSlot nếu chưa được set
-        if (bookingTime == null && timeSlot != null) {
-            bookingTime = timeSlot.getStartTime();
+        if (bookingDate == null) {
+            bookingDate = LocalDateTime.now();
         }
-        if (endTime == null && timeSlot != null) {
-            endTime = timeSlot.getEndTime();
-        }
-        // Tự động set ngày từ consultantSchedule nếu chưa được set
-        if (bookingDate == null && consultantSchedule != null) {
-            bookingDate = consultantSchedule.getScheduleDate();
-        }
-    }
-    
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
     }
     
     // Helper methods
@@ -119,8 +79,12 @@ public class Booking {
         return "PENDING".equals(status);
     }
     
-    public boolean isConfirmed() {
-        return "CONFIRMED".equals(status);
+    public boolean isSampleCollected() {
+        return "SAMPLE_COLLECTED".equals(status);
+    }
+    
+    public boolean isTesting() {
+        return "TESTING".equals(status);
     }
     
     public boolean isCompleted() {
@@ -132,14 +96,10 @@ public class Booking {
     }
     
     public boolean canBeCancelled() {
-        return isPending() || isConfirmed();
+        return isPending() || isSampleCollected();
     }
     
-    public boolean canBeRescheduled() {
-        return isPending() || isConfirmed();
-    }
-    
-    public Consultant getConsultant() {
-        return consultantSchedule != null ? consultantSchedule.getConsultant() : null;
+    public boolean canBeUpdated() {
+        return !isCompleted() && !isCancelled();
     }
 }

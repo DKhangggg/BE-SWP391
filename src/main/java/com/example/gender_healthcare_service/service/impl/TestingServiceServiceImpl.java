@@ -9,6 +9,8 @@ import com.example.gender_healthcare_service.repository.TestingServiceRepository
 import com.example.gender_healthcare_service.service.TestingServiceService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -31,6 +33,11 @@ public class TestingServiceServiceImpl implements TestingServiceService {
     @Override
     public List<TestingService> getAllServices() {
         return testingServiceRepository.findAllActive();
+    }
+
+    @Override
+    public Page<TestingService> getAllServices(Pageable pageable) {
+        return testingServiceRepository.findAllByIsDeletedFalse(pageable);
     }
 
     @Override

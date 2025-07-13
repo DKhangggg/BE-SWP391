@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,8 @@ public interface TestingServiceRepository extends JpaRepository<TestingService, 
     List<TestingService> findByServiceNameContainingIgnoreCaseAndIsDeletedFalse(String name);
 
     List<TestingService> findByPriceBetweenAndIsDeletedFalse(java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice);
+
+    Page<TestingService> findAllByIsDeletedFalse(Pageable pageable);
 
     @Transactional
     @Modifying

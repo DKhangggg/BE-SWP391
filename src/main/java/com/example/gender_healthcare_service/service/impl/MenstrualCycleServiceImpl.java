@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Service
 public class MenstrualCycleServiceImpl implements MenstrualCycleService {
@@ -56,7 +57,8 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         if(user == null) {
             throw new UsernameNotFoundException("User not found in the system");
         }
-        MenstrualCycle existingCycle = menstrualCycleRepository.findByUserId(user.getId());
+        List<MenstrualCycle> cycles = menstrualCycleRepository.findByUserIdOrderByStartDateDesc(user.getId());
+        MenstrualCycle existingCycle = (cycles != null && !cycles.isEmpty()) ? cycles.get(0) : null;
         if(existingCycle != null) {
             if(requestDTO.getStartDate()!=null){
                 existingCycle.setStartDate(requestDTO.getStartDate());
@@ -90,7 +92,8 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         if(user == null) {
             throw new UsernameNotFoundException("User not found in the system");
         }
-        MenstrualCycle currentCycle = menstrualCycleRepository.findByUserId(user.getId());
+        List<MenstrualCycle> cycles = menstrualCycleRepository.findByUserIdOrderByStartDateDesc(user.getId());
+        MenstrualCycle currentCycle = (cycles != null && !cycles.isEmpty()) ? cycles.get(0) : null;
         if (currentCycle == null) {
             throw new RuntimeException("No menstrual cycle found for user " + user.getUsername());
         }
@@ -120,7 +123,8 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         if (user == null) {
             throw new UsernameNotFoundException("User not found in the system");
         }
-        MenstrualCycle currentCycle = menstrualCycleRepository.findByUserId(user.getId());
+        List<MenstrualCycle> cycles = menstrualCycleRepository.findByUserIdOrderByStartDateDesc(user.getId());
+        MenstrualCycle currentCycle = (cycles != null && !cycles.isEmpty()) ? cycles.get(0) : null;
         if (currentCycle == null) {
             throw new RuntimeException("No menstrual cycle found for user " + user.getUsername());
         }
@@ -141,21 +145,137 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             throw new RuntimeException("Menstrual cycle tracking is only available for female users");
         }
 
-        MenstrualCycle currentCycle = menstrualCycleRepository.findByUserId(user.getId());
+        // Lấy cycle hiện tại
+        List<MenstrualCycle> cycles = menstrualCycleRepository.findByUserIdOrderByStartDateDesc(user.getId());
+        MenstrualCycle currentCycle = (cycles != null && !cycles.isEmpty()) ? cycles.get(0) : null;
         if (currentCycle == null) {
-            // Create a new menstrual cycle for the user
+            // Tạo mới cycle nếu chưa có
             currentCycle = new MenstrualCycle();
             currentCycle.setUser(user);
             currentCycle.setStartDate(requestDTO.getLogDate() != null ? requestDTO.getLogDate().toLocalDate() : LocalDate.now());
             currentCycle.setCycleLength(DEFAULT_CYCLE_LENGTH);
-            currentCycle.setPeriodDuration(5); // Default period duration
+            currentCycle.setPeriodDuration(5);
+            currentCycle.setIsRegular(true);
+            currentCycle.setCreatedAt(LocalDateTime.now());
+            currentCycle.setUpdatedAt(LocalDateTime.now());
+        }
+
+        if (requestDTO.getOvulationDate() != null) {
+            currentCycle.setOvulationDate(requestDTO.getOvulationDate());
+        }
+
+
+        if (requestDTO.getIsActualPeriod() != null && requestDTO.getIsActualPeriod()) {
+            if (requestDTO.getLogDate() != null) {
+                currentCycle.setStartDate(requestDTO.getLogDate().toLocalDate());
+            }
+        }
+
+
+        List<MenstrualCycle> allCycles = menstrualCycleRepository.findByUserIdOrderByStartDateDesc(user.getId());
+
+        MenstrualCycle finalCurrentCycle = currentCycle;
+        allCycles = allCycles.stream().filter(c -> !c.getUser().getId().equals(finalCurrentCycle.getUser().getId())).collect(Collectors.toList());
+
+        // Tính averageCycleLength
+        if (allCycles.size() >= 1) {
+            List<Long> cycleLengths = new ArrayList<>();
+            LocalDate prev = currentCycle.getStartDate();
+            for (MenstrualCycle c : allCycles) {
+                if (c.getStartDate() != null && prev != null) {
+                    long len = java.time.temporal.ChronoUnit.DAYS.between(c.getStartDate(), prev);
+                    cycleLengths.add(len);
+                    prev = c.getStartDate();
+                }
+            }
+            if (!cycleLengths.isEmpty()) {
+                double avg = cycleLengths.stream().mapToLong(Long::longValue).average().orElse(28);
+                currentCycle.setAverageCycleLength(avg);
+                if (currentCycle.getCycleLength() == null || currentCycle.getCycleLength() == 0) {
+                    currentCycle.setCycleLength((int) Math.round(avg));
+                }
+            }
+        } else {
+            currentCycle.setAverageCycleLength(28.0);
+            if (currentCycle.getCycleLength() == null || currentCycle.getCycleLength() == 0) {
+                currentCycle.setCycleLength(28);
+            }
+        }
+
+        // periodDuration
+        if (requestDTO.getPeriodDuration() != null) {
+            currentCycle.setPeriodDuration(requestDTO.getPeriodDuration());
+        } else if (allCycles.size() > 0) {
+            double avg = allCycles.stream().filter(c -> c.getPeriodDuration() != null).mapToInt(MenstrualCycle::getPeriodDuration).average().orElse(5);
+            currentCycle.setPeriodDuration((int) Math.round(avg));
+        } else {
+            currentCycle.setPeriodDuration(5);
+        }
+        currentCycle.setAveragePeriodDuration((double) currentCycle.getPeriodDuration());
+
+        // isRegular
+        boolean isRegular = true;
+        if (allCycles.size() >= 3) {
+            List<Long> cycleLengths = new ArrayList<>();
+            LocalDate prev = currentCycle.getStartDate();
+            for (MenstrualCycle c : allCycles) {
+                if (c.getStartDate() != null && prev != null) {
+                    long len = java.time.temporal.ChronoUnit.DAYS.between(c.getStartDate(), prev);
+                    cycleLengths.add(len);
+                    prev = c.getStartDate();
+                }
+            }
+            double avg = cycleLengths.stream().mapToLong(Long::longValue).average().orElse(28);
+            double std = Math.sqrt(cycleLengths.stream().mapToDouble(l -> Math.pow(l - avg, 2)).average().orElse(0));
+            isRegular = std <= 7;
+        }
+        currentCycle.setIsRegular(isRegular);
+
+        // nextPredictedPeriod
+        if (currentCycle.getStartDate() != null && currentCycle.getAverageCycleLength() != null) {
+            currentCycle.setNextPredictedPeriod(currentCycle.getStartDate().plusDays(currentCycle.getAverageCycleLength().longValue()));
+        }
+
+        // fertilityWindowStart, fertilityWindowEnd, ovulationDate
+        if (currentCycle.getStartDate() != null && currentCycle.getAverageCycleLength() != null) {
+            LocalDate ovulation = currentCycle.getStartDate().plusDays((long) Math.round(currentCycle.getAverageCycleLength() - 14));
+            currentCycle.setOvulationDate(ovulation);
+            currentCycle.setFertilityWindowStart(ovulation.minusDays(5));
+            currentCycle.setFertilityWindowEnd(ovulation.plusDays(1));
+        }
+
+        // Cập nhật thời gian tạo/sửa
+        currentCycle.setUpdatedAt(LocalDateTime.now());
+        currentCycle = menstrualCycleRepository.save(currentCycle);
+
+        // Lấy log gần nhất trong cycle này
+        MenstrualLog lastLog = null;
+        List<MenstrualLog> logs = menstrualLogRepository.findByMenstrualCycleOrderByLogDateDesc(currentCycle);
+        if (logs != null && !logs.isEmpty()) {
+            lastLog = logs.get(0);
+        }
+        // Tính số ngày giữa log gần nhất và log mới
+        long daysBetween = -1;
+        if (lastLog != null && requestDTO.getLogDate() != null) {
+            daysBetween = java.time.Duration.between(lastLog.getLogDate(), requestDTO.getLogDate()).toDays();
+        }
+        System.out.println("[MENSTRUAL LOG] Số ngày giữa log gần nhất và log mới: " + daysBetween);
+
+        // Nếu cách nhau quá 35 ngày, tạo cycle mới
+        if (daysBetween > 35 && requestDTO.getIsActualPeriod() != null && requestDTO.getIsActualPeriod()) {
+            System.out.println("[MENSTRUAL LOG] Tạo cycle mới vì cách nhau " + daysBetween + " ngày");
+            currentCycle = new MenstrualCycle();
+            currentCycle.setUser(user);
+            currentCycle.setStartDate(requestDTO.getLogDate().toLocalDate());
+            currentCycle.setCycleLength(DEFAULT_CYCLE_LENGTH);
+            currentCycle.setPeriodDuration(5);
             currentCycle.setIsRegular(true);
             currentCycle.setCreatedAt(LocalDateTime.now());
             currentCycle.setUpdatedAt(LocalDateTime.now());
             currentCycle = menstrualCycleRepository.save(currentCycle);
         }
 
-        // Create enhanced menstrual log
+        // Tạo log mới cho cycle này
         MenstrualLog menstrualLog = new MenstrualLog();
         menstrualLog.setMenstrualCycle(currentCycle);
         menstrualLog.setLogDate(requestDTO.getLogDate() != null ? requestDTO.getLogDate() : LocalDateTime.now());
@@ -166,8 +286,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         menstrualLog.setNotes(requestDTO.getNotes());
         menstrualLog.setCreatedAt(LocalDateTime.now());
         menstrualLog.setUpdatedAt(LocalDateTime.now());
-
-        MenstrualLog savedLog = menstrualLogRepository.save(menstrualLog);
+        menstrualLogRepository.save(menstrualLog);
 
         // Log symptoms if provided
         if (requestDTO.getSymptoms() != null && !requestDTO.getSymptoms().isEmpty()) {
@@ -175,7 +294,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
                 Symptom symptom = findOrCreateSymptom(symptomEntry);
 
                 SymptomLog symptomLog = new SymptomLog();
-                symptomLog.setMenstrualLog(savedLog);
+                symptomLog.setMenstrualLog(menstrualLog);
                 symptomLog.setSymptom(symptom);
                 symptomLog.setSeverity(SeverityLevel.valueOf(symptomEntry.getSeverity()));
                 symptomLog.setNotes(symptomEntry.getNotes());
@@ -216,7 +335,9 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
 
     @Override
     public List<MenstrualLogResponseDTO> getMenstrualLogsByDateRange(Integer userId, LocalDateTime startDate, LocalDateTime endDate) {
-        List<MenstrualLog> logs = menstrualLogRepository.findByUserIdAndDateRange(userId, startDate.toLocalDate(), endDate.toLocalDate());
+        LocalDate start = startDate != null ? startDate.toLocalDate() : LocalDate.now().minusMonths(3);
+        LocalDate end = endDate != null ? endDate.toLocalDate() : LocalDate.now();
+        List<MenstrualLog> logs = menstrualLogRepository.findByUserIdAndDateRange(userId, start, end);
         return logs.stream()
                 .map(log -> modelMapper.map(log, MenstrualLogResponseDTO.class))
                 .collect(Collectors.toList());
@@ -234,7 +355,8 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             throw new RuntimeException("Menstrual cycle tracking is only available for female users");
         }
 
-        MenstrualCycle currentCycle = menstrualCycleRepository.findByUserId(userId);
+        List<MenstrualCycle> cycles = menstrualCycleRepository.findByUserIdOrderByStartDateDesc(userId);
+        MenstrualCycle currentCycle = (cycles != null && !cycles.isEmpty()) ? cycles.get(0) : null;
         if (currentCycle == null) {
             currentCycle = createNewMenstrualCycleForUser(user, requestDTO.getLogDate());
         }
@@ -255,7 +377,8 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        MenstrualCycle cycle = menstrualCycleRepository.findByUserId(userId);
+        List<MenstrualCycle> cycles = menstrualCycleRepository.findByUserIdOrderByStartDateDesc(userId);
+        MenstrualCycle cycle = (cycles != null && !cycles.isEmpty()) ? cycles.get(0) : null;
         if (cycle == null) {
             throw new RuntimeException("No menstrual cycle found for user to update.");
         }

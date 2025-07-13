@@ -38,6 +38,9 @@ public class TestingService {
     @Column(name = "Price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    @Column(name ="Status", nullable = false)
+    private String status;
+
     @Column(name = "DurationMinutes")
     private Integer durationMinutes;
 

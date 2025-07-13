@@ -16,6 +16,8 @@ public interface ConsultationService {
             Integer bookingId, RescheduleBookingRequestDTO rescheduleRequest);
     List<ConsultationBookingResponseDTO> getAllConsultationBookingsForAdmin(
             LocalDate date, String status, Integer userId, Integer consultantId);
+    org.springframework.data.domain.Page<ConsultationBookingResponseDTO> getAllConsultationBookingsForAdminPaginated(
+            LocalDate date, String status, Integer userId, Integer consultantId, org.springframework.data.domain.Pageable pageable);
     List<ConsultantAvailabilityResponseDTO> getConsultantAvailability(Integer consultantId, LocalDate date);
     List<ConsultationBookingResponseDTO> getConsultationBookingsForCurrentConsultant();
     ConsultationBookingResponseDTO getConsultationBookingByIdForAdmin(Integer bookingId);
@@ -34,4 +36,6 @@ public interface ConsultationService {
     ConsultationBookingResponseDTO cancelConsultation(Integer consultationId);
 
     List<ConsultationBookingResponseDTO> getUserUpcomingConsultations();
+
+    List<ConsultationBookingResponseDTO> getConsultationBookingsForCurrentConsultant(String date, String status);
 }

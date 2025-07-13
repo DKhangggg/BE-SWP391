@@ -15,8 +15,8 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow all origins for development - change in production
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        // Allow only FE origin for development
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
         
         // Allow common HTTP methods
         configuration.setAllowedMethods(Arrays.asList(

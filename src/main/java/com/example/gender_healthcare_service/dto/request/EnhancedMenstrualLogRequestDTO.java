@@ -22,6 +22,8 @@ public class EnhancedMenstrualLogRequestDTO {
     private Double temperature;
     private List<SymptomEntryDTO> symptoms;
     private String notes;
+    private LocalDate OvulationDate;
+    private Integer PeriodDuration;
 
     @Data
     @NoArgsConstructor
