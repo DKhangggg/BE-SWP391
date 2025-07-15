@@ -79,7 +79,6 @@ public class AdminController {
             return new ResponseEntity<>("Service update failed", HttpStatus.BAD_REQUEST);
         }
     }
-
     @DeleteMapping("/testing-services/{serviceId}")
     public ResponseEntity<?> deleteTestingService(@PathVariable Integer serviceId) {
         testingServiceService.deleteService(serviceId,true);

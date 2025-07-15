@@ -4,6 +4,7 @@ import com.example.gender_healthcare_service.dto.request.*;
 import com.example.gender_healthcare_service.dto.response.AuthResponseDTO;
 import com.example.gender_healthcare_service.service.AuthenticationService;
 import com.example.gender_healthcare_service.service.JwtService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -16,6 +17,7 @@ import java.util.Map;
 
 @RequestMapping("/api/auth")
 @RestController
+@Tag(name = "Authentication", description = "API endpoints for user authentication and authorization")
 public class AuthController {
     @Autowired
     private AuthenticationService authenticationService;

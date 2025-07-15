@@ -8,6 +8,7 @@ import com.example.gender_healthcare_service.dto.response.BookingPageResponseDTO
 import com.example.gender_healthcare_service.dto.response.PageResponse;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.service.BookingService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -24,6 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/bookings")
 @RequiredArgsConstructor
+@Tag(name = "Booking Management", description = "API endpoints for managing healthcare service bookings")
 public class BookingController {
     @Autowired
     private BookingService bookingService;

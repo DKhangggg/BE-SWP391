@@ -11,6 +11,7 @@ import java.util.List;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
+    @Query("SELECT u FROM User u WHERE u.email = ?1")
     User findUserByEmail(String email);
 
     User findUserByUsername(String username);

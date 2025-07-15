@@ -7,6 +7,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 public class CorsConfig {
@@ -15,8 +16,14 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow only FE origin for development
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+
+        configuration.setAllowedOrigins(List.of("http://localhost:3000",
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://localhost:3002",
+                "http://localhost:5173",
+                "http://localhost:5174"
+                ));
         
         // Allow common HTTP methods
         configuration.setAllowedMethods(Arrays.asList(

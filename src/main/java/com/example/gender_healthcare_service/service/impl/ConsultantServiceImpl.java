@@ -68,7 +68,8 @@ public class ConsultantServiceImpl implements ConsultantService {
     }
     @Override
     public ConsultantDTO getCurrentConsultant(){
-        User currentUser = (User) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String  stringUser =org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(stringUser);
         if (currentUser == null) {
             throw new RuntimeException("No user is currently authenticated.");
         }
