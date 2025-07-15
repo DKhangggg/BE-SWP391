@@ -11,6 +11,7 @@ import com.example.gender_healthcare_service.entity.Booking;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 
 public interface BookingService {
     BookingResponseDTO createBooking(BookingRequestDTO bookingRequestDTO);
@@ -19,7 +20,7 @@ public interface BookingService {
     BookingResponseDTO getBookingByIdForAdmin(Integer bookingId);
     BookingResponseDTO updateBookingStatus(Integer bookingId, UpdateBookingStatusRequestDTO status);
     BookingResponseDTO cancelBooking(Integer bookingId);
-    ApiResponse cancelBookingWithResponse(Integer bookingId);
+    ResponseEntity<?> cancelBookingWithResponse(Integer bookingId);
     
     // Pagination methods
     BookingPageResponseDTO getAllBookingsForStaff(Pageable pageable);

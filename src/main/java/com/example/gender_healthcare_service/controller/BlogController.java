@@ -2,6 +2,7 @@ package com.example.gender_healthcare_service.controller;
 
 import com.example.gender_healthcare_service.dto.request.BlogCategoryRequestDTO;
 import com.example.gender_healthcare_service.dto.request.BlogPostRequestDTO;
+import com.example.gender_healthcare_service.dto.response.BlogCategoryDTO;
 import com.example.gender_healthcare_service.dto.response.BlogCategoryWithPostsDTO;
 import com.example.gender_healthcare_service.dto.response.BlogPostResponseDTO;
 import com.example.gender_healthcare_service.dto.response.PageResponse;
@@ -9,6 +10,7 @@ import com.example.gender_healthcare_service.entity.BlogCategory;
 import com.example.gender_healthcare_service.entity.BlogPost;
 import com.example.gender_healthcare_service.service.BlogCategoryService;
 import com.example.gender_healthcare_service.service.BlogService;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +31,9 @@ public class BlogController {
 
     @Autowired
     private BlogCategoryService blogCategoryService;
+
+    @Autowired
+    private ModelMapper modelMapper;
 
     // Blog Post APIs
     @GetMapping("/posts")
@@ -192,86 +197,94 @@ public class BlogController {
     // Blog Category APIs
 
     @GetMapping("/categories")
-    public ResponseEntity<?> getBlogCategories() {
+    public ResponseEntity<List<BlogCategoryDTO>> getBlogCategories() {
         try {
             List<BlogCategory> categories = blogCategoryService.getAllCategories();
             if (categories.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("No blog categories found");
+                return ResponseEntity.noContent().build();
             }
-            return ResponseEntity.ok(categories);
+
+            List<BlogCategoryDTO> categoryDTOs = categories.stream()
+                .map(category -> modelMapper.map(category, BlogCategoryDTO.class))
+                .collect(java.util.stream.Collectors.toList());
+
+            return ResponseEntity.ok(categoryDTOs);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching blog categories: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/categories/{categoryId}")
-    public ResponseEntity<?> getBlogCategoryById(@PathVariable Integer categoryId) {
+    public ResponseEntity<BlogCategoryDTO> getBlogCategoryById(@PathVariable Integer categoryId) {
         try {
             BlogCategory category = blogCategoryService.getCategoryById(categoryId);
-            return ResponseEntity.ok(category);
+            BlogCategoryDTO categoryDTO = modelMapper.map(category, BlogCategoryDTO.class);
+            return ResponseEntity.ok(categoryDTO);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.notFound().build();
         }
     }
 
     @PostMapping("/categories")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<?> createBlogCategory(@RequestBody BlogCategoryRequestDTO blogCategoryRequestDTO) {
+    public ResponseEntity<BlogCategoryDTO> createBlogCategory(@RequestBody BlogCategoryRequestDTO blogCategoryRequestDTO) {
         try {
             BlogCategory createdCategory = blogCategoryService.createCategory(blogCategoryRequestDTO);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdCategory);
+            BlogCategoryDTO categoryDTO = modelMapper.map(createdCategory, BlogCategoryDTO.class);
+            return ResponseEntity.status(HttpStatus.CREATED).body(categoryDTO);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @PutMapping("/categories/{categoryId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<?> updateBlogCategory(@PathVariable Integer categoryId,
+    public ResponseEntity<BlogCategoryDTO> updateBlogCategory(@PathVariable Integer categoryId,
                                              @RequestBody BlogCategoryRequestDTO blogCategoryRequestDTO) {
         try {
             BlogCategory updatedCategory = blogCategoryService.updateCategory(categoryId, blogCategoryRequestDTO);
-            return ResponseEntity.ok(updatedCategory);
+            BlogCategoryDTO categoryDTO = modelMapper.map(updatedCategory, BlogCategoryDTO.class);
+            return ResponseEntity.ok(categoryDTO);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @DeleteMapping("/categories/{categoryId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<?> deleteBlogCategory(@PathVariable Integer categoryId) {
+    public ResponseEntity<Void> deleteBlogCategory(@PathVariable Integer categoryId) {
         try {
             boolean isDeleted = blogCategoryService.deleteCategory(categoryId);
             if (isDeleted) {
-                return ResponseEntity.ok("Blog category deleted successfully");
+                return ResponseEntity.noContent().build();
             } else {
-                return ResponseEntity.badRequest().body("Failed to delete blog category");
+                return ResponseEntity.badRequest().build();
             }
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @GetMapping("/categories/{categoryId}/with-posts")
-    public ResponseEntity<?> getCategoryWithPosts(@PathVariable Integer categoryId) {
+    public ResponseEntity<BlogCategoryWithPostsDTO> getCategoryWithPosts(@PathVariable Integer categoryId) {
         try {
             BlogCategoryWithPostsDTO category = blogCategoryService.getCategoryWithPosts(categoryId);
             return ResponseEntity.ok(category);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.notFound().build();
         }
     }
 
     @GetMapping("/categories/with-posts")
-    public ResponseEntity<?> getAllCategoriesWithPosts() {
+    public ResponseEntity<List<BlogCategoryWithPostsDTO>> getAllCategoriesWithPosts() {
         try {
             List<BlogCategoryWithPostsDTO> categories = blogCategoryService.getAllCategoriesWithPosts();
             if (categories.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).body("No blog categories found");
+                return ResponseEntity.noContent().build();
             }
             return ResponseEntity.ok(categories);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching blog categories: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

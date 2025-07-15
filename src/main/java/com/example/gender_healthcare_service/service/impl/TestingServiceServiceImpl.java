@@ -25,14 +25,18 @@ public class TestingServiceServiceImpl implements TestingServiceService {
     @Autowired
     private ModelMapper modelMapper;
 
+
+
     @Autowired
     public TestingServiceServiceImpl(TestingServiceRepository testingServiceRepository) {
         this.testingServiceRepository = testingServiceRepository;
     }
 
     @Override
-    public List<TestingService> getAllServices() {
-        return testingServiceRepository.findAllActive();
+    public List<TestingServiceResponseDTO> getAllService() {
+        return testingServiceRepository.findAllActive().stream()
+                .map(service -> modelMapper.map(service, TestingServiceResponseDTO.class))
+                .toList();
     }
 
     @Override
@@ -72,16 +76,25 @@ public class TestingServiceServiceImpl implements TestingServiceService {
         existingService.setPrice(serviceDetails.getPrice());
         existingService.setDurationMinutes(serviceDetails.getDuration());
         existingService.setUpdatedAt(LocalDateTime.now());
+        existingService.setStatus(serviceDetails.getStatus());
         testingServiceRepository.save(existingService);
         TestingServiceResponseDTO responseDTO = modelMapper.map(existingService, TestingServiceResponseDTO.class);
         return responseDTO;
     }
 
     @Override
-    public void deleteService(Integer id ,boolean isDeleted) {
+    public TestingServiceResponseDTO deleteService(Integer id, boolean isDeleted) {
         TestingService service = getServiceById(id);
         service.setIsDeleted(isDeleted);
         service.setUpdatedAt(LocalDateTime.now());
-        testingServiceRepository.save(service);
+        TestingService savedService = testingServiceRepository.save(service);
+        
+        // Tạo response DTO với thông tin chi tiết
+        TestingServiceResponseDTO responseDTO = modelMapper.map(savedService, TestingServiceResponseDTO.class);
+        responseDTO.setMessage(isDeleted ? "Service deleted successfully" : "Service restored successfully");
+        responseDTO.setOperation(isDeleted ? "DELETE" : "RESTORE");
+        responseDTO.setOperationTime(LocalDateTime.now());
+        
+        return responseDTO;
     }
 }

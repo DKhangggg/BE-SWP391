@@ -11,8 +11,14 @@ public class TestingServiceResponseDTO {
     private String description;
     private BigDecimal price;
     private String status;
+    private Integer durationMinutes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Boolean isDeleted;
+    
+    // Additional fields for better response
+    private String message;
+    private String operation;
+    private LocalDateTime operationTime;
 }
 

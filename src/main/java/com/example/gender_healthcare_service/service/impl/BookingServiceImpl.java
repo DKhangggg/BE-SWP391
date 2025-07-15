@@ -18,6 +18,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -184,7 +186,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public ApiResponse cancelBookingWithResponse(Integer bookingId) {
+    public ResponseEntity<?> cancelBookingWithResponse(Integer bookingId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentPrincipalName = authentication.getName();
         User currentUser = userRepository.findUserByUsername(currentPrincipalName);
@@ -215,7 +217,7 @@ public class BookingServiceImpl implements BookingService {
         // Send real-time notification for cancellation
         bookingTrackingService.notifyBookingStatusChange(booking, "CANCELLED", previousStatus, currentPrincipalName);
         
-        return new ApiResponse(true, "Hủy booking thành công");
+        return new ResponseEntity<>("hủy đặt lịch thành công", HttpStatus.OK);
     }
 
     // New pagination methods

@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<?> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<String>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, WebRequest request) {
         // Log the exception for debugging purposes
         System.err.println("Failed to read request body: " + ex.getMessage());
 
@@ -37,25 +37,25 @@ public class GlobalExceptionHandler {
             System.err.println("Could not read request body for debugging: " + e.getMessage());
         }
 
-        ApiResponse response = new ApiResponse(false, "Yêu cầu không hợp lệ. Vui lòng kiểm tra định dạng JSON.");
+        ApiResponse<String> response = ApiResponse.error("Yêu cầu không hợp lệ. Vui lòng kiểm tra định dạng JSON.");
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(BookingConflictException.class)
-    public ResponseEntity<ApiResponse> handleBookingConflict(BookingConflictException ex) {
-        ApiResponse response = new ApiResponse(false, ex.getMessage());
+    public ResponseEntity<ApiResponse<String>> handleBookingConflict(BookingConflictException ex) {
+        ApiResponse<String> response = ApiResponse.error(ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(ServiceNotFoundException.class)
-    public ResponseEntity<ApiResponse> handleServiceNotFound(ServiceNotFoundException ex) {
-        ApiResponse response = new ApiResponse(false, ex.getMessage());
+    public ResponseEntity<ApiResponse<String>> handleServiceNotFound(ServiceNotFoundException ex) {
+        ApiResponse<String> response = ApiResponse.error(ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ApiResponse> handleIllegalState(IllegalStateException ex) {
-        ApiResponse response = new ApiResponse(false, ex.getMessage());
+    public ResponseEntity<ApiResponse<String>> handleIllegalState(IllegalStateException ex) {
+        ApiResponse<String> response = ApiResponse.error(ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }

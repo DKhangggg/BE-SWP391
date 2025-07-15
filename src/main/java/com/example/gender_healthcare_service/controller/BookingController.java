@@ -35,7 +35,7 @@ public class BookingController {
     public ResponseEntity<ApiResponse> createBooking(@RequestBody BookingRequestDTO bookingRequestDTO) {
         try {
             BookingResponseDTO createdBooking = bookingService.createBooking(bookingRequestDTO);
-            ApiResponse response = new ApiResponse(true, "Đặt lịch thành công", createdBooking);
+            ApiResponse response = ApiResponse.success("Đặt lịch thành công", createdBooking);
             return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (Exception e) {
             // Exception sẽ được handle bởi GlobalExceptionHandler
@@ -80,9 +80,9 @@ public class BookingController {
 
     @PatchMapping("/{bookingId}/cancel-with-response")
     @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER', 'ROLE_ADMIN')")
-    public ResponseEntity<ApiResponse> cancelBookingWithResponse(@PathVariable Integer bookingId) {
-        ApiResponse response = bookingService.cancelBookingWithResponse(bookingId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> cancelBookingWithResponse(@PathVariable Integer bookingId) {
+        return bookingService.cancelBookingWithResponse(bookingId);
+
     }
 
     // New pagination endpoints

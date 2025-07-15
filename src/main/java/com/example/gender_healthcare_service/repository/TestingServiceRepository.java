@@ -15,7 +15,9 @@ import java.util.Optional;
 
 @Repository
 public interface TestingServiceRepository extends JpaRepository<TestingService, Integer> {
-    // Find all active (non-deleted) services
+
+
+
     @Query("SELECT s FROM TestingService s WHERE s.isDeleted = false")
     List<TestingService> findAllActive();
 
