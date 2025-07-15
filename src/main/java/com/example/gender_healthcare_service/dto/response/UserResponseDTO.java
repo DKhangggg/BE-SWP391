@@ -16,5 +16,6 @@ public class UserResponseDTO {
     private String medicalHistory;
     private String gender;
     private String description;
+    private String status; // e.g., "ACTIVE", "INACTIVE", "SUSPENDED"
 
 }

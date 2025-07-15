@@ -8,9 +8,11 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
+    @Query("SELECT u FROM User u WHERE u.email = ?1")
     User findUserByEmail(String email);
 
     User findUserByUsername(String username);
@@ -28,4 +30,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     @Query("SELECT count(u) FROM User u WHERE u.createdAt < :endDate")
     long countByRegistrationDateBefore(LocalDate endDate);
+    List<User> findAllByRoleNameAndIsDeletedFalse(String roleName);
+    Optional<User> findByIdAndRoleName(Integer id, String roleName);
 }

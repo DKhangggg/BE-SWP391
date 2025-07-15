@@ -1,5 +1,7 @@
 package com.example.gender_healthcare_service.entity;
 
+import com.example.gender_healthcare_service.entity.enumpackage.ConsultationStatus;
+import com.example.gender_healthcare_service.entity.enumpackage.RequestStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -95,6 +97,14 @@ public class User implements UserDetails {
     @ColumnDefault("0")
     @Column(name = "IsDeleted")
     private Boolean isDeleted;
+
+    @Enumerated(EnumType.STRING)
+    @Size(max = 255)
+    @NotNull
+    @Nationalized
+    @Column(name = "Status", nullable = false)
+    private RequestStatus status;
+
 
     @OneToOne(mappedBy = "user",cascade = CascadeType.ALL)
     private Consultant consultant;

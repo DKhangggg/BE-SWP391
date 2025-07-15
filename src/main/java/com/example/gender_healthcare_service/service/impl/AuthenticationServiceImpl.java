@@ -259,7 +259,6 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
         }
 
         try {
-            // Exchange authorization code for an ID token
             GoogleTokenResponse tokenResponse = new GoogleAuthorizationCodeTokenRequest(
                     new NetHttpTransport(),
                     GsonFactory.getDefaultInstance(),
@@ -284,8 +283,6 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             GoogleIdToken.Payload payload = idToken.getPayload();
             String email = payload.getEmail();
             String nameFromGoogle = (String) payload.get("name");
-            String pictureUrl = (String) payload.get("picture");
-
             String fullNameToSet;
             if (nameFromGoogle != null && !nameFromGoogle.trim().isEmpty()) {
                 fullNameToSet = nameFromGoogle;
@@ -319,7 +316,6 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
                     user.getRoleName(),
                     user.getEmail()
             );
-
             return ResponseEntity.ok(response);
         }catch (Exception e) {
             e.printStackTrace();

@@ -91,7 +91,9 @@ public class ConsultationServiceImpl implements ConsultationService {
 
     @Override
     public List<ConsultationBookingResponseDTO> getConsultationBookingsForCurrentConsultant() {
-        User currentUser = (User) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        String stringUser = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(stringUser);
         List<Consultation> consultations = consultationRepository.findConsultationsByConsultant(currentUser);
         return consultations.stream()
                 .map(this::mapToConsultationBookingResponseDTO)

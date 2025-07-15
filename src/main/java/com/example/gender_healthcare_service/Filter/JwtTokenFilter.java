@@ -44,11 +44,13 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             
             // ========== Documentation & Development - HIGH PRIORITY ==========
             "/swagger-ui/**",
-            "/swagger-ui.html", 
+            "/swagger-ui.html",
+            "/swagger-ui/index.html",
             "/v3/api-docs/**",
             "/v3/api-docs",
+            "/v3/api-docs.yaml",
             "/swagger-resources/**",
-            "/webjars/**", 
+            "/webjars/**",
             "/favicon.ico",
             "/actuator/**",
             
@@ -68,6 +70,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             "/api/qa/faq",              // FAQ công khai
             "/api/services/testing-services",     // Xem danh sách dịch vụ
             "/api/services/testing-services/*",   // Xem chi tiết dịch vụ
+            "/api/test/**",             // Test endpoints
             
             // ========== WebSocket ==========
             "/ws/**",
@@ -92,9 +95,12 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             
             // Kiểm tra nếu là public API
             if (isPublicAPI(requestURI)) {
+                System.out.println("✅ Public API detected: " + requestURI + " - Bypassing JWT filter");
                 filterChain.doFilter(request, response);
                 return;
             }
+
+            System.out.println("🔒 Protected API: " + requestURI + " - Checking JWT token");
 
             // Xử lý Authorization header cho private APIs
             String authHeader = request.getHeader("Authorization");

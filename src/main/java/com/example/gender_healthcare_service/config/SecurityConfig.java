@@ -67,6 +67,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/qa/faq").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/services/testing-services").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/services/testing-services/*").permitAll()
+                .requestMatchers("/api/test/**").permitAll()
                 
                 // ========== CUSTOMER/PATIENT APIs ==========
                 .requestMatchers(HttpMethod.POST, "/api/booking").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
