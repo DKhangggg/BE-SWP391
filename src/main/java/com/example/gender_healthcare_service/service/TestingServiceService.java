@@ -9,11 +9,11 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface TestingServiceService {
-    List<TestingService> getAllServices();
     TestingService getServiceById(Integer id);
     boolean createService(TestingService service);
     TestingServiceResponseDTO updateService(Integer id, TestingServiceUpdateDTO serviceDetails);
-    void deleteService(Integer id,boolean isDeleted);
+    TestingServiceResponseDTO deleteService(Integer id, boolean isDeleted);
     Page<TestingService> getAllServices(Pageable pageable);
+    List<TestingServiceResponseDTO> getAllService();
 }
 

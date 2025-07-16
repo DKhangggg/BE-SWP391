@@ -1,5 +1,6 @@
 package com.example.gender_healthcare_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -38,6 +39,7 @@ public class BlogCategory {
     @Column(name = "UpdatedAt")
     private LocalDateTime updatedAt;
 
+    @JsonIgnore
     @ManyToMany(mappedBy = "categories")
     private Set<BlogPost> blogPosts = new HashSet<>();
 }

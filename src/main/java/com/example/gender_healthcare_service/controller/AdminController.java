@@ -26,6 +26,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.example.gender_healthcare_service.entity.User;
 import org.modelmapper.ModelMapper;
+import com.example.gender_healthcare_service.exception.ServiceNotFoundException;
+import com.example.gender_healthcare_service.dto.response.ApiResponse;
 
 @RequestMapping("/api/admin")
 @RestController()
@@ -59,14 +61,24 @@ public class AdminController {
     @Autowired
     private ModelMapper modelMapper;
 
-    // Testing Services Management
-   @PostMapping("/testing-services")
+    @PostMapping("/testing-services")
     public ResponseEntity<?> createTestingService(@RequestBody TestingService request) {
         boolean created = testingServiceService.createService(request);
         if(!created) {
-            return new ResponseEntity<>("Service creation failed", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Tạo service mới failed", HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>("Service creation successful", HttpStatus.CREATED);
+        return new ResponseEntity<>("Tạo service mới successful", HttpStatus.CREATED);
+    }
+    @GetMapping("/testing-services")
+    public ResponseEntity<?> GetAllTestingService() {
+        try {
+            return new ResponseEntity<>(testingServiceService.getAllService(), HttpStatus.OK);
+        }catch (ServiceNotFoundException e){
+            return new ResponseEntity<>("service not found", HttpStatus.NOT_FOUND);
+        }
+        catch (Exception e) {
+            return new ResponseEntity<>("Failed to delete service", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PutMapping("/testing-services/{serviceId}")
@@ -80,9 +92,43 @@ public class AdminController {
         }
     }
     @DeleteMapping("/testing-services/{serviceId}")
-    public ResponseEntity<?> deleteTestingService(@PathVariable Integer serviceId) {
-        testingServiceService.deleteService(serviceId,true);
-        return new ResponseEntity<>("Service delete successfully", HttpStatus.OK);
+    public ResponseEntity<ApiResponse<TestingServiceResponseDTO>> deleteTestingService(@PathVariable Integer serviceId) {
+        try {
+            TestingServiceResponseDTO response = testingServiceService.deleteService(serviceId, true);
+            ApiResponse<TestingServiceResponseDTO> apiResponse = ApiResponse.success(
+                "Service deleted successfully", 
+                response, 
+                "DELETE"
+            );
+            return new ResponseEntity<>(apiResponse, HttpStatus.OK);
+        } catch (ServiceNotFoundException e) {
+            ApiResponse<TestingServiceResponseDTO> apiResponse = ApiResponse.error("Service not found with ID: " + serviceId);
+            return new ResponseEntity<>(apiResponse, HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            logger.error("Error deleting testing service: {}", e.getMessage(), e);
+            ApiResponse<TestingServiceResponseDTO> apiResponse = ApiResponse.error("Failed to delete service");
+            return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PutMapping("/testing-services/{serviceId}/restore")
+    public ResponseEntity<ApiResponse<TestingServiceResponseDTO>> restoreTestingService(@PathVariable Integer serviceId) {
+        try {
+            TestingServiceResponseDTO response = testingServiceService.deleteService(serviceId, false);
+            ApiResponse<TestingServiceResponseDTO> apiResponse = ApiResponse.success(
+                "Service restored successfully", 
+                response, 
+                "RESTORE"
+            );
+            return new ResponseEntity<>(apiResponse, HttpStatus.OK);
+        } catch (ServiceNotFoundException e) {
+            ApiResponse<TestingServiceResponseDTO> apiResponse = ApiResponse.error("Service not found with ID: " + serviceId);
+            return new ResponseEntity<>(apiResponse, HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            logger.error("Error restoring testing service: {}", e.getMessage(), e);
+            ApiResponse<TestingServiceResponseDTO> apiResponse = ApiResponse.error("Failed to restore service");
+            return new ResponseEntity<>(apiResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @GetMapping("/testing-services/bookings")
@@ -239,7 +285,7 @@ public class AdminController {
     }
 
     @PutMapping("/users/{userId}")
-    public ResponseEntity<?> updateUserAdmin(@PathVariable Integer userId, @RequestBody AdminUpdateUserRequestDTO updateUserDTO) {
+    public ResponseEntity<?> updateUserAdmin(@PathVariable Integer userId, @RequestBody(required = false) AdminUpdateUserRequestDTO updateUserDTO) {
         try {
             UserResponseDTO updatedUser = userService.updateUserByAdmin(userId, updateUserDTO);
             return new ResponseEntity<>(updatedUser, HttpStatus.OK);
@@ -396,17 +442,9 @@ public class AdminController {
     }
 
     @GetMapping("/reports/dashboard")
-    public ResponseEntity<?> generateDashboardReport(
-            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+    public ResponseEntity<?> generateDashboardReport() {
         try {
-            if (endDate == null) {
-                endDate = LocalDate.now();
-            }
-            if (startDate == null) {
-                startDate = endDate.minusDays(30);
-            }
-            DashboardReportDTO report = reportService.generateDashboardReport(startDate.atStartOfDay(), endDate.atStartOfDay());
+            DashboardReportDTO report = reportService.generateDashboardReport();
             return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate dashboard report: " + e.getMessage());
@@ -424,18 +462,9 @@ public class AdminController {
     }
 
     @GetMapping("/reports/bookings")
-    public ResponseEntity<?> generateBookingsReport(
-            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(value = "period", defaultValue = "daily") String period) {
+    public ResponseEntity<?> generateBookingsReport() {
         try {
-            if (endDate == null) {
-                endDate = LocalDate.now();
-            }
-            if (startDate == null) {
-                startDate = endDate.minusDays(30);
-            }
-            Object report = reportService.generateBookingsReport(startDate.atStartOfDay(), endDate.atStartOfDay(), period);
+            Object report = reportService.generateBookingsReport();
             return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate bookings report: " + e.getMessage());
@@ -443,18 +472,9 @@ public class AdminController {
     }
 
     @GetMapping("/reports/financials")
-    public ResponseEntity<?> generateFinancialsReport(
-            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(value = "period", defaultValue = "daily") String period) {
+    public ResponseEntity<?> generateFinancialsReport() {
         try {
-            if (endDate == null) {
-                endDate = LocalDate.now();
-            }
-            if (startDate == null) {
-                startDate = endDate.minusDays(30);
-            }
-            Object report = reportService.generateFinancialsReport(startDate.atStartOfDay(), endDate.atStartOfDay(), period);
+            Object report = reportService.generateFinancialsReport();
             return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate financials report: " + e.getMessage());
@@ -462,18 +482,9 @@ public class AdminController {
     }
 
     @GetMapping("/reports/users")
-    public ResponseEntity<?> generateUsersReport(
-            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestParam(value = "period", defaultValue = "daily") String period) {
+    public ResponseEntity<?> generateUsersReport() {
         try {
-            if (endDate == null) {
-                endDate = LocalDate.now();
-            }
-            if (startDate == null) {
-                startDate = endDate.minusDays(30);
-            }
-            Object report = reportService.generateUsersReport(startDate.atStartOfDay(), endDate.atStartOfDay(), period);
+            Object report = reportService.generateUsersReport();
             return ResponseEntity.ok(report);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate users report: " + e.getMessage());

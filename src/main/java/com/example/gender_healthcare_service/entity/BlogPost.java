@@ -1,5 +1,6 @@
 package com.example.gender_healthcare_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -35,6 +36,7 @@ public class BlogPost {
     @JoinColumn(name = "AuthorID", nullable = false)
     private User author;
 
+    @JsonIgnore
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "BlogPost_Categories",
@@ -43,9 +45,6 @@ public class BlogPost {
     )
     private Set<BlogCategory> categories = new HashSet<>();
 
-    @ColumnDefault("getdate()")
-    @Column(name = "PublishedDate")
-    private LocalDateTime publishedDate;
 
     @ColumnDefault("getdate()")
     @Column(name = "UpdatedAt")
