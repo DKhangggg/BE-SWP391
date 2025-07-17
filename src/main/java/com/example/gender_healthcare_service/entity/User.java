@@ -98,13 +98,6 @@ public class User implements UserDetails {
     @Column(name = "IsDeleted")
     private Boolean isDeleted;
 
-    @Enumerated(EnumType.STRING)
-    @Size(max = 255)
-    @NotNull
-    @Nationalized
-    @Column(name = "Status", nullable = false)
-    private RequestStatus status;
-
 
     @OneToOne(mappedBy = "user",cascade = CascadeType.ALL)
     private Consultant consultant;

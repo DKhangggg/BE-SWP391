@@ -33,7 +33,9 @@ public class BookingResponseDTO {
     private String result;
     private LocalDateTime resultDate;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private LocalDateTime bookingDate;
+    private String description;
     private String notes;
     private String displayInfo;
     

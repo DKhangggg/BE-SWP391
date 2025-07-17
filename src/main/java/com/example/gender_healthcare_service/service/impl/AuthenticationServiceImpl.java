@@ -115,7 +115,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
     }
 
 
-    public ResponseEntity<?> loginUser(LoginRequest loginRequest) {
+    public ResponseEntity<?>loginUser(LoginRequest loginRequest) {
         try {
             System.out.println("Attempting login for user: " + loginRequest.getUsername());
             System.out.println("Password provided: " + (loginRequest.getPassword() != null ? "YES (length: " + loginRequest.getPassword().length() + ")" : "NO"));

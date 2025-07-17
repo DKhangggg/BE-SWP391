@@ -3,12 +3,12 @@ package com.example.gender_healthcare_service.controller;
 import com.example.gender_healthcare_service.dto.request.BookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.BookingFilterRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateBookingStatusRequestDTO;
+import com.example.gender_healthcare_service.dto.request.UpdateTestResultRequestDTO;
 import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
 import com.example.gender_healthcare_service.dto.response.BookingPageResponseDTO;
 import com.example.gender_healthcare_service.dto.response.PageResponse;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.service.BookingService;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -25,7 +25,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/bookings")
 @RequiredArgsConstructor
-@Tag(name = "Booking Management", description = "API endpoints for managing healthcare service bookings")
 public class BookingController {
     @Autowired
     private BookingService bookingService;
@@ -38,7 +37,6 @@ public class BookingController {
             ApiResponse response = ApiResponse.success("Đặt lịch thành công", createdBooking);
             return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (Exception e) {
-            // Exception sẽ được handle bởi GlobalExceptionHandler
             throw e;
         }
     }
@@ -82,7 +80,14 @@ public class BookingController {
     @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER', 'ROLE_ADMIN')")
     public ResponseEntity<?> cancelBookingWithResponse(@PathVariable Integer bookingId) {
         return bookingService.cancelBookingWithResponse(bookingId);
+    }
 
+    @PatchMapping("/{bookingId}/test-result")
+    @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
+    public ResponseEntity<BookingResponseDTO> updateTestResult(@PathVariable Integer bookingId,
+                                                              @RequestBody UpdateTestResultRequestDTO resultRequest) {
+        BookingResponseDTO updatedBooking = bookingService.updateTestResult(bookingId, resultRequest);
+        return ResponseEntity.ok(updatedBooking);
     }
 
     // New pagination endpoints

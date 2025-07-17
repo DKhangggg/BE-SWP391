@@ -50,7 +50,7 @@ public class StaffServiceImpl implements StaffService {
             user.setFullName(dto.getFullName());
             user.setPhoneNumber(dto.getPhoneNumber());
             user.setAddress(dto.getAddress());
-            user.setStatus(RequestStatus.valueOf(dto.getStatus()));
+            //user.setStatus(RequestStatus.valueOf(dto.getStatus()));
             user.setUpdatedAt(LocalDateTime.now());
             return userRepository.save(user);
         }
@@ -73,7 +73,7 @@ public class StaffServiceImpl implements StaffService {
     public boolean updateStatus(Integer id, String status) {
         User user = getStaffById(id);
         if (user != null) {
-            user.setStatus(RequestStatus.valueOf(status));
+            //user.setStatus(RequestStatus.valueOf(status));
             user.setUpdatedAt(LocalDateTime.now());
             userRepository.save(user);
             return true;

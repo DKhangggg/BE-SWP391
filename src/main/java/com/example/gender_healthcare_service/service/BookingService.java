@@ -6,6 +6,7 @@ import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
 import com.example.gender_healthcare_service.dto.response.BookingPageResponseDTO;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.dto.request.UpdateBookingStatusRequestDTO;
+import com.example.gender_healthcare_service.dto.request.UpdateTestResultRequestDTO;
 import com.example.gender_healthcare_service.entity.Booking;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public interface BookingService {
     BookingResponseDTO getBookingByIdForUser(Integer bookingId);
     BookingResponseDTO getBookingByIdForAdmin(Integer bookingId);
     BookingResponseDTO updateBookingStatus(Integer bookingId, UpdateBookingStatusRequestDTO status);
+    BookingResponseDTO updateTestResult(Integer bookingId, UpdateTestResultRequestDTO resultRequest);
     BookingResponseDTO cancelBooking(Integer bookingId);
     ResponseEntity<?> cancelBookingWithResponse(Integer bookingId);
     

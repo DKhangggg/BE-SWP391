@@ -16,7 +16,8 @@ public class BookingRequestDTO {
     
     @NotNull(message = "Time slot ID is required")
     private Integer timeSlotId;
-    
+
+    private String description;
     private String notes;
 }
 

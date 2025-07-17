@@ -3,6 +3,7 @@ package com.example.gender_healthcare_service.service.impl;
 import com.example.gender_healthcare_service.dto.request.BookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.BookingFilterRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateBookingStatusRequestDTO;
+import com.example.gender_healthcare_service.dto.request.UpdateTestResultRequestDTO;
 import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
 import com.example.gender_healthcare_service.dto.response.BookingPageResponseDTO;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
@@ -72,8 +73,11 @@ public class BookingServiceImpl implements BookingService {
         booking.setService(service);
         booking.setTimeSlot(timeSlot);
         booking.setStatus("PENDING");
-        booking.setBookingDate(LocalDateTime.now()); // Set booking date
-
+        booking.setBookingDate(LocalDateTime.now());
+        booking.setDescription(bookingRequestDTO.getDescription());
+        booking.setIsDeleted(false);
+        booking.setCreatedAt(LocalDateTime.now());
+        booking.setUpdatedAt(LocalDateTime.now());
         // Increment booked count in time slot
         timeSlot.incrementBookedCount();
         timeSlotRepository.save(timeSlot);
@@ -127,20 +131,67 @@ public class BookingServiceImpl implements BookingService {
 
         String previousStatus = booking.getStatus();
         String newStatus = statusRequestDTO.getStatus();
-        
-        // Validate status transition
-        if (!isValidStatusTransition(previousStatus, newStatus)) {
-            throw new IllegalStateException("Invalid status transition from " + previousStatus + " to " + newStatus);
-        }
-        
+
+        booking.setUpdatedAt(LocalDateTime.now());
         booking.setStatus(newStatus);
+
+        // Update description
+        if (statusRequestDTO.getDescription() != null) {
+            booking.setDescription(statusRequestDTO.getDescription());
+        }
+
+        // Update result date
+        if (statusRequestDTO.getResultDate() != null) {
+            booking.setResultDate(statusRequestDTO.getResultDate());
+        }
+
         Booking updatedBooking = bookingRepository.save(booking);
-        
+
         // Send real-time notification for status change
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String updatedBy = authentication != null ? authentication.getName() : "System";
         bookingTrackingService.notifyBookingStatusChange(updatedBooking, newStatus, previousStatus, updatedBy);
-        
+
+        return convertToDto(updatedBooking);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponseDTO updateTestResult(Integer bookingId, UpdateTestResultRequestDTO resultRequest) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ServiceNotFoundException("Booking not found with ID: " + bookingId));
+
+
+
+        String previousStatus = booking.getStatus();
+
+        // Update booking with test result
+        booking.setResult(resultRequest.getResult());
+        booking.setResultDate(resultRequest.getResultDate());
+        booking.setStatus("COMPLETED"); // Automatically set to completed when result is updated
+        booking.setUpdatedAt(LocalDateTime.now());
+
+        // Add notes if provided
+        if (resultRequest.getNotes() != null) {
+            String existingDescription = booking.getDescription() != null ? booking.getDescription() : "";
+            String newDescription = existingDescription.isEmpty()
+                ? "Kết quả: " + resultRequest.getNotes()
+                : existingDescription + "\nKết quả: " + resultRequest.getNotes();
+            booking.setDescription(newDescription);
+        }
+
+        Booking updatedBooking = bookingRepository.save(booking);
+
+        // Send real-time notification for result update
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String updatedBy = authentication != null ? authentication.getName() : "Lab System";
+
+        // Notify about status change to COMPLETED
+        bookingTrackingService.notifyBookingStatusChange(updatedBooking, "COMPLETED", previousStatus, updatedBy);
+
+        // Also notify specifically about test result being ready
+        bookingTrackingService.notifyTestResultReady(bookingId, resultRequest.getResult());
+
         return convertToDto(updatedBooking);
     }
 
@@ -170,7 +221,7 @@ public class BookingServiceImpl implements BookingService {
 
         String previousStatus = booking.getStatus();
         booking.setStatus("CANCELLED");
-        
+        booking.setUpdatedAt(LocalDateTime.now());
         // Decrement booked count in time slot
         TimeSlot timeSlot = booking.getTimeSlot();
         timeSlot.decrementBookedCount();
@@ -203,6 +254,7 @@ public class BookingServiceImpl implements BookingService {
 
         String previousStatus = booking.getStatus();
         booking.setStatus("CANCELLED");
+        booking.setUpdatedAt(LocalDateTime.now());
         booking.setIsDeleted(true);
         bookingRepository.save(booking);
 
@@ -378,6 +430,8 @@ public class BookingServiceImpl implements BookingService {
         dto.setResult(booking.getResult());
         dto.setResultDate(booking.getResultDate());
         dto.setCreatedAt(booking.getCreatedAt());
+        dto.setUpdatedAt(booking.getUpdatedAt());
+        dto.setDescription(booking.getDescription());
         dto.setBookingDate(booking.getBookingDate());
         
         // Time slot mapping with null check
@@ -392,20 +446,5 @@ public class BookingServiceImpl implements BookingService {
         return dto;
     }
 
-    private boolean isValidStatusTransition(String currentStatus, String newStatus) {
-        switch (currentStatus) {
-            case "PENDING":
-                return "SAMPLE_COLLECTED".equals(newStatus) || "CANCELLED".equals(newStatus);
-            case "SAMPLE_COLLECTED":
-                return "TESTING".equals(newStatus) || "CANCELLED".equals(newStatus);
-            case "TESTING":
-                return "COMPLETED".equals(newStatus) || "CANCELLED".equals(newStatus);
-            case "COMPLETED":
-                return false; // Cannot change from completed
-            case "CANCELLED":
-                return false; // Cannot change from cancelled
-            default:
-                return false;
-        }
-    }
+
 }

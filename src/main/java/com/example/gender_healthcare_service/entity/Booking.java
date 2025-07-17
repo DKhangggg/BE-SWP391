@@ -56,6 +56,15 @@ public class Booking {
     @Column(name = "CreatedAt")
     private LocalDateTime createdAt;
 
+    @ColumnDefault("getdate()")
+    @Column(name = "UpdatedAt")
+    private LocalDateTime updatedAt;
+
+    @Size(max = 1000)
+    @Nationalized
+    @Column(name = "Description", length = 1000)
+    private String description;
+
     @ColumnDefault("0")
     @Column(name = "IsDeleted")
     private Boolean isDeleted;
@@ -69,9 +78,15 @@ public class Booking {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
         if (bookingDate == null) {
             bookingDate = LocalDateTime.now();
         }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
     
     // Helper methods
