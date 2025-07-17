@@ -32,7 +32,7 @@ public class UserController {
     @Autowired
     private ReminderService reminderService;
 
-    @PutMapping("/profile")
+    @PatchMapping("/profile")
     public ResponseEntity<?> updateProfile(@RequestBody(required = false) UserProfileRequest userProfileUpdate) {
         UserResponseDTO updatedUser = userService.updateUser(userProfileUpdate);
         if (updatedUser != null) {

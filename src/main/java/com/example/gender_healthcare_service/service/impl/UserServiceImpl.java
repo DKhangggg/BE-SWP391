@@ -64,8 +64,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponseDTO updateUser(UserProfileRequest userProfile) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (user != null && userProfile != null) {
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            User user = userRepository.findUserByUsername(username);
+            if (user == null) {
+                throw new RuntimeException("User not found");
+            }
+
+            if (userProfile != null) {
             if(userProfile.getFullName() != null) {
                 user.setFullName(userProfile.getFullName());
             }
@@ -85,9 +91,19 @@ public class UserServiceImpl implements UserService {
             if (userProfile.getDateOfBirth() != null) {
                user.setDateOfBirth(userProfile.getDateOfBirth());
             }
-            user.setUpdatedAt(LocalDateTime.now());
-            userRepository.save(user);
-            return modelMapper.map(user, UserResponseDTO.class);
+            if (userProfile.getDescription() != null) {
+                user.setDescription(userProfile.getDescription());
+            }
+            if (userProfile.getMedicalHistory() != null) {
+                user.setMedicalHistory(userProfile.getMedicalHistory());
+            }
+                user.setUpdatedAt(LocalDateTime.now());
+                userRepository.save(user);
+                return modelMapper.map(user, UserResponseDTO.class);
+            }
+        } catch (Exception e) {
+            System.out.println("Error updating user profile: " + e.getMessage());
+            throw new RuntimeException("Failed to update user profile: " + e.getMessage());
         }
         return null;
     }

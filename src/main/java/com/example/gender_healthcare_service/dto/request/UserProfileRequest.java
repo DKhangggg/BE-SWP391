@@ -15,6 +15,7 @@ public class UserProfileRequest {
     private LocalDate dateOfBirth;
     private String address;
     private String gender;
+    private String description;
     private String medicalHistory;
     private String createdAt;
     private String updatedAt;
