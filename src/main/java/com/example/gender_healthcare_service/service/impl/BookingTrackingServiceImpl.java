@@ -113,12 +113,12 @@ public class BookingTrackingServiceImpl implements BookingTrackingService {
                     bookingId,
                     booking.getCustomerID().getFullName(),
                     booking.getService().getServiceName(),
-                    "Results Ready",
+                    "COMPLETED",
                     "Kết quả xét nghiệm đã sẵn sàng. Vui lòng kiểm tra.",
                     "Lab System"
             );
             statusUpdate.setNotes(result);
-            
+
             sendBookingStatusUpdate(statusUpdate);
             sendBookingStatusUpdateToCustomer(booking.getCustomerID().getId(), statusUpdate);
             sendBookingStatusUpdateToStaff(statusUpdate);
