@@ -73,26 +73,39 @@ public class BlogController {
 
     @PostMapping("/posts")
     @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
-    public ResponseEntity<?> createBlogPost(@RequestBody BlogPostRequestDTO blogPostRequestDTO,
-                                          Authentication authentication) {
+    public ResponseEntity<?> createBlogPost(@RequestBody BlogPostRequestDTO blogPostRequestDTO, Authentication authentication) {
         try {
-            boolean done=blogService.createBlogPost(blogPostRequestDTO, authentication);
+            boolean done = blogService.createBlogPost(blogPostRequestDTO, authentication);
             return ResponseEntity.status(HttpStatus.CREATED).body(done);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
+        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi tạo bài viết";
+            if (msg.contains("Category not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(msg);
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
         }
     }
 
     @PutMapping("/posts/{postId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
-    public ResponseEntity<?> updateBlogPost(@PathVariable Integer postId,
-                                         @RequestBody BlogPostRequestDTO blogPostRequestDTO,
-                                         Authentication authentication) {
+    public ResponseEntity<?> updateBlogPost(@PathVariable Integer postId, @RequestBody BlogPostRequestDTO blogPostRequestDTO, Authentication authentication) {
         try {
             BlogPost updatedBlogPost = blogService.updateBlogPost(postId, blogPostRequestDTO, authentication);
             return ResponseEntity.ok(updatedBlogPost);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
+        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi cập nhật bài viết";
+            if (msg.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(msg);
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
         }
     }
 
@@ -104,10 +117,18 @@ public class BlogController {
             if (isDeleted) {
                 return ResponseEntity.ok("Blog post deleted successfully");
             } else {
-                return ResponseEntity.badRequest().body("Failed to delete blog post");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to delete blog post");
             }
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
+        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi xóa bài viết";
+            if (msg.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(msg);
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
         }
     }
 
@@ -227,41 +248,71 @@ public class BlogController {
 
     @PostMapping("/categories")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<BlogCategoryDTO> createBlogCategory(@RequestBody BlogCategoryRequestDTO blogCategoryRequestDTO) {
+    public ResponseEntity<?> createBlogCategory(@RequestBody BlogCategoryRequestDTO blogCategoryRequestDTO, Authentication authentication) {
         try {
             BlogCategory createdCategory = blogCategoryService.createCategory(blogCategoryRequestDTO);
             BlogCategoryDTO categoryDTO = modelMapper.map(createdCategory, BlogCategoryDTO.class);
             return ResponseEntity.status(HttpStatus.CREATED).body(categoryDTO);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
+        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi tạo danh mục";
+            if (msg.contains("already exists")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tên danh mục đã tồn tại!");
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
         }
     }
 
     @PutMapping("/categories/{categoryId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<BlogCategoryDTO> updateBlogCategory(@PathVariable Integer categoryId,
-                                             @RequestBody BlogCategoryRequestDTO blogCategoryRequestDTO) {
+    public ResponseEntity<?> updateBlogCategory(@PathVariable Integer categoryId,
+                                             @RequestBody BlogCategoryRequestDTO blogCategoryRequestDTO, Authentication authentication) {
         try {
             BlogCategory updatedCategory = blogCategoryService.updateCategory(categoryId, blogCategoryRequestDTO);
             BlogCategoryDTO categoryDTO = modelMapper.map(updatedCategory, BlogCategoryDTO.class);
             return ResponseEntity.ok(categoryDTO);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
+        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi cập nhật danh mục";
+            if (msg.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy danh mục!");
+            }
+            if (msg.contains("already exists")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tên danh mục đã tồn tại!");
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
         }
     }
 
     @DeleteMapping("/categories/{categoryId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<Void> deleteBlogCategory(@PathVariable Integer categoryId) {
+    public ResponseEntity<?> deleteBlogCategory(@PathVariable Integer categoryId, Authentication authentication) {
         try {
             boolean isDeleted = blogCategoryService.deleteCategory(categoryId);
             if (isDeleted) {
-                return ResponseEntity.noContent().build();
+                return ResponseEntity.ok("Danh mục đã được xóa thành công!");
             } else {
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Không thể xóa danh mục!");
             }
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
+        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi xóa danh mục";
+            if (msg.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy danh mục!");
+            }
+            if (msg.contains("has posts")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Không thể xóa danh mục đang có bài viết!");
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
         }
     }
 

@@ -65,8 +65,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             
             // ========== Public API Content ==========
             "/api/homepage/**",
-            "/api/blog/posts/**",        // Xem blog posts
-            "/api/blog/categories/**",   // Xem danh mục blog
             "/api/qa/faq",              // FAQ công khai
             "/api/services/testing-services",     // Xem danh sách dịch vụ
             "/api/services/testing-services/*",   // Xem chi tiết dịch vụ
@@ -81,8 +79,19 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     /**
      * Kiểm tra URI có phải là public API không
      */
-    public boolean isPublicAPI(String uri) {
+    public boolean isPublicAPI(String uri, String method) {
         AntPathMatcher pathMatcher = new AntPathMatcher();
+        
+        // Đặc biệt xử lý cho blog posts - chỉ GET là public
+        if (pathMatcher.match("/api/blog/posts/**", uri)) {
+            return "GET".equals(method);
+        }
+        
+        // Đặc biệt xử lý cho blog categories - chỉ GET là public
+        if (pathMatcher.match("/api/blog/categories/**", uri)) {
+            return "GET".equals(method);
+        }
+        
         return PUBLIC_APIS.stream().anyMatch(pattern -> pathMatcher.match(pattern, uri));
     }
 
@@ -94,8 +103,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             String method = request.getMethod();
             
             // Kiểm tra nếu là public API
-            if (isPublicAPI(requestURI)) {
-                System.out.println("✅ Public API detected: " + requestURI + " - Bypassing JWT filter");
+            if (isPublicAPI(requestURI, method)) {
+                System.out.println("✅ Public API detected: " + requestURI + " (" + method + ") - Bypassing JWT filter");
                 filterChain.doFilter(request, response);
                 return;
             }

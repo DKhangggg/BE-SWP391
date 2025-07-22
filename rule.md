@@ -1,1404 +1,906 @@
-# RULE.md - Backend SWP391 Gender Healthcare Service
+# RULE.md - Gender Healthcare Service Development Guidelines
 
-## 🤖 AI DEVELOPMENT GUIDELINES
+## 🎯 Project Overview
+This document defines the development standards, coding conventions, and architectural principles for the Gender Healthcare Service project. All developers must follow these guidelines to ensure code quality, maintainability, and team collaboration.
 
-### Project Recreation Checklist cho AI
+**Ngôn ngữ phát triển:** Tiếng Việt (Vietnamese) - Tất cả comments, documentation, và communication trong team sử dụng tiếng Việt.
+**Java Version:** JDK 21 (LTS) - Sử dụng các tính năng mới nhất của Java 21 để tối ưu performance và code quality.
 
-#### 1. **Dependencies & Versions**
-```xml
-<!-- Core Dependencies -->
-<parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.0</version>
-</parent>
+## 📋 Table of Contents
+1. [Java 21 Features & Requirements](#java-21-features--requirements)
+2. [Vietnamese Language Standards](#vietnamese-language-standards)
+3. [Coding Standards](#coding-standards)
+4. [Architecture Principles](#architecture-principles)
+5. [Security Guidelines](#security-guidelines)
+6. [Database Standards](#database-standards)
+7. [API Design Rules](#api-design-rules)
+8. [Testing Requirements](#testing-requirements)
+9. [Code Quality Rules](#code-quality-rules)
+10. [Git Workflow](#git-workflow)
+11. [Documentation Standards](#documentation-standards)
+12. [Performance Guidelines](#performance-guidelines)
 
+## ☕ Java 21 Features & Requirements
+
+### JDK 21 Setup Requirements
+```bash
+# Kiểm tra Java version
+java -version
+# Output phải là: openjdk version "21.0.x" hoặc java version "21.0.x"
+
+# Maven compiler configuration (đã có trong pom.xml)
 <properties>
     <java.version>21</java.version>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
 </properties>
-
-<!-- Essential Dependencies -->
-<dependencies>
-    <!-- Spring Boot Starters -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-security</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-websocket</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-mail</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-validation</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-oauth2-client</artifactId>
-    </dependency>
-    
-    <!-- Database -->
-    <dependency>
-        <groupId>com.microsoft.sqlserver</groupId>
-        <artifactId>mssql-jdbc</artifactId>
-        <scope>runtime</scope>
-    </dependency>
-    
-    <!-- JWT -->
-    <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt-api</artifactId>
-        <version>0.12.5</version>
-    </dependency>
-    <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt-impl</artifactId>
-        <version>0.12.5</version>
-        <scope>runtime</scope>
-    </dependency>
-    <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt-jackson</artifactId>
-        <version>0.12.5</version>
-        <scope>runtime</scope>
-    </dependency>
-    
-    <!-- Utilities -->
-    <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok</artifactId>
-        <version>1.18.38</version>
-        <scope>provided</scope>
-    </dependency>
-    <dependency>
-        <groupId>org.modelmapper</groupId>
-        <artifactId>modelmapper</artifactId>
-        <version>3.1.1</version>
-    </dependency>
-    <dependency>
-        <groupId>io.github.cdimascio</groupId>
-        <artifactId>dotenv-java</artifactId>
-        <version>3.0.0</version>
-    </dependency>
-    
-    <!-- Google APIs -->
-    <dependency>
-        <groupId>com.google.api-client</groupId>
-        <artifactId>google-api-client</artifactId>
-        <version>2.2.0</version>
-    </dependency>
-    <dependency>
-        <groupId>com.google.oauth-client</groupId>
-        <artifactId>google-oauth-client</artifactId>
-        <version>1.34.1</version>
-    </dependency>
-    <dependency>
-        <groupId>com.google.http-client</groupId>
-        <artifactId>google-http-client-jackson2</artifactId>
-        <version>1.34.1</version>
-    </dependency>
-    
-    <!-- Documentation -->
-    <dependency>
-        <groupId>org.springdoc</groupId>
-        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-        <version>2.2.0</version>
-    </dependency>
-</dependencies>
 ```
 
-#### 2. **Database Schema Requirements**
-```sql
--- Core Tables Structure
-CREATE TABLE Users (
-    UserID INT IDENTITY(1,1) PRIMARY KEY,
-    Username NVARCHAR(50) NOT NULL UNIQUE,
-    PasswordHash NVARCHAR(68) NOT NULL,
-    Email NVARCHAR(100) NOT NULL UNIQUE,
-    FullName NVARCHAR(100) NOT NULL,
-    PhoneNumber NVARCHAR(20),
-    RoleName NVARCHAR(255) NOT NULL,
-    Description NVARCHAR(200),
-    DateOfBirth DATE,
-    Address NVARCHAR(200),
-    Gender NVARCHAR(20),
-    MedicalHistory NVARCHAR(1000),
-    CreatedAt DATETIME2 DEFAULT GETDATE(),
-    UpdatedAt DATETIME2 DEFAULT GETDATE(),
-    IsDeleted BIT DEFAULT 0
-);
+### Java 21 Features to Use
 
-CREATE TABLE Consultants (
-    ConsultantID INT PRIMARY KEY,
-    Biography NVARCHAR(1000),
-    Qualifications NVARCHAR(500),
-    ExperienceYears INT,
-    Specialization NVARCHAR(100),
-    IsDeleted BIT DEFAULT 0,
-    FOREIGN KEY (ConsultantID) REFERENCES Users(UserID)
-);
-
-CREATE TABLE TimeSlots (
-    TimeSlotID INT IDENTITY(1,1) PRIMARY KEY,
-    SlotDate DATE NOT NULL,
-    SlotNumber INT NOT NULL,
-    StartTime TIME NOT NULL,
-    EndTime TIME NOT NULL,
-    Duration INT NOT NULL,
-    Description NVARCHAR(100),
-    IsActive BIT DEFAULT 1,
-    ConsultantID INT,
-    Capacity INT DEFAULT 1,
-    BookedCount INT DEFAULT 0,
-    SlotType NVARCHAR(50) NOT NULL,
-    CreatedAt DATETIME2 DEFAULT GETDATE(),
-    FOREIGN KEY (ConsultantID) REFERENCES Consultants(ConsultantID)
-);
-
-CREATE TABLE TestingServices (
-    ServiceID INT IDENTITY(1,1) PRIMARY KEY,
-    ServiceName NVARCHAR(100) NOT NULL,
-    Description NVARCHAR(500),
-    Price DECIMAL(10,2) NOT NULL,
-    DurationMinutes INT,
-    CreatedAt DATETIME2 DEFAULT GETDATE(),
-    UpdatedAt DATETIME2 DEFAULT GETDATE(),
-    IsDeleted BIT DEFAULT 0
-);
-
-CREATE TABLE Bookings (
-    BookingID INT IDENTITY(1,1) PRIMARY KEY,
-    CustomerID INT NOT NULL,
-    ServiceID INT NOT NULL,
-    TimeSlotID INT NOT NULL,
-    Status NVARCHAR(255) NOT NULL,
-    Result NVARCHAR(500),
-    ResultDate DATETIME2,
-    CreatedAt DATETIME2 DEFAULT GETDATE(),
-    IsDeleted BIT DEFAULT 0,
-    FOREIGN KEY (CustomerID) REFERENCES Users(UserID),
-    FOREIGN KEY (ServiceID) REFERENCES TestingServices(ServiceID),
-    FOREIGN KEY (TimeSlotID) REFERENCES TimeSlots(TimeSlotID)
-);
-
-CREATE TABLE Consultations (
-    ConsultationID INT IDENTITY(1,1) PRIMARY KEY,
-    CustomerID INT NOT NULL,
-    ConsultantID INT NOT NULL,
-    TimeSlotID INT NOT NULL,
-    Status NVARCHAR(255) NOT NULL,
-    MeetingLink NVARCHAR(200),
-    Notes NVARCHAR(500),
-    CreatedAt DATETIME2 DEFAULT GETDATE(),
-    IsDeleted BIT DEFAULT 0,
-    FOREIGN KEY (CustomerID) REFERENCES Users(UserID),
-    FOREIGN KEY (ConsultantID) REFERENCES Users(UserID),
-    FOREIGN KEY (TimeSlotID) REFERENCES TimeSlots(TimeSlotID)
-);
-
--- Additional required tables...
-```
-
-#### 3. **Environment Variables Template**
-```properties
-# Database Configuration
-spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=HS_New;encrypt=true;trustServerCertificate=true
-spring.datasource.username=sa
-spring.datasource.password=12345
-
-# JWT Configuration
-jwt.secret.key=MySuperSecretKeyForJWTGenerationThatIsDefinitelyLongEnoughAndSecure123!
-jwt.expiration=86400000
-jwt.refresh.expiration=604800000
-
-# Email Configuration
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=your-email@gmail.com
-spring.mail.password=your-app-password
-spring.mail.properties.mail.smtp.auth=true
-spring.mail.properties.mail.smtp.starttls.enable=true
-
-# Google OAuth2 Configuration
-spring.security.oauth2.client.registration.google.client-id=your-google-client-id
-spring.security.oauth2.client.registration.google.client-secret=your-google-client-secret
-spring.security.oauth2.client.registration.google.redirect-uri=postmessage
-
-# Server Configuration
-server.address=0.0.0.0
-server.port=8080
-
-# JPA Configuration
-spring.jpa.hibernate.ddl-auto=none
-spring.jpa.show-sql=true
-spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
-
-# Logging Configuration
-logging.level.org.springframework.security=DEBUG
-logging.level.root=warn
-spring.main.banner-mode=off
-
-# Swagger Configuration (temporarily disabled)
-springdoc.api-docs.enabled=false
-springdoc.swagger-ui.enabled=false
-```
-
-#### 4. **Required Entity Classes Structure**
+#### 1. **Record Classes (Thay thế cho DTOs đơn giản)**
 ```java
-// Core Entity Classes (must implement)
-1. User.java - implements UserDetails
-2. Consultant.java - OneToOne with User
-3. TimeSlot.java - Time slot management
-4. TestingService.java - Service offerings
-5. Booking.java - Appointment bookings
-6. Consultation.java - Online consultations
-7. MenstrualCycle.java - Cycle tracking
-8. MenstrualLog.java - Daily logs
-9. Symptom.java - Symptom definitions
-10. SymptomLog.java - Symptom tracking
-11. BlogPost.java - Content management
-12. BlogCategory.java - Content categories
-13. Question.java - QA system
-14. Answer.java - QA responses
-15. Payment.java - Payment tracking
-16. Feedback.java - User feedback
-17. Notification.java - Real-time notifications
-18. Reminder.java - Appointment reminders
-19. TransactionHistory.java - Financial tracking
-20. ReportLog.java - Analytics reports
-21. ConsultantAvailability.java - Schedule templates
-22. ConsultantSchedule.java - Daily schedules
-23. ConsultantUnavailability.java - Unavailable periods
-24. Chat.java - Messaging system
-25. PasswordResetOTP.java - Password recovery
-26. ForgetForm.java - Password reset forms
-27. Email.java - Email templates
-```
-
-#### 5. **Required Service Interfaces**
-```java
-// Service Layer Interfaces (must implement)
-1. UserService.java
-2. ConsultantService.java
-3. BookingService.java
-4. ConsultationService.java
-5. TestingServiceService.java
-6. TimeSlotService.java
-7. MenstrualCycleService.java
-8. MenstrualCycleAnalyticsService.java
-9. BlogService.java
-10. BlogCategoryService.java
-11. QAService.java
-12. PaymentService.java
-13. FeedbackService.java
-14. NotificationService.java
-15. ReminderService.java
-16. TransactionHistoryService.java
-17. ReportService.java
-18. ConsultantAvailabilityService.java
-19. ConsultantScheduleService.java
-20. AuthenticationService.java
-21. JwtService.java
-22. EmailService.java
-23. BookingTrackingService.java
-24. AuthorizationService.java
-```
-
-#### 6. **Required Controller Classes**
-```java
-// Controller Classes (must implement)
-1. AuthController.java - Authentication endpoints
-2. UserController.java - User management
-3. AdminController.java - Admin functions
-4. ConsultantController.java - Consultant functions
-5. BookingController.java - Booking management
-6. ConsultationController.java - Consultation management
-7. ServiceController.java - Service management
-8. TimeSlotController.java - Time slot management
-9. BlogController.java - Content management
-10. QAController.java - QA system
-11. PaymentController.java - Payment processing
-12. FeedbackController.java - Feedback system
-13. HomepageController.java - Public content
-14. EnhancedMenstrualCycleController.java - Cycle tracking
-15. BookingTrackingController.java - Real-time tracking
-```
-
-#### 7. **Required Configuration Classes**
-```java
-// Configuration Classes (must implement)
-1. SecurityConfig.java - Spring Security configuration
-2. CorsConfig.java - CORS configuration
-3. WebSocketConfig.java - WebSocket configuration
-4. JwtAuthEntryPoint.java - JWT authentication entry point
-5. ModelMapperConfig.java - Model mapper configuration
-```
-
-#### 8. **Required DTO Classes**
-```java
-// Request DTOs (must implement)
-1. LoginRequest.java
-2. RegisterRequest.java
-3. UserProfileRequest.java
-4. BookingRequestDTO.java
-5. ConsultationBookingRequestDTO.java
-6. MenstrualCycleRequestDTO.java
-7. MenstrualLogRequestDTO.java
-8. EnhancedMenstrualLogRequestDTO.java
-9. BlogPostRequestDTO.java
-10. QuestionRequestDTO.java
-11. AnswerRequestDTO.java
-12. ConsultantUpdateDTO.java
-13. AdminUpdateUserRequestDTO.java
-14. AddUnavailabilityRequestDTO.java
-15. ReminderRequestDTO.java
-16. FeedbackRequestDTO.java
-
-// Response DTOs (must implement)
-1. AuthResponseDTO.java
-2. UserResponseDTO.java
-3. BookingResponseDTO.java
-4. ConsultationBookingResponseDTO.java
-5. MenstrualCycleResponseDTO.java
-6. BlogPostResponseDTO.java
-7. QuestionResponseDTO.java
-8. AnswerResponseDTO.java
-9. ConsultantDTO.java
-10. TestingServiceResponseDTO.java
-11. TimeSlotResponseDTO.java
-12. FeedbackResponseDTO.java
-13. DashboardReportDTO.java
-14. PageResponse.java
-15. ApiResponse.java
-```
-
-#### 9. **Required Repository Interfaces**
-```java
-// Repository Interfaces (must implement)
-1. UserRepository.java
-2. ConsultantRepository.java
-3. BookingRepository.java
-4. ConsultationRepository.java
-5. TestingServiceRepository.java
-6. TimeSlotRepository.java
-7. MenstrualCycleRepository.java
-8. MenstrualLogRepository.java
-9. SymptomRepository.java
-10. SymptomLogRepository.java
-11. BlogPostRepository.java
-12. BlogCategoryRepository.java
-13. QuestionRepository.java
-14. AnswerRepository.java
-15. PaymentRepository.java
-16. FeedbackRepository.java
-17. NotificationRepository.java
-18. ReminderRepository.java
-19. TransactionHistoryRepository.java
-20. ReportLogRepository.java
-21. ConsultantAvailabilityRepository.java
-22. ConsultantScheduleRepository.java
-23. ConsultantUnavailabilityRepository.java
-24. ChatRepository.java
-25. PasswordResetOTPRepository.java
-26. ForgetFormRepository.java
-27. EmailRepository.java
-```
-
-#### 10. **Required Exception Classes**
-```java
-// Exception Classes (must implement)
-1. GlobalExceptionHandler.java
-2. ServiceNotFoundException.java
-3. Custom exceptions for each domain
-```
-
-#### 11. **Required Filter Classes**
-```java
-// Filter Classes (must implement)
-1. JwtTokenFilter.java - JWT token validation
-```
-
-#### 12. **Required Mapper Classes**
-```java
-// Mapper Classes (must implement)
-1. BlogMapper.java
-2. ModelMapperConfig.java
-```
-
-#### 13. **Development Steps for AI**
-```bash
-# Step 1: Setup Project Structure
-1. Create Spring Boot project with Java 21
-2. Add all required dependencies to pom.xml
-3. Setup application.properties with database connection
-4. Create package structure
-
-# Step 2: Database Setup
-1. Create SQL Server database 'HS_New'
-2. Run database schema scripts
-3. Insert sample data
-
-# Step 3: Entity Layer
-1. Create all entity classes with JPA annotations
-2. Implement relationships between entities
-3. Add validation annotations
-4. Implement UserDetails interface for User entity
-
-# Step 4: Repository Layer
-1. Create all repository interfaces
-2. Extend JpaRepository
-3. Add custom query methods
-4. Implement soft delete patterns
-
-# Step 5: Service Layer
-1. Create all service interfaces
-2. Implement service classes with business logic
-3. Add transaction annotations
-4. Implement security checks
-
-# Step 6: DTO Layer
-1. Create all request DTOs
-2. Create all response DTOs
-3. Add validation annotations
-4. Implement mapping logic
-
-# Step 7: Controller Layer
-1. Create all REST controllers
-2. Add security annotations
-3. Implement pagination
-4. Add proper error handling
-
-# Step 8: Security Configuration
-1. Configure Spring Security
-2. Implement JWT authentication
-3. Setup role-based access control
-4. Configure CORS
-
-# Step 9: WebSocket Configuration
-1. Setup WebSocket for real-time features
-2. Configure message brokers
-3. Implement notification system
-
-# Step 10: Testing
-1. Create unit tests for services
-2. Create integration tests for controllers
-3. Test security configurations
-4. Test database operations
-
-# Step 11: Documentation
-1. Add API documentation
-2. Create deployment guide
-3. Add code comments
-4. Create user manual
-```
-
-#### 14. **Key Business Rules for AI**
-```java
-// Authentication Rules
-- JWT token expires in 24 hours
-- Refresh token expires in 7 days
-- Password must be BCrypt encoded
-- OAuth2 Google integration required
-
-// Booking Rules
-- User cannot book overlapping time slots
-- Time slot must be available
-- Service must be active
-- Booking status flow: PENDING → SAMPLE_COLLECTED → TESTING → COMPLETED
-
-// Consultation Rules
-- Consultant must be available
-- Max bookings per slot enforced
-- Real-time status updates via WebSocket
-- Status flow: SCHEDULED → IN_PROGRESS → COMPLETED
-
-// Menstrual Cycle Rules
-- Minimum 3 cycles for prediction
-- Irregular cycle threshold: 7 days
-- Default cycle length: 28 days
-- Symptom tracking with severity levels
-
-// Payment Rules
-- Amount must be positive
-- Payment method validation required
-- Transaction ID must be unique
-- Status flow: PENDING → PROCESSING → COMPLETED
-
-// Content Management Rules
-- Blog posts require author
-- Categories can have multiple posts
-- Soft delete for all content
-- Public/private content filtering
-
-// QA System Rules
-- Questions require user authentication
-- Answers require consultant role
-- Public questions visible to all
-- Status flow: PENDING → ANSWERED → CLOSED
-```
-
-#### 15. **Performance Requirements**
-```java
-// Database Performance
-- Use indexes on frequently queried columns
-- Implement pagination for large datasets
-- Use lazy loading for relationships
-- Cache frequently accessed data
-
-// API Performance
-- Response time < 2 seconds
-- Handle concurrent requests
-- Implement rate limiting
-- Use connection pooling
-
-// Security Performance
-- JWT token validation < 100ms
-- Password encoding with BCrypt
-- Session management optimization
-- CORS preflight caching
-```
-
-#### 16. **Testing Requirements**
-```java
-// Unit Tests
-- Service layer business logic
-- Repository data access
-- DTO validation
-- Exception handling
-
-// Integration Tests
-- Controller endpoints
-- Security configurations
-- Database operations
-- WebSocket connections
-
-// Security Tests
-- Authentication flows
-- Authorization checks
-- JWT token validation
-- Role-based access control
-```
-
-#### 17. **Deployment Checklist**
-```bash
-# Pre-deployment
-- [ ] All tests passing
-- [ ] Code review completed
-- [ ] Security scan passed
-- [ ] Performance tests passed
-- [ ] Documentation updated
-
-# Deployment
-- [ ] Database migrations applied
-- [ ] Environment variables set
-- [ ] SSL certificates configured
-- [ ] Monitoring configured
-- [ ] Backup strategy in place
-
-# Post-deployment
-- [ ] Health checks passing
-- [ ] Smoke tests completed
-- [ ] Performance monitoring active
-- [ ] Error tracking configured
-- [ ] User acceptance testing completed
-```
-
----
-
-## 📋 Tổng Quan Hệ Thống
-
-### Thông Tin Cơ Bản
-- **Framework**: Spring Boot 3.5.0
-- **Java Version**: 21
-- **Database**: SQL Server (HS_New)
-- **Security**: JWT + Spring Security
-- **Architecture**: RESTful API với phân trang chuẩn
-
-### Các Module Chính
-1. **Authentication & Authorization** - JWT, OAuth2 Google
-2. **User Management** - Quản lý người dùng, roles
-3. **Booking System** - Đặt lịch khám, xét nghiệm
-4. **Consultation System** - Tư vấn trực tuyến
-5. **Menstrual Cycle Tracking** - Theo dõi chu kỳ kinh nguyệt
-6. **Blog & Content Management** - Quản lý nội dung
-7. **QA System** - Hỏi đáp
-8. **Payment System** - Thanh toán
-9. **Notification System** - Thông báo real-time
-10. **Reporting & Analytics** - Báo cáo và phân tích
-
----
-
-## 🔐 SECURITY RULES
-
-### JWT Configuration
-```properties
-jwt.secret.key=MySuperSecretKeyForJWTGenerationThatIsDefinitelyLongEnoughAndSecure123!
-jwt.expiration=86400000
-jwt.refresh.expiration=604800000
-```
-
-### Role-Based Access Control
-```java
-// Các roles trong hệ thống:
-- ROLE_CUSTOMER    // Khách hàng
-- ROLE_CONSULTANT  // Tư vấn viên
-- ROLE_STAFF       // Nhân viên
-- ROLE_MANAGER     // Quản lý
-- ROLE_ADMIN       // Admin
-```
-
-### API Security Rules
-```java
-// PUBLIC APIs (không cần authentication)
-- POST /api/auth/login
-- POST /api/auth/register
-- POST /api/auth/forgot-password
-- POST /api/auth/reset-password
-- POST /api/auth/validate-otp
-- POST /api/auth/refresh-token
-- GET /api/homepage/**
-- GET /api/blog/posts/**
-- GET /api/qa/faq
-- GET /api/services/testing-services
-
-// CUSTOMER APIs
-- POST /api/booking (ROLE_CUSTOMER, ROLE_ADMIN)
-- GET /api/user/** (ROLE_CUSTOMER, ROLE_CONSULTANT, ROLE_STAFF, ROLE_MANAGER, ROLE_ADMIN)
-- POST /api/qa/questions (ROLE_CUSTOMER, ROLE_ADMIN)
-- POST /api/consultation/book (ROLE_CUSTOMER, ROLE_ADMIN)
-
-// CONSULTANT APIs
-- /api/consultant/** (ROLE_CONSULTANT, ROLE_MANAGER, ROLE_ADMIN)
-- POST /api/qa/questions/*/answers (ROLE_CONSULTANT, ROLE_ADMIN)
-- POST /api/blog/posts (ROLE_CONSULTANT, ROLE_STAFF, ROLE_MANAGER, ROLE_ADMIN)
-
-// STAFF APIs
-- PATCH /api/booking/*/status (ROLE_STAFF, ROLE_MANAGER, ROLE_ADMIN)
-- GET /api/booking/*/admin (ROLE_STAFF, ROLE_MANAGER, ROLE_ADMIN)
-
-// MANAGER APIs
-- GET /api/admin/consultants/** (ROLE_MANAGER, ROLE_ADMIN)
-- POST /api/blog/categories (ROLE_MANAGER, ROLE_ADMIN)
-
-// ADMIN ONLY APIs
-- /api/admin/users/** (ROLE_ADMIN)
-- DELETE /api/admin/consultants/* (ROLE_ADMIN)
-- PUT /api/admin/setUserToConsultant/* (ROLE_ADMIN)
-```
-
----
-
-## 🗄️ DATABASE RULES
-
-### Entity Relationships
-```java
-// Core Entities
-User (1) ←→ (1) Consultant
-User (1) ←→ (N) Booking
-User (1) ←→ (N) Consultation
-User (1) ←→ (N) MenstrualCycle
-User (1) ←→ (N) Question
-User (1) ←→ (N) Payment
-User (1) ←→ (N) Feedback
-
-// Booking System
-TimeSlot (1) ←→ (N) Booking
-TestingService (1) ←→ (N) Booking
-ConsultantSchedule (1) ←→ (N) Booking
-
-// Consultation System
-TimeSlot (1) ←→ (N) Consultation
-Consultant (1) ←→ (N) Consultation
-
-// Content Management
-BlogPost (N) ←→ (N) BlogCategory
-User (1) ←→ (N) BlogPost
-
-// Tracking System
-MenstrualCycle (1) ←→ (N) MenstrualLog
-MenstrualLog (1) ←→ (N) SymptomLog
-Symptom (1) ←→ (N) SymptomLog
-```
-
-### Soft Delete Pattern
-```java
-// Tất cả entities đều có field isDeleted
-@ColumnDefault("0")
-@Column(name = "IsDeleted")
-private Boolean isDeleted = false;
-
-// Repository methods phải filter isDeleted = false
-findAllByIsDeletedFalse()
-findActiveById()
-```
-
-### Audit Fields
-```java
-// Standard audit fields
-@ColumnDefault("getdate()")
-@Column(name = "CreatedAt")
-private LocalDateTime createdAt;
-
-@ColumnDefault("getdate()")
-@Column(name = "UpdatedAt")
-private LocalDateTime updatedAt;
-```
-
----
-
-## 📄 API RULES
-
-### Response Format Standards
-```json
-// Success Response
-{
-  "content": [...],
-  "pageNumber": 1,
-  "pageSize": 10,
-  "totalElements": 100,
-  "totalPages": 10,
-  "hasNext": true,
-  "hasPrevious": false
+// ✅ SỬ DỤNG: Record cho DTOs đơn giản
+public record UserSummaryDTO(
+    Long id,
+    String username,
+    String email,
+    String fullName,
+    Role role
+) {
+    // Tự động tạo constructor, getters, equals, hashCode, toString
 }
 
-// Error Response
-{
-  "error": "Error message",
-  "timestamp": "2024-01-15T10:30:00",
-  "status": 400
+// ✅ SỬ DỤNG: Record với validation
+public record CreateBookingRequest(
+    @NotNull(message = "User ID không được để trống")
+    Long userId,
+
+    @NotNull(message = "Consultant ID không được để trống")
+    Long consultantId,
+
+    @Future(message = "Ngày booking phải là ngày trong tương lai")
+    LocalDateTime bookingDate,
+
+    @NotBlank(message = "Ghi chú không được để trống")
+    String notes
+) {}
+```
+
+#### 2. **Pattern Matching với Switch Expressions**
+```java
+// ✅ SỬ DỤNG: Pattern matching cho xử lý enum
+public String getBookingStatusMessage(BookingStatus status) {
+    return switch (status) {
+        case PENDING -> "Đang chờ xác nhận";
+        case CONFIRMED -> "Đã xác nhận";
+        case COMPLETED -> "Đã hoàn thành";
+        case CANCELLED -> "Đã hủy";
+        case RESCHEDULED -> "Đã đổi lịch";
+    };
+}
+
+// ✅ SỬ DỤNG: Pattern matching cho xử lý exception
+public ApiResponse<Object> handleException(Exception ex) {
+    return switch (ex) {
+        case ValidationException ve ->
+            ApiResponse.error("Lỗi validation: " + ve.getMessage(), null);
+        case ResourceNotFoundException rnfe ->
+            ApiResponse.error("Không tìm thấy tài nguyên: " + rnfe.getMessage(), null);
+        case SecurityException se ->
+            ApiResponse.error("Lỗi bảo mật: " + se.getMessage(), null);
+        default ->
+            ApiResponse.error("Lỗi hệ thống: " + ex.getMessage(), null);
+    };
 }
 ```
 
-### Pagination Rules
+#### 3. **Text Blocks cho SQL và JSON**
 ```java
-// Query Parameters
-pageNumber (default: 1) - Số trang (bắt đầu từ 1)
-pageSize (default: 10) - Số item trên mỗi trang
+// ✅ SỬ DỤNG: Text blocks cho complex queries
+@Query("""
+    SELECT u FROM User u
+    JOIN u.consultant c
+    WHERE c.specialization = :specialization
+    AND c.isAvailable = true
+    AND u.isActive = true
+    ORDER BY c.rating DESC, u.createdAt ASC
+    """)
+List<User> findAvailableConsultantsBySpecialization(@Param("specialization") String specialization);
 
-// APIs có phân trang
-- GET /api/admin/users
-- GET /api/admin/orders
-- GET /api/services/testing-services
-- GET /api/blog/posts
-- GET /api/qa/user/questions
-- GET /api/qa/consultant/questions
+// ✅ SỬ DỤNG: Text blocks cho email templates
+private static final String EMAIL_TEMPLATE = """
+    Xin chào %s,
+
+    Lịch hẹn của bạn đã được xác nhận:
+    - Bác sĩ: %s
+    - Thời gian: %s
+    - Địa điểm: %s
+
+    Vui lòng đến đúng giờ.
+
+    Trân trọng,
+    Gender Healthcare Service
+    """;
 ```
 
-### HTTP Status Codes
+#### 4. **Sealed Classes cho Type Safety**
 ```java
-200 OK - Success
-201 Created - Resource created successfully
-400 Bad Request - Invalid input
-401 Unauthorized - Authentication required
-403 Forbidden - Insufficient permissions
-404 Not Found - Resource not found
-500 Internal Server Error - Server error
-```
-
----
-
-## 🏗️ ARCHITECTURE RULES
-
-### Package Structure
-```
-com.example.gender_healthcare_service/
-├── config/          # Configuration classes
-├── controller/      # REST controllers
-├── dto/            # Data Transfer Objects
-│   ├── request/    # Request DTOs
-│   └── response/   # Response DTOs
-├── entity/         # JPA entities
-├── exception/      # Custom exceptions
-├── Filter/         # JWT filters
-├── mapper/         # Model mappers
-├── repository/     # Data access layer
-├── service/        # Business logic
-│   └── impl/      # Service implementations
-└── GenderHealthcareServiceApplication.java
-```
-
-### Service Layer Rules
-```java
-// Service Interface
-public interface UserService {
-    User findByUserName(String userName);
-    List<UserResponseDTO> getAllUsers();
-    Page<User> getAllUsers(Pageable pageable);
-    UserResponseDTO getInfo();
-    UserResponseDTO updateUser(UserProfileRequest user);
+// ✅ SỬ DỤNG: Sealed classes cho payment result
+public sealed interface PaymentResult
+    permits PaymentSuccess, PaymentFailure, PaymentPending {
 }
 
-// Service Implementation
+public record PaymentSuccess(String transactionId, BigDecimal amount) implements PaymentResult {}
+public record PaymentFailure(String errorCode, String message) implements PaymentResult {}
+public record PaymentPending(String pendingId, LocalDateTime expiry) implements PaymentResult {}
+
+// Sử dụng với pattern matching
+public String processPaymentResult(PaymentResult result) {
+    return switch (result) {
+        case PaymentSuccess(var txId, var amount) ->
+            "Thanh toán thành công. Mã GD: " + txId + ", Số tiền: " + amount;
+        case PaymentFailure(var code, var msg) ->
+            "Thanh toán thất bại. Mã lỗi: " + code + ", Lý do: " + msg;
+        case PaymentPending(var pendingId, var expiry) ->
+            "Thanh toán đang xử lý. ID: " + pendingId + ", Hết hạn: " + expiry;
+    };
+}
+```
+
+#### 5. **Virtual Threads (Project Loom)**
+```java
+// ✅ SỬ DỤNG: Virtual threads cho I/O intensive operations
 @Service
-@RequiredArgsConstructor
-public class UserServiceImpl implements UserService {
-    private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
-    
-    @Override
+public class EmailServiceImpl implements EmailService {
+
+    @Async("virtualThreadExecutor")
+    public CompletableFuture<Void> sendEmailAsync(String to, String subject, String content) {
+        // Gửi email không đồng bộ với virtual thread
+        return CompletableFuture.runAsync(() -> {
+            sendEmail(to, subject, content);
+        }, Executors.newVirtualThreadPerTaskExecutor());
+    }
+}
+
+// Configuration cho Virtual Thread Executor
+@Configuration
+public class AsyncConfig {
+
+    @Bean("virtualThreadExecutor")
+    public Executor virtualThreadExecutor() {
+        return Executors.newVirtualThreadPerTaskExecutor();
+    }
+}
+```
+
+### JDK 21 Performance Optimizations
+- **Sử dụng G1GC** (default trong JDK 21) cho better performance
+- **Enable preview features** nếu cần: `--enable-preview`
+- **JVM tuning** cho production environment
+- **Memory optimization** với compact strings và compressed OOPs
+
+## 🇻🇳 Vietnamese Language Standards
+
+### Code Comments & Documentation
+```java
+/**
+ * Tạo tài khoản người dùng mới với thông tin đăng ký được cung cấp.
+ *
+ * @param request yêu cầu đăng ký chứa thông tin người dùng
+ * @return UserResponseDTO chứa thông tin người dùng đã tạo
+ * @throws UserAlreadyExistsException nếu username hoặc email đã tồn tại
+ * @throws ValidationException nếu dữ liệu yêu cầu không hợp lệ
+ */
+@Transactional
+public UserResponseDTO createUser(RegisterRequest request) {
+    // Kiểm tra username đã tồn tại chưa
+    if (userRepository.existsByUsername(request.getUsername())) {
+        throw new UserAlreadyExistsException("Tên đăng nhập đã tồn tại");
+    }
+
+    // Kiểm tra email đã tồn tại chưa
+    if (userRepository.existsByEmail(request.getEmail())) {
+        throw new UserAlreadyExistsException("Email đã được sử dụng");
+    }
+
+    // Mã hóa mật khẩu
+    String encodedPassword = passwordEncoder.encode(request.getPassword());
+
+    // Tạo entity User mới
+    User user = User.builder()
+            .username(request.getUsername())
+            .email(request.getEmail())
+            .password(encodedPassword)
+            .fullName(request.getFullName())
+            .role(Role.USER)
+            .isActive(true)
+            .build();
+
+    // Lưu vào database
+    User savedUser = userRepository.save(user);
+
+    // Gửi email chào mừng
+    emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFullName());
+
+    // Chuyển đổi sang DTO và trả về
+    return modelMapper.map(savedUser, UserResponseDTO.class);
+}
+```
+
+### Error Messages & Validation
+```java
+public class RegisterRequest {
+    @NotBlank(message = "Tên đăng nhập không được để trống")
+    @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3 đến 50 ký tự")
+    private String username;
+
+    @NotBlank(message = "Email không được để trống")
+    @Email(message = "Định dạng email không hợp lệ")
+    private String email;
+
+    @NotBlank(message = "Mật khẩu không được để trống")
+    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
+             message = "Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt")
+    private String password;
+
+    @NotBlank(message = "Họ tên không được để trống")
+    @Size(max = 100, message = "Họ tên không được vượt quá 100 ký tự")
+    private String fullName;
+
+    @Pattern(regexp = "^[0-9+\\-\\s()]+$", message = "Định dạng số điện thoại không hợp lệ")
+    private String phone;
+
+    @Past(message = "Ngày sinh phải là ngày trong quá khứ")
+    private LocalDate dateOfBirth;
+
+    @NotNull(message = "Vai trò không được để trống")
+    private Role role;
+}
+```
+
+### API Response Messages
+```java
+// ✅ SỬ DỤNG: Thông báo tiếng Việt cho API responses
+public class ApiMessages {
+    // User messages
+    public static final String USER_CREATED_SUCCESS = "Tạo tài khoản thành công";
+    public static final String USER_UPDATED_SUCCESS = "Cập nhật thông tin thành công";
+    public static final String USER_NOT_FOUND = "Không tìm thấy người dùng";
+    public static final String USER_ALREADY_EXISTS = "Tài khoản đã tồn tại";
+
+    // Booking messages
+    public static final String BOOKING_CREATED_SUCCESS = "Đặt lịch thành công";
+    public static final String BOOKING_CANCELLED_SUCCESS = "Hủy lịch thành công";
+    public static final String BOOKING_NOT_FOUND = "Không tìm thấy lịch hẹn";
+    public static final String BOOKING_CONFLICT = "Lịch hẹn bị trung thời gian";
+
+    // Payment messages
+    public static final String PAYMENT_SUCCESS = "Thanh toán thành công";
+    public static final String PAYMENT_FAILED = "Thanh toán thất bại";
+    public static final String PAYMENT_PENDING = "Thanh toán đang xử lý";
+
+    // Authentication messages
+    public static final String LOGIN_SUCCESS = "Đăng nhập thành công";
+    public static final String LOGIN_FAILED = "Sai tên đăng nhập hoặc mật khẩu";
+    public static final String ACCESS_DENIED = "Không có quyền truy cập";
+    public static final String TOKEN_EXPIRED = "Token đã hết hạn";
+}
+```
+
+### Logging Standards (Vietnamese)
+```java
+// ✅ SỬ DỤNG: Log messages bằng tiếng Việt
+@Service
+public class BookingServiceImpl implements BookingService {
+
+    private static final Logger log = LoggerFactory.getLogger(BookingServiceImpl.class);
+
     @Transactional
-    public UserResponseDTO updateUser(UserProfileRequest user) {
-        // Business logic
+    public BookingResponseDTO createBooking(BookingRequestDTO request) {
+        log.info("Bắt đầu tạo booking cho user: {}, consultant: {}",
+                request.getUserId(), request.getConsultantId());
+
+        try {
+            // Kiểm tra user tồn tại
+            User user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> {
+                        log.warn("Không tìm thấy user với ID: {}", request.getUserId());
+                        return new ResourceNotFoundException("Không tìm thấy người dùng");
+                    });
+
+            // Kiểm tra consultant có sẵn không
+            if (!consultantService.isAvailable(request.getConsultantId(), request.getBookingDate())) {
+                log.warn("Consultant {} không có sẵn vào thời gian: {}",
+                        request.getConsultantId(), request.getBookingDate());
+                throw new BookingConflictException("Bác sĩ không có sẵn vào thời gian này");
+            }
+
+            // Tạo booking
+            Booking booking = createBookingEntity(request);
+            Booking savedBooking = bookingRepository.save(booking);
+
+            log.info("Tạo booking thành công với ID: {}", savedBooking.getId());
+
+            // Gửi email xác nhận
+            emailService.sendBookingConfirmation(user.getEmail(), savedBooking);
+
+            return modelMapper.map(savedBooking, BookingResponseDTO.class);
+
+        } catch (Exception e) {
+            log.error("Lỗi khi tạo booking cho user: {}, lý do: {}",
+                     request.getUserId(), e.getMessage(), e);
+            throw e;
+        }
     }
 }
 ```
 
-### Exception Handling
-```java
-// Global Exception Handler
-@ControllerAdvice
-public class GlobalExceptionHandler {
-    
-    @ExceptionHandler(ServiceNotFoundException.class)
-    public ResponseEntity<?> handleServiceNotFound(ServiceNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("Service not found: " + ex.getMessage());
-    }
-}
+### Database Comments (Vietnamese)
+```sql
+-- Bảng người dùng
+CREATE TABLE users (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    username NVARCHAR(50) UNIQUE NOT NULL,           -- Tên đăng nhập
+    email NVARCHAR(100) UNIQUE NOT NULL,             -- Địa chỉ email
+    password NVARCHAR(255) NOT NULL,                 -- Mật khẩu đã mã hóa
+    full_name NVARCHAR(100),                         -- Họ và tên
+    phone NVARCHAR(20),                              -- Số điện thoại
+    date_of_birth DATE,                              -- Ngày sinh
+    gender NVARCHAR(10),                             -- Giới tính
+    role NVARCHAR(20) NOT NULL,                      -- Vai trò (USER, CONSULTANT, ADMIN, STAFF)
+    is_active BIT DEFAULT 1,                         -- Trạng thái hoạt động
+    created_at DATETIME2 DEFAULT GETDATE(),          -- Ngày tạo
+    updated_at DATETIME2 DEFAULT GETDATE()           -- Ngày cập nhật
+);
+
+-- Bảng bác sĩ tư vấn
+CREATE TABLE consultants (
+    id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    user_id BIGINT FOREIGN KEY REFERENCES users(id), -- ID người dùng
+    specialization NVARCHAR(100),                     -- Chuyên khoa
+    experience_years INT,                             -- Số năm kinh nghiệm
+    qualification NVARCHAR(500),                      -- Bằng cấp
+    bio NTEXT,                                        -- Tiểu sử
+    consultation_fee DECIMAL(10,2),                   -- Phí tư vấn
+    rating DECIMAL(3,2) DEFAULT 0.0,                  -- Đánh giá
+    is_available BIT DEFAULT 1,                       -- Có sẵn hay không
+    created_at DATETIME2 DEFAULT GETDATE()            -- Ngày tạo
+);
 ```
 
----
-
-## 🔄 BUSINESS LOGIC RULES
-
-### Booking System Rules
-```java
-// Booking Status Flow
-PENDING → SAMPLE_COLLECTED → TESTING → COMPLETED
-PENDING → CANCELLED
-
-// Validation Rules
-- User không thể book trùng time slot
-- Time slot phải available
-- Service phải tồn tại và active
-```
-
-### Consultation System Rules
-```java
-// Consultation Status Flow
-SCHEDULED → IN_PROGRESS → COMPLETED
-SCHEDULED → CANCELLED
-SCHEDULED → NO_SHOW
-
-// Availability Rules
-- Consultant phải có availability cho time slot
-- Max bookings per slot được kiểm tra
-- Real-time status updates
-```
-
-### Menstrual Cycle Tracking Rules
-```java
-// Cycle Prediction
-- Minimum 3 cycles để predict
-- Irregular cycle threshold: 7 days variance
-- Default cycle length: 28 days
-
-// Symptom Tracking
-- Multiple symptoms per log
-- Severity levels: MILD, MODERATE, SEVERE
-- Mood tracking: HAPPY, SAD, ANXIOUS, IRRITATED, NORMAL
-```
-
-### Payment System Rules
-```java
-// Payment Status Flow
-PENDING → PROCESSING → COMPLETED
-PENDING → FAILED
-PENDING → CANCELLED
-
-// Validation
-- Amount phải > 0
-- Payment method phải valid
-- Transaction ID unique
-```
-
----
-
-## 🔧 CONFIGURATION RULES
-
-### Application Properties
-```properties
-# Database
-spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=HS_New
-spring.datasource.username=sa
-spring.datasource.password=12345
-
-# JPA
-spring.jpa.hibernate.ddl-auto=none
-spring.jpa.show-sql=true
-
-# Email
-spring.mail.host=smtp.gmail.com
-spring.mail.port=587
-spring.mail.username=lekhangmc12@gmail.com
-
-# OAuth2 Google
-spring.security.oauth2.client.registration.google.client-id=...
-spring.security.oauth2.client.registration.google.client-secret=...
-
-# Server
-server.address=0.0.0.0
-server.port=8080
-```
-
-### CORS Configuration
-```java
-// Allow all origins for development
-configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
-configuration.setAllowCredentials(true);
-```
-
----
-
-## 📊 DATA VALIDATION RULES
-
-### Entity Validation
-```java
-// User Entity
-@Size(max = 50) @NotNull
-private String username;
-
-@Size(max = 100) @NotNull
-private String email;
-
-@Size(max = 100)
-private String fullName;
-
-// Booking Entity
-@NotNull
-private User customerID;
-
-@NotNull
-private TestingService service;
-
-@NotNull
-private TimeSlot timeSlot;
-```
-
-### Business Validation
-```java
-// Booking Validation
-- User không được book trùng slot
-- Time slot phải available
-- Service phải active
-
-// Consultation Validation
-- Consultant phải available
-- Max bookings không vượt quá limit
-- Date phải trong tương lai
-
-// Payment Validation
-- Amount > 0
-- Payment method valid
-- User authenticated
-```
-
----
-
-## 🔔 NOTIFICATION RULES
-
-### Real-time Notifications
-```java
-// WebSocket Topics
-/topic/booking-updates
-/topic/consultation-updates
-/topic/payment-updates
-/user/queue/notifications
-
-// Notification Types
-- BOOKING_CREATED
-- BOOKING_STATUS_CHANGED
-- CONSULTATION_SCHEDULED
-- PAYMENT_COMPLETED
-- REMINDER_SENT
-```
-
-### Email Notifications
-```java
-// Email Templates
-- Welcome email
-- Password reset
-- Booking confirmation
-- Consultation reminder
-- Payment receipt
-```
-
----
-
-## 📈 REPORTING RULES
-
-### Dashboard Metrics
-```java
-// Overview Stats
-- Total users
-- Total bookings
-- Total consultants
-- Total revenue
-- Active users (30 days)
-
-// Booking Stats
-- Completed bookings
-- Pending bookings
-- Cancelled bookings
-- Revenue by date
-
-// Consultant Stats
-- Average rating
-- Total consultations
-- Revenue generated
-- Availability rate
-```
-
-### Analytics Rules
-```java
-// Menstrual Cycle Analytics
-- Cycle length average
-- Irregularity detection
-- Symptom patterns
-- Fertility window prediction
-
-// Financial Analytics
-- Daily revenue
-- Service popularity
-- Payment method distribution
-- Refund rate
-```
-
----
-
-## 🚀 DEPLOYMENT RULES
-
-### Build Configuration
-```xml
-<!-- Maven Configuration -->
-<plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-compiler-plugin</artifactId>
-    <version>3.13.0</version>
-    <configuration>
-        <release>21</release>
-    </configuration>
-</plugin>
-```
-
-### Environment Variables
-```bash
-# Required Environment Variables
-JWT_SECRET_KEY=your-secret-key
-DATABASE_URL=jdbc:sqlserver://localhost:1433;databaseName=HS_New
-DATABASE_USERNAME=sa
-DATABASE_PASSWORD=12345
-EMAIL_USERNAME=your-email@gmail.com
-EMAIL_PASSWORD=your-app-password
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-```
-
-### Health Checks
-```java
-// Health Check Endpoints
-GET /actuator/health
-GET /actuator/info
-GET /actuator/metrics
-
-// Custom Health Indicators
-- Database connectivity
-- Email service availability
-- JWT service status
-```
-
----
-
-## 🔍 TESTING RULES
-
-### Unit Testing
-```java
-// Service Layer Testing
-@Test
-public void testCreateBooking() {
-    // Arrange
-    BookingRequestDTO request = new BookingRequestDTO();
-    
-    // Act
-    BookingResponseDTO response = bookingService.createBooking(request);
-    
-    // Assert
-    assertNotNull(response);
-    assertEquals("PENDING", response.getStatus());
-}
-```
-
-### Integration Testing
-```java
-// API Testing
-@Test
-public void testBookingAPI() {
-    // Given
-    BookingRequestDTO request = createValidBookingRequest();
-    
-    // When
-    ResponseEntity<BookingResponseDTO> response = 
-        restTemplate.postForEntity("/api/bookings", request, BookingResponseDTO.class);
-    
-    // Then
-    assertEquals(HttpStatus.CREATED, response.getStatusCode());
-}
-```
-
----
-
-## 📝 CODING STANDARDS
+## 🔤 Coding Standards
 
 ### Naming Conventions
 ```java
-// Classes
-- Controllers: *Controller
-- Services: *Service
-- Repositories: *Repository
-- DTOs: *RequestDTO, *ResponseDTO
-- Entities: PascalCase
+// Classes: PascalCase
+public class UserService { }
+public class BookingController { }
+public class ConsultationRequestDTO { }
 
-// Methods
-- Controllers: camelCase
-- Services: camelCase
-- Repositories: camelCase
+// Methods: camelCase
+public UserResponseDTO getUserById(Long id) { }
+public void createBooking(BookingRequestDTO request) { }
 
-// Variables
-- camelCase
-- Descriptive names
-- No abbreviations
+// Variables: camelCase
+private String userName;
+private LocalDateTime bookingDate;
+private List<ConsultantDTO> availableConsultants;
+
+// Constants: UPPER_SNAKE_CASE
+public static final int MAX_BOOKING_DAYS = 30;
+public static final String DEFAULT_ROLE = "USER";
+
+// Package names: lowercase with dots
+com.example.gender_healthcare_service.controller
+com.example.gender_healthcare_service.service.impl
 ```
 
-### Code Organization
+### Database Naming
+```sql
+-- Tables: snake_case
+users, consultants, booking_history, menstrual_cycles
+
+-- Columns: snake_case
+user_id, full_name, created_at, is_active
+
+-- Foreign Keys: table_name + _id
+user_id, consultant_id, booking_id
+
+-- Indexes: idx_table_column
+idx_users_email, idx_bookings_date, idx_consultants_specialization
+```
+
+### File Organization
+```
+- Controllers: Suffix with "Controller" (UserController.java)
+- Services: Suffix with "Service" (UserService.java)
+- Service Implementations: Suffix with "ServiceImpl" (UserServiceImpl.java)
+- DTOs: Suffix with "DTO" (UserRequestDTO.java, UserResponseDTO.java)
+- Entities: No suffix (User.java, Booking.java)
+- Repositories: Suffix with "Repository" (UserRepository.java)
+- Exceptions: Suffix with "Exception" (ResourceNotFoundException.java)
+```
+
+## 🏗️ Architecture Principles
+
+### Layer Responsibilities
+
+#### 1. Controller Layer (Presentation)
 ```java
-// Controller Structure
 @RestController
-@RequestMapping("/api/resource")
-public class ResourceController {
-    
-    private final ResourceService resourceService;
-    
-    // Constructor injection
-    public ResourceController(ResourceService resourceService) {
-        this.resourceService = resourceService;
-    }
-    
-    // CRUD operations
-    @GetMapping
-    @PostMapping
-    @PutMapping
-    @DeleteMapping
+@RequestMapping("/api/users")
+public class UserController {
+    // ✅ DO: Handle HTTP requests/responses only
+    // ✅ DO: Validate request parameters
+    // ✅ DO: Return standardized API responses
+    // ❌ DON'T: Include business logic
+    // ❌ DON'T: Direct database access
+    // ❌ DON'T: Exception handling beyond HTTP status
 }
 ```
 
-### Documentation
+#### 2. Service Layer (Business Logic)
 ```java
-/**
- * Creates a new booking for the authenticated user
- * 
- * @param bookingRequest The booking request containing service and time slot
- * @return BookingResponseDTO with booking details
- * @throws ServiceNotFoundException if service or time slot not found
- * @throws IllegalStateException if time slot not available
- */
-@PostMapping
-public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody BookingRequestDTO bookingRequest) {
+@Service
+public class UserServiceImpl implements UserService {
+    // ✅ DO: Implement business rules
+    // ✅ DO: Coordinate between repositories
+    // ✅ DO: Handle transactions
+    // ✅ DO: Validate business rules
+    // ❌ DON'T: Handle HTTP concerns
+    // ❌ DON'T: Direct SQL queries
+}
+```
+
+#### 3. Repository Layer (Data Access)
+```java
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    // ✅ DO: Data access operations only
+    // ✅ DO: Custom queries when needed
+    // ❌ DON'T: Business logic
+    // ❌ DON'T: Data transformation
+}
+```
+
+#### 4. DTO Layer (Data Transfer)
+```java
+public class UserRequestDTO {
+    // ✅ DO: Include validation annotations
+    // ✅ DO: Keep it simple (data only)
+    // ❌ DON'T: Include business logic
+    // ❌ DON'T: Direct entity references
+}
+```
+
+### Design Patterns to Follow
+- **Repository Pattern**: For data access abstraction
+- **Service Layer Pattern**: For business logic encapsulation
+- **DTO Pattern**: For data transfer between layers
+- **Factory Pattern**: For complex object creation
+- **Strategy Pattern**: For algorithm variations
+- **Observer Pattern**: For event handling
+
+### SOLID Principles
+1. **Single Responsibility**: Each class has one reason to change
+2. **Open/Closed**: Open for extension, closed for modification
+3. **Liskov Substitution**: Subtypes must be substitutable for base types
+4. **Interface Segregation**: Many specific interfaces better than one general
+5. **Dependency Inversion**: Depend on abstractions, not concretions
+
+## 🔐 Security Guidelines
+
+### Authentication & Authorization
+```java
+// ✅ DO: Use method-level security
+@PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
+public UserResponseDTO updateUser(@PathVariable Long userId, @RequestBody UserRequestDTO request) {
+    // Implementation
+}
+
+// ✅ DO: Validate all inputs
+@Valid @RequestBody UserRequestDTO request
+
+// ✅ DO: Use proper HTTP status codes
+return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+```
+
+### Data Protection Rules
+- **Never expose entity objects** directly in API responses
+- **Always use DTOs** for data transfer
+- **Encrypt sensitive data** (passwords, personal info)
+- **Validate all inputs** at controller and service levels
+- **Log security events** (login attempts, access violations)
+- **Use HTTPS** for all communications
+- **Implement rate limiting** for API endpoints
+
+### Password Security
+```java
+// ✅ DO: Use BCrypt for password hashing
+@Bean
+public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder(12); // Strong cost factor
+}
+
+// ✅ DO: Validate password strength
+@Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$", 
+         message = "Password must contain at least 8 characters, including uppercase, lowercase, number and special character")
+private String password;
+```
+
+## 🗄️ Database Standards
+
+### Entity Design Rules
+```java
+@Entity
+@Table(name = "users")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    // ✅ DO: Use proper JPA annotations
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    // ✅ DO: Add database constraints
+    @Column(unique = true, nullable = false, length = 50)
+    private String username;
+    
+    // ✅ DO: Use appropriate data types
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+    
+    // ✅ DO: Use enums for fixed values
+    @Enumerated(EnumType.STRING)
+    private Role role;
+    
+    // ✅ DO: Define relationships properly
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Booking> bookings = new ArrayList<>();
+}
+```
+
+### Query Optimization
+- **Use pagination** for large datasets
+- **Implement proper indexing** on frequently queried columns
+- **Use @Query** for complex queries instead of method names
+- **Avoid N+1 queries** with proper fetch strategies
+- **Use projections** for read-only operations
+
+### Transaction Management
+```java
+// ✅ DO: Use declarative transactions
+@Transactional
+public UserResponseDTO createUser(RegisterRequest request) {
+    // Implementation
+}
+
+// ✅ DO: Handle rollback scenarios
+@Transactional(rollbackFor = Exception.class)
+public void processPayment(PaymentRequest request) throws PaymentException {
     // Implementation
 }
 ```
 
----
+## 🌐 API Design Rules
 
-## 🔄 VERSION CONTROL RULES
-
-### Git Commit Messages
-```
-feat: add new booking system
-fix: resolve JWT token validation issue
-docs: update API documentation
-refactor: improve service layer structure
-test: add unit tests for booking service
-style: format code according to standards
-```
-
-### Branch Naming
-```
-feature/booking-system
-bugfix/jwt-validation
-hotfix/security-patch
-release/v1.2.0
-```
-
----
-
-## 🚨 SECURITY BEST PRACTICES
-
-### Password Security
+### RESTful Conventions
 ```java
-// BCrypt password encoding
-@Bean
-public BCryptPasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder();
+// ✅ DO: Follow REST conventions
+GET    /api/users           // Get all users
+GET    /api/users/{id}      // Get specific user
+POST   /api/users           // Create new user
+PUT    /api/users/{id}      // Update entire user
+PATCH  /api/users/{id}      // Partial update
+DELETE /api/users/{id}      // Delete user
+
+// ✅ DO: Use nested resources appropriately
+GET    /api/users/{id}/bookings     // Get user's bookings
+POST   /api/users/{id}/bookings     // Create booking for user
+```
+
+### Response Format Standards
+```java
+// ✅ DO: Use consistent response format
+public class ApiResponse<T> {
+    private boolean success;
+    private String message;
+    private T data;
+    private LocalDateTime timestamp;
+    private Map<String, Object> metadata; // For pagination, etc.
 }
 
-// Password validation
-- Minimum 8 characters
-- At least one uppercase letter
-- At least one lowercase letter
-- At least one number
-- At least one special character
+// ✅ DO: Return appropriate HTTP status codes
+200 OK          // Successful GET, PUT, PATCH
+201 Created     // Successful POST
+204 No Content  // Successful DELETE
+400 Bad Request // Validation errors
+401 Unauthorized // Authentication required
+403 Forbidden   // Access denied
+404 Not Found   // Resource not found
+500 Internal Server Error // Server errors
 ```
 
-### JWT Security
+### Input Validation
 ```java
-// Token validation
-- Verify signature
-- Check expiration
-- Validate issuer
-- Validate audience
-
-// Token refresh
-- Refresh token rotation
-- Blacklist old tokens
-- Secure token storage
+// ✅ DO: Validate at multiple levels
+@RestController
+public class UserController {
+    
+    @PostMapping("/users")
+    public ResponseEntity<ApiResponse<UserResponseDTO>> createUser(
+            @Valid @RequestBody RegisterRequest request) { // Controller validation
+        
+        UserResponseDTO user = userService.createUser(request); // Service validation
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("User created successfully", user));
+    }
+}
 ```
 
-### API Security
+## 🧪 Testing Requirements
+
+### Test Coverage Standards
+- **Minimum 80% code coverage** for service layer
+- **100% coverage** for critical business logic
+- **Integration tests** for all API endpoints
+- **Unit tests** for all service methods
+- **Mock external dependencies** in tests
+
+### Testing Patterns
 ```java
-// Rate limiting
-- 100 requests per minute per IP
-- 1000 requests per hour per user
+// ✅ DO: Follow AAA pattern (Arrange, Act, Assert)
+@Test
+void shouldCreateUserSuccessfully() {
+    // Arrange
+    RegisterRequest request = new RegisterRequest();
+    request.setUsername("testuser");
+    request.setEmail("test@example.com");
+    
+    // Act
+    UserResponseDTO result = userService.createUser(request);
+    
+    // Assert
+    assertThat(result.getUsername()).isEqualTo("testuser");
+    assertThat(result.getEmail()).isEqualTo("test@example.com");
+}
 
-// Input validation
-- Sanitize all inputs
-- Validate file uploads
-- Prevent SQL injection
-- Prevent XSS attacks
+// ✅ DO: Test edge cases and error scenarios
+@Test
+void shouldThrowExceptionWhenUserAlreadyExists() {
+    // Arrange
+    RegisterRequest request = createValidRegisterRequest();
+    when(userRepository.existsByUsername(anyString())).thenReturn(true);
+    
+    // Act & Assert
+    assertThatThrownBy(() -> userService.createUser(request))
+            .isInstanceOf(UserAlreadyExistsException.class)
+            .hasMessage("Username already exists");
+}
 ```
 
----
+### Test Organization
+```
+src/test/java/
+├── unit/                    // Unit tests
+│   ├── service/            // Service layer tests
+│   ├── repository/         // Repository tests
+│   └── util/              // Utility tests
+├── integration/            // Integration tests
+│   ├── controller/        // API endpoint tests
+│   └── database/          // Database integration tests
+└── e2e/                   // End-to-end tests
+```
 
-## 📊 PERFORMANCE RULES
+## 📊 Code Quality Rules
 
-### Database Optimization
+### Code Complexity
+- **Maximum cyclomatic complexity**: 10 per method
+- **Maximum method length**: 50 lines
+- **Maximum class length**: 500 lines
+- **Maximum parameter count**: 5 per method
+
+### Code Duplication
+- **No duplicate code blocks** > 5 lines
+- **Extract common logic** into utility methods
+- **Use inheritance/composition** for shared behavior
+- **Create constants** for repeated values
+
+### Error Handling
 ```java
-// Indexing
-- Primary keys automatically indexed
-- Foreign keys should be indexed
-- Frequently queried columns indexed
-- Composite indexes for complex queries
-
-// Query Optimization
-- Use pagination for large datasets
-- Avoid N+1 queries
-- Use lazy loading appropriately
-- Cache frequently accessed data
+// ✅ DO: Handle exceptions appropriately
+@Service
+public class UserServiceImpl implements UserService {
+    
+    public UserResponseDTO getUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        
+        return modelMapper.map(user, UserResponseDTO.class);
+    }
+    
+    // ✅ DO: Log errors with context
+    @Transactional
+    public void processPayment(PaymentRequest request) {
+        try {
+            // Payment processing logic
+        } catch (PaymentException e) {
+            log.error("Payment processing failed for user: {}, amount: {}", 
+                     request.getUserId(), request.getAmount(), e);
+            throw new PaymentProcessingException("Payment failed", e);
+        }
+    }
+}
 ```
-
-### Caching Strategy
-```java
-// Cache Levels
-- Application cache (Redis)
-- Database query cache
-- Static content cache
-- Session cache
-
-// Cache Invalidation
-- Time-based expiration
-- Event-based invalidation
-- Manual cache clearing
-```
-
----
-
-## 🔧 MAINTENANCE RULES
 
 ### Logging Standards
 ```java
-// Log Levels
-- ERROR: System errors, exceptions
-- WARN: Potential issues, deprecated features
-- INFO: Important business events
-- DEBUG: Detailed debugging information
-- TRACE: Very detailed debugging
+// ✅ DO: Use appropriate log levels
+log.trace("Entering method getUserById with id: {}", id);  // Detailed debugging
+log.debug("Processing user registration for: {}", username); // Development debugging
+log.info("User created successfully: {}", userId);          // Important events
+log.warn("User login attempt with invalid credentials: {}", username); // Warnings
+log.error("Database connection failed", exception);         // Errors
 
-// Log Format
-[timestamp] [level] [class] [method] - message
+// ✅ DO: Use structured logging
+log.info("User action completed - userId: {}, action: {}, duration: {}ms", 
+         userId, action, duration);
 ```
 
-### Monitoring
-```java
-// Health Checks
-- Database connectivity
-- External service availability
-- Memory usage
-- CPU usage
-- Response times
+## 🔄 Git Workflow
 
-// Alerts
-- Error rate > 5%
-- Response time > 2 seconds
-- Memory usage > 80%
-- CPU usage > 90%
+### Branch Naming Convention
+```
+main                    // Production branch
+develop                 // Development branch
+feature/user-auth      // Feature branches
+bugfix/login-error     // Bug fix branches
+hotfix/security-patch  // Hotfix branches
+release/v1.2.0         // Release branches
 ```
 
----
+### Commit Message Format
+```
+type(scope): description
 
-## 📋 DEPLOYMENT CHECKLIST
+feat(auth): add JWT token refresh functionality
+fix(booking): resolve double booking conflict
+docs(api): update authentication endpoints documentation
+style(user): fix code formatting in UserController
+refactor(payment): extract payment validation logic
+test(booking): add unit tests for booking service
+chore(deps): update Spring Boot to version 3.5.0
+```
 
-### Pre-Deployment
-- [ ] All tests passing
-- [ ] Code review completed
-- [ ] Security scan passed
-- [ ] Performance tests passed
+### Code Review Checklist
+- [ ] Code follows naming conventions
+- [ ] Proper error handling implemented
+- [ ] Unit tests added/updated
 - [ ] Documentation updated
+- [ ] No security vulnerabilities
+- [ ] Performance considerations addressed
+- [ ] Code is readable and maintainable
 
-### Deployment
-- [ ] Database migrations applied
-- [ ] Environment variables set
-- [ ] SSL certificates configured
-- [ ] Monitoring configured
-- [ ] Backup strategy in place
+## 📚 Documentation Standards
 
-### Post-Deployment
-- [ ] Health checks passing
-- [ ] Smoke tests completed
-- [ ] Performance monitoring active
-- [ ] Error tracking configured
-- [ ] User acceptance testing completed
+### Code Documentation
+```java
+/**
+ * Creates a new user account with the provided registration details.
+ * 
+ * @param request the registration request containing user details
+ * @return UserResponseDTO containing the created user information
+ * @throws UserAlreadyExistsException if username or email already exists
+ * @throws ValidationException if request data is invalid
+ */
+@Transactional
+public UserResponseDTO createUser(RegisterRequest request) {
+    // Implementation
+}
+```
+
+### API Documentation
+- **Use OpenAPI/Swagger** annotations
+- **Document all endpoints** with examples
+- **Include error responses** and status codes
+- **Provide request/response schemas**
+- **Add authentication requirements**
+
+### README Requirements
+- Project setup instructions
+- Environment configuration
+- API endpoint documentation
+- Testing guidelines
+- Deployment procedures
+
+## ⚡ Performance Guidelines
+
+### Database Performance
+- **Use connection pooling** (HikariCP)
+- **Implement query optimization**
+- **Add proper indexes** on frequently queried columns
+- **Use pagination** for large datasets
+- **Implement caching** for frequently accessed data
+
+### API Performance
+- **Implement rate limiting**
+- **Use compression** for responses
+- **Optimize JSON serialization**
+- **Implement proper caching headers**
+- **Monitor response times**
+
+### Memory Management
+- **Use appropriate collection types**
+- **Implement proper resource cleanup**
+- **Avoid memory leaks** in long-running processes
+- **Monitor heap usage**
+- **Use lazy loading** for large datasets
+
+## 🚫 Common Anti-Patterns to Avoid
+
+### Code Anti-Patterns
+- **God Classes**: Classes that do too much
+- **Long Parameter Lists**: More than 5 parameters
+- **Magic Numbers**: Use constants instead
+- **Deep Nesting**: More than 3 levels of nesting
+- **Copy-Paste Programming**: Duplicate code blocks
+
+### Architecture Anti-Patterns
+- **Circular Dependencies**: Services depending on each other
+- **Tight Coupling**: Classes too dependent on each other
+- **Anemic Domain Model**: Entities with no behavior
+- **Transaction Script**: All logic in one method
+- **Big Ball of Mud**: No clear architecture
+
+### Database Anti-Patterns
+- **N+1 Queries**: Multiple queries for related data
+- **Missing Indexes**: Slow query performance
+- **Over-normalization**: Too many joins required
+- **Under-normalization**: Data duplication
+- **Ignoring Transactions**: Data consistency issues
+
+## ✅ Development Checklist
+
+### Before Starting Development
+- [ ] Understand the requirements clearly
+- [ ] Review existing code and architecture
+- [ ] Set up development environment
+- [ ] Create feature branch from develop
+- [ ] Write failing tests first (TDD)
+
+### During Development
+- [ ] Follow coding standards
+- [ ] Write clean, readable code
+- [ ] Add appropriate logging
+- [ ] Handle errors gracefully
+- [ ] Write unit tests
+- [ ] Update documentation
+
+### Before Code Review
+- [ ] Run all tests locally
+- [ ] Check code coverage
+- [ ] Review your own code
+- [ ] Update API documentation
+- [ ] Write meaningful commit messages
+
+### Before Deployment
+- [ ] All tests passing
+- [ ] Code review approved
+- [ ] Documentation updated
+- [ ] Performance tested
+- [ ] Security reviewed
 
 ---
 
-## 🎯 CONCLUSION
+## 📞 Support & Questions
 
-Backend SWP391 được thiết kế theo kiến trúc microservices với các module rõ ràng, bảo mật cao và khả năng mở rộng tốt. Hệ thống tuân thủ các best practices của Spring Boot và có thể handle được traffic lớn với proper caching và database optimization.
+For questions about these guidelines or clarifications on best practices, please:
+1. Check existing documentation first
+2. Ask in team chat/meetings
+3. Create an issue in the project repository
+4. Update this document if new patterns emerge
 
-Các điểm mạnh:
-- ✅ Security mạnh mẽ với JWT + OAuth2
-- ✅ Architecture rõ ràng, dễ maintain
-- ✅ API documentation đầy đủ
-- ✅ Error handling comprehensive
-- ✅ Performance optimization
-- ✅ Real-time features với WebSocket
-- ✅ Comprehensive testing strategy
-
-Cần cải thiện:
-- 🔄 Implement rate limiting
-- 🔄 Add more comprehensive logging
-- 🔄 Enhance caching strategy
-- 🔄 Add more unit tests
-- 🔄 Implement API versioning 
+**Remember: These rules exist to maintain code quality, ensure team collaboration, and create maintainable software. Follow them consistently!** 🎯

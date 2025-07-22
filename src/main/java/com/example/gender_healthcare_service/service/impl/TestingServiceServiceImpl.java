@@ -52,9 +52,15 @@ public class TestingServiceServiceImpl implements TestingServiceService {
 
     @Override
     public boolean createService(TestingService service) {
+        boolean isServiceNameExists = testingServiceRepository.existsByServiceNameAndIsDeletedFalse(service.getServiceName());
+        if(isServiceNameExists) {
+            System.err.println("Service with name " + service.getServiceName() + " already exists.");
+            return false;
+        }
         service.setCreatedAt(LocalDateTime.now());
         service.setUpdatedAt(LocalDateTime.now());
         service.setIsDeleted(false);
+        service.setStatus("ACTIVE");
         try {
             testingServiceRepository.save(service);
             return true;

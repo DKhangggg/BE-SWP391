@@ -25,5 +25,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Integer> {
             @Param("consultant") User consultant, 
             @Param("startDate") LocalDateTime startDate, 
             @Param("endDate") LocalDateTime endDate);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE FUNCTION('MONTH', p.createdAt) = :month AND FUNCTION('YEAR', p.createdAt) = :year")
+    long sumRevenueByMonthAndYear(@org.springframework.data.repository.query.Param("month") int month, @org.springframework.data.repository.query.Param("year") int year);
 }
 

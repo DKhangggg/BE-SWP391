@@ -59,27 +59,66 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         }
         List<MenstrualCycle> cycles = menstrualCycleRepository.findByUserIdOrderByStartDateDesc(user.getId());
         MenstrualCycle existingCycle = (cycles != null && !cycles.isEmpty()) ? cycles.get(0) : null;
+
         if(existingCycle != null) {
-            if(requestDTO.getStartDate()!=null){
+            // Cập nhật cycle hiện có
+            if(requestDTO.getStartDate() != null){
                 existingCycle.setStartDate(requestDTO.getStartDate());
             }
-            LocalDate predictedNextPeriodStartDate = requestDTO.getPeriodDay().plusDays(DEFAULT_CYCLE_LENGTH);
+            if(requestDTO.getCycleLength() != null){
+                existingCycle.setCycleLength(requestDTO.getCycleLength());
+            }
+            if(requestDTO.getPeriodDuration() != null){
+                existingCycle.setPeriodDuration(requestDTO.getPeriodDuration());
+            }
+            if(requestDTO.getIsRegular() != null){
+                existingCycle.setIsRegular(requestDTO.getIsRegular());
+            }
+
+            // Tính toán ngày kỳ kinh tiếp theo
+            if(requestDTO.getPeriodDay() != null) {
+                int cycleLength = requestDTO.getCycleLength() != null ? requestDTO.getCycleLength() : DEFAULT_CYCLE_LENGTH;
+                LocalDate predictedNextPeriodStartDate = requestDTO.getPeriodDay().plusDays(cycleLength);
+                existingCycle.setPeriodDay(predictedNextPeriodStartDate);
+            }
+
             existingCycle.setUpdatedAt(LocalDateTime.now());
-            existingCycle.setPeriodDay(predictedNextPeriodStartDate);
             menstrualCycleRepository.save(existingCycle);
             return modelMapper.map(existingCycle, MenstrualCycleResponseDTO.class);
         } else {
+            // Tạo cycle mới
             MenstrualCycle newCycle = new MenstrualCycle();
             newCycle.setUser(user);
-            if(requestDTO.getStartDate()==null){
+
+            // Set start date
+            if(requestDTO.getStartDate() == null){
                 newCycle.setStartDate(LocalDate.now());
+            } else {
+                newCycle.setStartDate(requestDTO.getStartDate());
             }
-            newCycle.setStartDate(requestDTO.getStartDate());
-            LocalDate predictedNextPeriodStartDate = requestDTO.getPeriodDay().plusDays(DEFAULT_CYCLE_LENGTH);
-            newCycle.setPeriodDay(predictedNextPeriodStartDate);
+
+            // Set cycle parameters
+            newCycle.setCycleLength(requestDTO.getCycleLength() != null ? requestDTO.getCycleLength() : DEFAULT_CYCLE_LENGTH);
+            newCycle.setPeriodDuration(requestDTO.getPeriodDuration() != null ? requestDTO.getPeriodDuration() : 5);
+            newCycle.setIsRegular(requestDTO.getIsRegular() != null ? requestDTO.getIsRegular() : true);
+
+            // Tính toán ngày kỳ kinh tiếp theo
+            if(requestDTO.getPeriodDay() != null) {
+                LocalDate predictedNextPeriodStartDate = requestDTO.getPeriodDay().plusDays(newCycle.getCycleLength());
+                newCycle.setPeriodDay(predictedNextPeriodStartDate);
+            } else {
+                // Nếu không có periodDay, tính từ startDate
+                LocalDate predictedNextPeriodStartDate = newCycle.getStartDate().plusDays(newCycle.getCycleLength());
+                newCycle.setPeriodDay(predictedNextPeriodStartDate);
+            }
+
             newCycle.setCreatedAt(LocalDateTime.now());
             newCycle.setUpdatedAt(LocalDateTime.now());
             menstrualCycleRepository.save(newCycle);
+
+            // Cập nhật analytics sau khi tạo cycle mới
+            analyticsService.updateCycleStatistics(user.getId());
+
             return modelMapper.map(newCycle, MenstrualCycleResponseDTO.class);
         }
     }
@@ -339,8 +378,36 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         LocalDate end = endDate != null ? endDate.toLocalDate() : LocalDate.now();
         List<MenstrualLog> logs = menstrualLogRepository.findByUserIdAndDateRange(userId, start, end);
         return logs.stream()
-                .map(log -> modelMapper.map(log, MenstrualLogResponseDTO.class))
+                .map(this::mapToMenstrualLogResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    private MenstrualLogResponseDTO mapToMenstrualLogResponseDTO(MenstrualLog log) {
+        MenstrualLogResponseDTO dto = new MenstrualLogResponseDTO();
+        dto.setLogId(log.getId());
+        dto.setUserId(log.getMenstrualCycle().getUser().getId());
+        dto.setLogDate(log.getLogDate());
+        dto.setIsActualPeriod(log.getIsActualPeriod());
+        dto.setFlowIntensity(log.getFlowIntensity());
+        dto.setMood(log.getMood());
+        dto.setTemperature(log.getTemperature());
+        dto.setNotes(log.getNotes());
+
+        // Map symptoms
+        if (log.getSymptoms() != null && !log.getSymptoms().isEmpty()) {
+            List<MenstrualLogResponseDTO.SymptomResponseDTO> symptomDTOs = log.getSymptoms().stream()
+                    .map(symptomLog -> new MenstrualLogResponseDTO.SymptomResponseDTO(
+                            symptomLog.getSymptom().getId(),
+                            symptomLog.getSymptom().getSymptomName(),
+                            symptomLog.getSeverity() != null ? symptomLog.getSeverity().toString() : null,
+                            symptomLog.getNotes(),
+                            symptomLog.getSymptom().getCategory()
+                    ))
+                    .collect(Collectors.toList());
+            dto.setSymptoms(symptomDTOs);
+        }
+
+        return dto;
     }
 
     // Consultant features for managing user menstrual data

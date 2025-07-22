@@ -8,8 +8,13 @@ import com.example.gender_healthcare_service.dto.response.PageResponse;
 import com.example.gender_healthcare_service.entity.TestingService;
 import com.example.gender_healthcare_service.service.*;
 import com.example.gender_healthcare_service.entity.Consultant;
+import com.example.gender_healthcare_service.dto.request.AutoCreateTimeSlotsRequestDTO;
+import com.example.gender_healthcare_service.entity.TimeSlot;
+import com.example.gender_healthcare_service.repository.TimeSlotRepository;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.List;
+import java.util.ArrayList;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +34,7 @@ import com.example.gender_healthcare_service.entity.User;
 import org.modelmapper.ModelMapper;
 import com.example.gender_healthcare_service.exception.ServiceNotFoundException;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
+import com.example.gender_healthcare_service.service.ReportService;
 
 @RequestMapping("/api/admin")
 @RestController()
@@ -60,6 +67,8 @@ public class AdminController {
     private ReportService reportService;
     @Autowired
     private ModelMapper modelMapper;
+    @Autowired
+    private TimeSlotRepository timeSlotRepository;
 
     @PostMapping("/testing-services")
     public ResponseEntity<?> createTestingService(@RequestBody TestingService request) {
@@ -81,7 +90,7 @@ public class AdminController {
         }
     }
 
-    @PutMapping("/testing-services/{serviceId}")
+    @PatchMapping("/testing-services/{serviceId}")
     public ResponseEntity<?> updateTestingService(@PathVariable Integer serviceId, @RequestBody TestingServiceUpdateDTO updateDTO) {
         TestingServiceResponseDTO updated = testingServiceService.updateService(serviceId, updateDTO);
         if(updated!= null) {
@@ -177,6 +186,12 @@ public class AdminController {
         return null;
     }
 
+    @GetMapping("/dashboard-stats")
+    public ResponseEntity<DashboardReportDTO> getDashboardStats(@RequestParam int month, @RequestParam int year) {
+        DashboardReportDTO stats = reportService.getDashboardStats(month, year);
+        return ResponseEntity.ok(stats);
+    }
+
     // Consultant Management
     @GetMapping("/consultants/{consultantId}")
     public ResponseEntity<?> getConsultantDetailsAdmin(@PathVariable Integer consultantId) {
@@ -254,7 +269,8 @@ public class AdminController {
     }
 
     @PutMapping("/consultants/{consultantId}")
-    public ResponseEntity<?> updateConsultantDetailsAdmin(@RequestBody ConsultantUpdateDTO updateDTO) {
+    public ResponseEntity<?> updateConsultantDetailsAdmin(@PathVariable Integer consultantId, @RequestBody ConsultantUpdateDTO updateDTO) {
+        updateDTO.setId(consultantId); // Đảm bảo id đúng từ path variable
         consultantService.updateConsultant(updateDTO);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
@@ -441,74 +457,41 @@ public class AdminController {
         }
     }
 
-    @GetMapping("/reports/dashboard")
-    public ResponseEntity<?> generateDashboardReport() {
-        try {
-            DashboardReportDTO report = reportService.generateDashboardReport();
-            return ResponseEntity.ok(report);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate dashboard report: " + e.getMessage());
+    @PostMapping("/timeslots/auto-create")
+    public ResponseEntity<?> autoCreateCommonSlots(@RequestBody AutoCreateTimeSlotsRequestDTO req) {
+        LocalDate today = req.getStartDate() != null && !req.getStartDate().isEmpty()
+            ? LocalDate.parse(req.getStartDate())
+            : LocalDate.now();
+        int days = req.getDays() != null ? req.getDays() : 7;
+        List<TimeSlot> slots = new ArrayList<>();
+        for (int d = 0; d < days; d++) {
+            LocalDate slotDate = today.plusDays(d);
+            // 4 khung giờ mẫu
+            LocalTime[][] slotTimes = {
+                {LocalTime.of(8,0), LocalTime.of(10,0)},
+                {LocalTime.of(10,0), LocalTime.of(12,0)},
+                {LocalTime.of(13,0), LocalTime.of(15,0)},
+                {LocalTime.of(15,0), LocalTime.of(17,0)}
+            };
+            for (LocalTime[] times : slotTimes) {
+                TimeSlot slot = new TimeSlot();
+                slot.setSlotDate(slotDate);
+                slot.setStartTime(times[0]);
+                slot.setEndTime(times[1]);
+                slot.setConsultant(null); // Không gán consultant
+                slot.setSlotType(req.getSlotType() != null ? req.getSlotType() : "CONSULTATION");
+                slot.setCapacity(req.getCapacity() != null ? req.getCapacity() : 1);
+                slot.setBookedCount(0);
+                slot.setIsAvailable(true);
+                slot.setIsDeleted(false);
+                slot.setDescription(req.getDescription());
+                slot.setDuration(req.getDuration() != null ? req.getDuration() : (int) java.time.Duration.between(times[0], times[1]).toMinutes());
+                slot.setCreatedAt(LocalDateTime.now());
+                slots.add(slot);
+            }
         }
-    }
-
-    @GetMapping("/reports/overview")
-    public ResponseEntity<?> getOverviewStats() {
-        try {
-            DashboardReportDTO.OverviewStats stats = reportService.getOverviewStats();
-            return ResponseEntity.ok(stats);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate overview stats: " + e.getMessage());
-        }
-    }
-
-    @GetMapping("/reports/bookings")
-    public ResponseEntity<?> generateBookingsReport() {
-        try {
-            Object report = reportService.generateBookingsReport();
-            return ResponseEntity.ok(report);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate bookings report: " + e.getMessage());
-        }
-    }
-
-    @GetMapping("/reports/financials")
-    public ResponseEntity<?> generateFinancialsReport() {
-        try {
-            Object report = reportService.generateFinancialsReport();
-            return ResponseEntity.ok(report);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate financials report: " + e.getMessage());
-        }
-    }
-
-    @GetMapping("/reports/users")
-    public ResponseEntity<?> generateUsersReport() {
-        try {
-            Object report = reportService.generateUsersReport();
-            return ResponseEntity.ok(report);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate users report: " + e.getMessage());
-        }
-    }
-
-    @GetMapping("/reports/consultants")
-    public ResponseEntity<?> generateConsultantsReport() {
-        try {
-            Object report = reportService.generateConsultantsReport();
-            return ResponseEntity.ok(report);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate consultants report: " + e.getMessage());
-        }
-    }
-
-    @GetMapping("/reports/services")
-    public ResponseEntity<?> generateServicesReport() {
-        try {
-            Object report = reportService.generateServicesReport();
-            return ResponseEntity.ok(report);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to generate services report: " + e.getMessage());
-        }
+        timeSlotRepository.saveAll(slots);
+        return ResponseEntity.ok("Đã tạo " + slots.size() + " slot chung cho hệ thống trong " + days + " ngày!");
     }
 
     @GetMapping("/orders")

@@ -7,7 +7,6 @@ import com.example.gender_healthcare_service.dto.response.ConsultantDTO;
 import com.example.gender_healthcare_service.entity.Consultant;
 import com.example.gender_healthcare_service.entity.ConsultantUnavailability;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 

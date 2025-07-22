@@ -14,6 +14,7 @@ import com.example.gender_healthcare_service.service.ConsultantScheduleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -34,6 +35,7 @@ public class ConsultantScheduleServiceImpl implements ConsultantScheduleService 
     private ConsultantUnavailabilityRepository consultantUnavailabilityRepository;
 
     @Override
+    @Transactional
     public void createDefaultScheduleForConsultant(Consultant consultant, LocalDate startDate, int numberOfWeeks) {
         List<TimeSlot> allTimeSlots = timeSlotRepository.findAll();
         if (allTimeSlots.isEmpty()) {

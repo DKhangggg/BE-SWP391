@@ -199,6 +199,79 @@ public class EnhancedMenstrualCycleController {
     }
 
     /**
+     * Get current cycle information for the user
+     */
+    @GetMapping("/current")
+    public ResponseEntity<?> getCurrentCycle() {
+        try {
+            Integer userId = getCurrentUserId();
+
+            // Get current cycle data
+            PeriodPredictionDTO prediction = menstrualCycleService.getPeriodPrediction(userId);
+            FertilityWindowDTO fertilityWindow = menstrualCycleService.getFertilityWindow(userId);
+            CycleAnalyticsDTO analytics = menstrualCycleService.getCycleAnalytics(userId);
+
+            // Get recent logs (last 3 months)
+            LocalDate startDate = LocalDate.now().minusMonths(3);
+            LocalDate endDate = LocalDate.now();
+            List<MenstrualLogResponseDTO> recentLogs = menstrualCycleService.getMenstrualLogsByDateRange(
+                userId, startDate.atStartOfDay(), endDate.atStartOfDay().plusDays(1));
+
+            CurrentCycleDTO currentCycle = new CurrentCycleDTO();
+            currentCycle.setPeriodPrediction(prediction);
+            currentCycle.setFertilityWindow(fertilityWindow);
+            currentCycle.setCycleAnalytics(analytics);
+            currentCycle.setRecentLogs(recentLogs);
+
+            return ResponseEntity.ok(currentCycle);
+        } catch (Exception e) {
+            logger.error("Error getting current cycle: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to get current cycle: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get calendar data for cycle tracking UI
+     */
+    @GetMapping("/calendar")
+    public ResponseEntity<?> getCalendarData(
+            @RequestParam(value = "year", required = false) Integer year,
+            @RequestParam(value = "month", required = false) Integer month) {
+        try {
+            Integer userId = getCurrentUserId();
+
+            // Default to current month if not specified
+            if (year == null) year = LocalDate.now().getYear();
+            if (month == null) month = LocalDate.now().getMonthValue();
+
+            // Get period prediction and fertility window
+            PeriodPredictionDTO prediction = menstrualCycleService.getPeriodPrediction(userId);
+            FertilityWindowDTO fertilityWindow = menstrualCycleService.getFertilityWindow(userId);
+
+            // Get logs for the specified month
+            LocalDate startDate = LocalDate.of(year, month, 1);
+            LocalDate endDate = startDate.plusMonths(1).minusDays(1);
+            List<MenstrualLogResponseDTO> logs = menstrualCycleService.getMenstrualLogsByDateRange(
+                userId, startDate.atStartOfDay(), endDate.atStartOfDay().plusDays(1));
+
+            // Create calendar response
+            CalendarDataDTO calendarData = new CalendarDataDTO();
+            calendarData.setPeriodPrediction(prediction);
+            calendarData.setFertilityWindow(fertilityWindow);
+            calendarData.setLogs(logs);
+            calendarData.setYear(year);
+            calendarData.setMonth(month);
+
+            return ResponseEntity.ok(calendarData);
+        } catch (Exception e) {
+            logger.error("Error getting calendar data: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to get calendar data: " + e.getMessage());
+        }
+    }
+
+    /**
      * Get comprehensive dashboard data for menstrual cycle tracking
      */
     @GetMapping("/dashboard")

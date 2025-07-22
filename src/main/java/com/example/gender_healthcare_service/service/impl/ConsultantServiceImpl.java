@@ -27,7 +27,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -110,18 +109,19 @@ public class ConsultantServiceImpl implements ConsultantService {
         user.setRoleName("ROLE_CONSULTANT");
         user.setIsDeleted(false);
         user.setPhoneNumber(request.getPhoneNumber());
-        try {
-            LocalDate birthDate = LocalDate.parse(request.getDateOfBirth());
-            user.setDateOfBirth(birthDate);
-        } catch (Exception e) {
-            throw new RuntimeException("Invalid date format. Use YYYY-MM-DD format: " + e.getMessage());
+        // Sửa: chỉ set dateOfBirth nếu có giá trị hợp lệ
+        if (request.getDateOfBirth() != null && !request.getDateOfBirth().isEmpty()) {
+            try {
+                user.setDateOfBirth(java.time.LocalDate.parse(request.getDateOfBirth()));
+            } catch (Exception e) {
+                // Ignore invalid date, hoặc có thể log warning
+            }
         }
         user.setGender(request.getGender());
         user.setAddress(request.getAddress());
         user.setMedicalHistory(request.getMedicalHistory());
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
-
         User savedUser = userRepository.save(user);
         Consultant c = new Consultant();
         c.setUser(savedUser);
@@ -131,29 +131,36 @@ public class ConsultantServiceImpl implements ConsultantService {
         c.setSpecialization(request.getSpecialization());
         c.setIsDeleted(false);
         consultantRepository.save(c);
-
         return c;
     }
 
     @Override
     public void updateConsultant(ConsultantUpdateDTO consultantDTO) {
         Optional<Consultant> c = consultantRepository.findById(consultantDTO.getId());
-        if(c.isPresent()){
-            if(consultantDTO.getBiography()!=null){
-                c.get().setBiography(consultantDTO.getBiography());
+        if (c.isPresent()) {
+            Consultant consultant = c.get();
+            User user = consultant.getUser();
+            // Update User fields
+            if (consultantDTO.getFullName() != null) user.setFullName(consultantDTO.getFullName());
+            if (consultantDTO.getEmail() != null) user.setEmail(consultantDTO.getEmail());
+            if (consultantDTO.getPhoneNumber() != null) user.setPhoneNumber(consultantDTO.getPhoneNumber());
+            if (consultantDTO.getGender() != null) user.setGender(consultantDTO.getGender());
+            if (consultantDTO.getBirthDate() != null) {
+                try {
+                    user.setDateOfBirth(java.time.LocalDate.parse(consultantDTO.getBirthDate()));
+                } catch (Exception e) {
+                    // Ignore invalid date
+                }
             }
-            if(consultantDTO.getSpecialization()!=null){
-                c.get().setSpecialization(consultantDTO.getSpecialization());
-            }
-            if(consultantDTO.getQualifications()!=null){
-                c.get().setQualifications(consultantDTO.getQualifications());
-            }
-            if(consultantDTO.getExperienceYears()!=null){
-                c.get().setExperienceYears(consultantDTO.getExperienceYears());
-            }
-            consultantRepository.save(c.get());
-        }
-        else {
+            if (consultantDTO.getAddress() != null) user.setAddress(consultantDTO.getAddress());
+            userRepository.save(user);
+            // Update Consultant fields
+            if (consultantDTO.getBiography() != null) consultant.setBiography(consultantDTO.getBiography());
+            if (consultantDTO.getSpecialization() != null) consultant.setSpecialization(consultantDTO.getSpecialization());
+            if (consultantDTO.getQualifications() != null) consultant.setQualifications(consultantDTO.getQualifications());
+            if (consultantDTO.getExperienceYears() != null) consultant.setExperienceYears(consultantDTO.getExperienceYears());
+            consultantRepository.save(consultant);
+        } else {
             throw new RuntimeException("Consultant not found with id: " + consultantDTO.getId());
         }
     }

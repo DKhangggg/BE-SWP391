@@ -11,5 +11,8 @@ import java.time.LocalDateTime;
 public class MenstrualCycleRequestDTO {
     private LocalDate startDate;
     private LocalDate periodDay;
+    private Integer cycleLength;
+    private Integer periodDuration;
+    private Boolean isRegular;
 }
 

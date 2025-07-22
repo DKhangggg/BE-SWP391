@@ -1,6 +1,8 @@
 package com.example.gender_healthcare_service.repository;
 
 import com.example.gender_healthcare_service.entity.TestingService;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -36,4 +38,6 @@ public interface TestingServiceRepository extends JpaRepository<TestingService, 
     @Query("UPDATE TestingService s SET s.isDeleted = :isDeleted WHERE s.id = :id")
     void updateIsDeletedById(Integer id, boolean isDeleted);
 
+    @Query("SELECT COUNT(s) > 0 FROM TestingService s WHERE s.serviceName = :serviceName AND s.isDeleted = false")
+    boolean existsByServiceNameAndIsDeletedFalse(@Size(max = 100) @NotNull String serviceName);
 }
