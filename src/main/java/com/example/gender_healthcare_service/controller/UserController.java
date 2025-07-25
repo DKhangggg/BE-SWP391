@@ -6,13 +6,10 @@ import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
 import com.example.gender_healthcare_service.dto.response.UserResponseDTO;
 import com.example.gender_healthcare_service.service.BookingService;
 import com.example.gender_healthcare_service.service.UserService;
-import com.example.gender_healthcare_service.dto.request.MenstrualCycleRequestDTO;
-import com.example.gender_healthcare_service.dto.response.MenstrualCycleResponseDTO;
 import com.example.gender_healthcare_service.service.MenstrualCycleService;
 import com.example.gender_healthcare_service.service.ReminderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -56,29 +53,6 @@ public class UserController {
     public ResponseEntity<?> getBookingHistory() {
         List<BookingResponseDTO> bookingHistory = bookingService.getUserBookings();
         return ResponseEntity.ok(bookingHistory);
-    }
-    @PostMapping("/menstrual-cycle")
-    public ResponseEntity<MenstrualCycleResponseDTO> addOrUpdateMenstrualCycle(@RequestBody MenstrualCycleRequestDTO requestDTO) {
-        return ResponseEntity.ok(menstrualCycleService.addOrUpdateMenstrualCycle(requestDTO));
-    }
-
-    @PostMapping("/menstrual-cycle/log")
-    public ResponseEntity<?> logMenstrualPeriod(@RequestBody MenstrualLogRequestDTO logDTO) {
-        try {
-            menstrualCycleService.logMenstrualPeriod(logDTO);
-            return ResponseEntity.ok("Menstrual period logged successfully");
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body("Failed to log menstrual period: " + e.getMessage());
-        }
-    }
-
-    @GetMapping("/menstrual-cycle/tracker")
-    public ResponseEntity<?> getMenstrualCycleTracker() {
-        try {
-            return ResponseEntity.ok(menstrualCycleService.getMenstrualCycleTracker());
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body(e.getMessage());
-        }
     }
 
     @GetMapping("/reminders")

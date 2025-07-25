@@ -1,35 +1,33 @@
 package com.example.gender_healthcare_service.service;
 
-import com.example.gender_healthcare_service.dto.request.EnhancedMenstrualLogRequestDTO;
+import com.example.gender_healthcare_service.dto.request.CreateMenstrualCycleRequestDTO;
 import com.example.gender_healthcare_service.dto.request.MenstrualCycleRequestDTO;
-import com.example.gender_healthcare_service.dto.request.MenstrualLogRequestDTO;
-import com.example.gender_healthcare_service.dto.response.*;
-
-import java.time.LocalDateTime;
+import com.example.gender_healthcare_service.dto.request.UpdateDayLogRequestDTO;
+import com.example.gender_healthcare_service.dto.request.QuickLogRequestDTO;
+import com.example.gender_healthcare_service.dto.request.UpdateCycleSettingsRequestDTO;
+import com.example.gender_healthcare_service.dto.response.MenstrualCycleResponseDTO;
+import com.example.gender_healthcare_service.dto.response.DayLogResponseDTO;
+import com.example.gender_healthcare_service.dto.response.PhaseInfoDTO;
+import org.springframework.security.core.Authentication;
 import java.util.List;
+import java.time.LocalDate;
+import java.util.Map;
+import com.example.gender_healthcare_service.entity.MenstrualLog;
 
 public interface MenstrualCycleService {
-    MenstrualCycleResponseDTO addOrUpdateMenstrualCycle(MenstrualCycleRequestDTO requestDTO);
-    void logMenstrualPeriod(MenstrualLogRequestDTO logDTO);
-    List<MenstrualLogResponseDTO> getMenstrualLogs(Integer cycleId);
-    MenstrualCycleTrackerResponseDTO getMenstrualCycleTracker();
-
-    // Enhanced features
-    void logEnhancedMenstrualData(EnhancedMenstrualLogRequestDTO requestDTO);
-    PeriodPredictionDTO getPeriodPrediction(Integer userId);
-    FertilityWindowDTO getFertilityWindow(Integer userId);
-    CycleAnalyticsDTO getCycleAnalytics(Integer userId);
-    List<SymptomPatternDTO> getSymptomPatterns(Integer userId);
-    List<String> getHealthInsights(Integer userId);
-    List<MenstrualLogResponseDTO> getMenstrualLogsByDateRange(Integer userId, LocalDateTime startDate, LocalDateTime endDate);
-
-    // Consultant features for managing user menstrual data
-    void logMenstrualDataForUser(Integer userId, EnhancedMenstrualLogRequestDTO requestDTO, Integer consultantId);
-    MenstrualCycleResponseDTO updateUserMenstrualCycle(Integer userId, MenstrualCycleRequestDTO requestDTO, Integer consultantId);
-    List<MenstrualLogResponseDTO> getUserMenstrualHistory(Integer userId, Integer consultantId);
-    CycleAnalyticsDTO getUserCycleAnalytics(Integer userId, Integer consultantId);
-    PeriodPredictionDTO getUserPeriodPrediction(Integer userId, Integer consultantId);
-    void deleteMenstrualLog(Integer logId, Integer consultantId);
-    MenstrualLogResponseDTO updateMenstrualLog(Integer logId, EnhancedMenstrualLogRequestDTO requestDTO, Integer consultantId);
-    MenstrualLogResponseDTO updateEnhancedMenstrualLog(Long logId, EnhancedMenstrualLogRequestDTO requestDTO);
+    MenstrualCycleResponseDTO getCurrentMenstrualCycle(Authentication authentication);
+    List<MenstrualCycleResponseDTO> createMenstrualCycle(Authentication authentication, List<CreateMenstrualCycleRequestDTO> requests);
+    MenstrualCycleResponseDTO updateMenstrualCycle(Integer userId, MenstrualCycleRequestDTO request);
+    void deleteMenstrualCycle(Integer userId, Integer cycleId);
+    
+    DayLogResponseDTO getDayLog(Authentication authentication, String date);
+    DayLogResponseDTO updateDayLog(Authentication authentication, UpdateDayLogRequestDTO request);
+    DayLogResponseDTO quickLog(Authentication authentication, QuickLogRequestDTO request);
+    
+    String calculatePhaseForDate(Authentication authentication, LocalDate date);
+    Map<LocalDate, String> calculatePhasesForMonth(Authentication authentication, int year, int month);
+    Map<LocalDate, PhaseInfoDTO> calculateDetailedPhasesForMonth(Authentication authentication, int year, int month);
+    List<MenstrualLog> getLogsForDateRange(Authentication authentication, LocalDate startDate, LocalDate endDate);
+    
+    MenstrualCycleResponseDTO updateCycleSettings(Authentication authentication, UpdateCycleSettingsRequestDTO request);
 }

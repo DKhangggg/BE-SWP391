@@ -1,342 +1,234 @@
 package com.example.gender_healthcare_service.controller;
 
-import com.example.gender_healthcare_service.dto.request.EnhancedMenstrualLogRequestDTO;
-import com.example.gender_healthcare_service.dto.response.*;
-import com.example.gender_healthcare_service.entity.User;
-import com.example.gender_healthcare_service.repository.UserRepository;
-import com.example.gender_healthcare_service.service.INotificationService;
+import com.example.gender_healthcare_service.dto.request.CreateMenstrualCycleRequestDTO;
+import com.example.gender_healthcare_service.dto.request.UpdateDayLogRequestDTO;
+import com.example.gender_healthcare_service.dto.request.QuickLogRequestDTO;
+import com.example.gender_healthcare_service.dto.request.UpdateCycleSettingsRequestDTO;
+import com.example.gender_healthcare_service.dto.response.ApiResponse;
+import com.example.gender_healthcare_service.dto.response.MenstrualCycleResponseDTO;
+import com.example.gender_healthcare_service.dto.response.DayLogResponseDTO;
+import com.example.gender_healthcare_service.dto.response.PhaseInfoDTO;
 import com.example.gender_healthcare_service.service.MenstrualCycleService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Collection;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
+import com.example.gender_healthcare_service.entity.MenstrualLog;
+import com.example.gender_healthcare_service.entity.SymptomLog;
+import com.example.gender_healthcare_service.repository.SymptomLogRepository;
 
-@RestController
 @RequestMapping("/api/menstrual-cycle")
-@PreAuthorize("isAuthenticated()")
-//@PreAuthorize("hasAuthority('CUSTOMER') or hasAuthority('ROLE_CUSTOMER') or hasRole('CUSTOMER') or hasRole('ROLE_CUSTOMER') or hasAuthority('USER') or hasAuthority('ROLE_USER') or hasRole('USER') or hasRole('ROLE_USER') or hasAuthority('ADMIN') or hasAuthority('ROLE_ADMIN') or hasRole('ADMIN') or hasRole('ROLE_ADMIN') or hasAuthority('ROLE_CONSULTANT') or hasRole('ROLE_CONSULTANT')")
+@RestController()
 public class EnhancedMenstrualCycleController {
-
-    private static final Logger logger = LoggerFactory.getLogger(EnhancedMenstrualCycleController.class);
 
     @Autowired
     private MenstrualCycleService menstrualCycleService;
 
     @Autowired
-    private UserRepository userRepository;
+    private SymptomLogRepository symptomLogRepository;
 
-    @Autowired
-    private INotificationService notificationService;
-
-    @PostMapping("/log-enhanced")
-    public ResponseEntity<?> logEnhancedMenstrualData(@RequestBody EnhancedMenstrualLogRequestDTO requestDTO) {
-        try {
-            if(requestDTO.getLogDate()==null){requestDTO.setLogDate(LocalDateTime.now());}
-            menstrualCycleService.logEnhancedMenstrualData(requestDTO);
-            return ResponseEntity.ok("Enhanced menstrual data logged successfully");
-        } catch (Exception e) {
-            logger.error("Error logging enhanced menstrual data: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to log enhanced menstrual data: " + e.getMessage());
-        }
-    }
-
-    @GetMapping("/consultant/view/{userId}")
-    @PreAuthorize("hasAuthority('ROLE_CONSULTANT')")
-    public ResponseEntity<?> getMenstrualLogsForUserByConsultant(
-            @PathVariable Integer userId,
-            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        try {
-            if (startDate == null) startDate = LocalDate.now().minusMonths(3);
-            if (endDate == null) endDate = LocalDate.now();
-
-            List<MenstrualLogResponseDTO> logs = menstrualCycleService.getMenstrualLogsByDateRange(userId, startDate.atStartOfDay(), endDate.atStartOfDay().plusDays(1));
-            return ResponseEntity.ok(logs);
-        } catch (Exception e) {
-            logger.error("Error getting menstrual logs for user by consultant: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to get menstrual logs: " + e.getMessage());
-        }
-    }
-
-    @PutMapping("/consultant/log/{logId}")
-    @PreAuthorize("hasAuthority('ROLE_CONSULTANT')")
-    public ResponseEntity<?> updateMenstrualLogByConsultant(
-            @PathVariable Long logId,
-            @RequestBody EnhancedMenstrualLogRequestDTO requestDTO) {
-        try {
-            MenstrualLogResponseDTO updatedLog = menstrualCycleService.updateEnhancedMenstrualLog(logId, requestDTO);
-            if (updatedLog != null) {
-                User user = userRepository.findById(updatedLog.getUserId()).orElse(null);
-                if (user != null) {
-                    notificationService.createNotification(user, "Your menstrual log has been updated by a consultant.", "/menstrual-cycle/logs");
-                }
-                return ResponseEntity.ok(updatedLog);
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Menstrual log not found or could not be updated.");
-            }
-        } catch (Exception e) {
-            logger.error("Error updating menstrual log by consultant: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to update menstrual log: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get period prediction based on historical data
-     */
-    @GetMapping("/prediction")
-    public ResponseEntity<?> getPeriodPrediction() {
-        try {
-            // For current user - you might want to add userId parameter for admin access
-            Integer userId = getCurrentUserId();
-            PeriodPredictionDTO prediction = menstrualCycleService.getPeriodPrediction(userId);
-            return ResponseEntity.ok(prediction);
-        } catch (Exception e) {
-            logger.error("Error getting period prediction: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to get period prediction: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get fertility window calculation
-     */
-    @GetMapping("/fertility-window")
-    public ResponseEntity<?> getFertilityWindow() {
-        try {
-            Integer userId = getCurrentUserId();
-            FertilityWindowDTO fertilityWindow = menstrualCycleService.getFertilityWindow(userId);
-            return ResponseEntity.ok(fertilityWindow);
-        } catch (Exception e) {
-            logger.error("Error getting fertility window: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to get fertility window: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get comprehensive cycle analytics
-     */
-    @GetMapping("/analytics")
-    public ResponseEntity<?> getCycleAnalytics() {
-        try {
-            Integer userId = getCurrentUserId();
-            CycleAnalyticsDTO analytics = menstrualCycleService.getCycleAnalytics(userId);
-            return ResponseEntity.ok(analytics);
-        } catch (Exception e) {
-            logger.error("Error getting cycle analytics: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to get cycle analytics: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get symptom patterns analysis
-     */
-    @GetMapping("/symptom-patterns")
-    public ResponseEntity<?> getSymptomPatterns() {
-        try {
-            Integer userId = getCurrentUserId();
-            List<SymptomPatternDTO> patterns = menstrualCycleService.getSymptomPatterns(userId);
-            return ResponseEntity.ok(patterns);
-        } catch (Exception e) {
-            logger.error("Error getting symptom patterns: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to get symptom patterns: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get personalized health insights
-     */
-    @GetMapping("/health-insights")
-    public ResponseEntity<?> getHealthInsights() {
-        try {
-            Integer userId = getCurrentUserId();
-            List<String> insights = menstrualCycleService.getHealthInsights(userId);
-            return ResponseEntity.ok(insights);
-        } catch (Exception e) {
-            logger.error("Error getting health insights: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to get health insights: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get menstrual logs within a date range
-     */
-    @GetMapping("/logs")
-    public ResponseEntity<?> getMenstrualLogsByDateRange(
-            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        try {
-            if (startDate == null) startDate = LocalDate.now().minusMonths(3);
-            if (endDate == null) endDate = LocalDate.now();
-
-            Integer userId = getCurrentUserId();
-            List<MenstrualLogResponseDTO> logs = menstrualCycleService.getMenstrualLogsByDateRange(userId, startDate.atStartOfDay(), endDate.atStartOfDay().plusDays(1));
-            return ResponseEntity.ok(logs);
-        } catch (Exception e) {
-            logger.error("Error getting menstrual logs by date range: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to get menstrual logs: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get current cycle information for the user
-     */
     @GetMapping("/current")
-    public ResponseEntity<?> getCurrentCycle() {
+    public ResponseEntity<ApiResponse<MenstrualCycleResponseDTO>> getCurrentMenstrualCycle(Authentication authentication) {
         try {
-            Integer userId = getCurrentUserId();
-
-            // Get current cycle data
-            PeriodPredictionDTO prediction = menstrualCycleService.getPeriodPrediction(userId);
-            FertilityWindowDTO fertilityWindow = menstrualCycleService.getFertilityWindow(userId);
-            CycleAnalyticsDTO analytics = menstrualCycleService.getCycleAnalytics(userId);
-
-            // Get recent logs (last 3 months)
-            LocalDate startDate = LocalDate.now().minusMonths(3);
-            LocalDate endDate = LocalDate.now();
-            List<MenstrualLogResponseDTO> recentLogs = menstrualCycleService.getMenstrualLogsByDateRange(
-                userId, startDate.atStartOfDay(), endDate.atStartOfDay().plusDays(1));
-
-            CurrentCycleDTO currentCycle = new CurrentCycleDTO();
-            currentCycle.setPeriodPrediction(prediction);
-            currentCycle.setFertilityWindow(fertilityWindow);
-            currentCycle.setCycleAnalytics(analytics);
-            currentCycle.setRecentLogs(recentLogs);
-
-            return ResponseEntity.ok(currentCycle);
-        } catch (Exception e) {
-            logger.error("Error getting current cycle: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to get current cycle: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get calendar data for cycle tracking UI
-     */
-    @GetMapping("/calendar")
-    public ResponseEntity<?> getCalendarData(
-            @RequestParam(value = "year", required = false) Integer year,
-            @RequestParam(value = "month", required = false) Integer month) {
-        try {
-            Integer userId = getCurrentUserId();
-
-            // Default to current month if not specified
-            if (year == null) year = LocalDate.now().getYear();
-            if (month == null) month = LocalDate.now().getMonthValue();
-
-            // Get period prediction and fertility window
-            PeriodPredictionDTO prediction = menstrualCycleService.getPeriodPrediction(userId);
-            FertilityWindowDTO fertilityWindow = menstrualCycleService.getFertilityWindow(userId);
-
-            // Get logs for the specified month
-            LocalDate startDate = LocalDate.of(year, month, 1);
-            LocalDate endDate = startDate.plusMonths(1).minusDays(1);
-            List<MenstrualLogResponseDTO> logs = menstrualCycleService.getMenstrualLogsByDateRange(
-                userId, startDate.atStartOfDay(), endDate.atStartOfDay().plusDays(1));
-
-            // Create calendar response
-            CalendarDataDTO calendarData = new CalendarDataDTO();
-            calendarData.setPeriodPrediction(prediction);
-            calendarData.setFertilityWindow(fertilityWindow);
-            calendarData.setLogs(logs);
-            calendarData.setYear(year);
-            calendarData.setMonth(month);
-
-            return ResponseEntity.ok(calendarData);
-        } catch (Exception e) {
-            logger.error("Error getting calendar data: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to get calendar data: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get comprehensive dashboard data for menstrual cycle tracking
-     */
-    @GetMapping("/dashboard")
-    public ResponseEntity<?> getMenstrualCycleDashboard(HttpServletRequest request) {
-        try {
-            // Lấy token từ header
-            String authHeader = request.getHeader("Authorization");
-            logger.info("[DASHBOARD] Authorization header: {}", authHeader);
-
-            // Lấy user từ SecurityContext
-            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            String username = "unknown";
-            Collection<?> authorities = null;
-            if (principal instanceof UserDetails) {
-                username = ((UserDetails) principal).getUsername();
-                authorities = ((UserDetails) principal).getAuthorities();
+            MenstrualCycleResponseDTO dto = menstrualCycleService.getCurrentMenstrualCycle(authentication);
+            if (dto == null) {
+                return ResponseEntity.ok(ApiResponse.error("Bạn chưa có chu kỳ nào trong hệ thống"));
             }
-            logger.info("[DASHBOARD] Username: {}", username);
-            logger.info("[DASHBOARD] Authorities: {}", authorities);
+            return ResponseEntity.ok(ApiResponse.success("Thành công", dto));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
+    }
 
-            Integer userId = getCurrentUserId();
-            logger.info("[DASHBOARD] userId: {}", userId);
+    @PostMapping("/create")
+    public ResponseEntity<ApiResponse<List<MenstrualCycleResponseDTO>>> createMenstrualCycle(
+            Authentication authentication,
+            @RequestBody List<CreateMenstrualCycleRequestDTO> requests) {
+        try {
+            List<MenstrualCycleResponseDTO> result = menstrualCycleService.createMenstrualCycle(authentication, requests);
+            return ResponseEntity.ok(ApiResponse.success("Tạo chu kỳ thành công", result));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
+    }
 
-            PeriodPredictionDTO prediction = menstrualCycleService.getPeriodPrediction(userId);
-            FertilityWindowDTO fertilityWindow = menstrualCycleService.getFertilityWindow(userId);
-            CycleAnalyticsDTO analytics = menstrualCycleService.getCycleAnalytics(userId);
-            List<String> insights = menstrualCycleService.getHealthInsights(userId);
+    @GetMapping("/day-log/{date}")
+    public ResponseEntity<ApiResponse<DayLogResponseDTO>> getDayLog(
+            Authentication authentication,
+            @PathVariable String date) {
+        try {
+            DayLogResponseDTO dto = menstrualCycleService.getDayLog(authentication, date);
+            return ResponseEntity.ok(ApiResponse.success("Thành công", dto));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
+    }
 
-            boolean isEmpty = (prediction == null || prediction.getNextPeriodDate() == null)
-                    && (fertilityWindow == null || fertilityWindow.getOvulationDate() == null)
-                    && (analytics == null || analytics.getTotalCyclesTracked() == 0);
+    @PostMapping("/update-day-log")
+    public ResponseEntity<ApiResponse<DayLogResponseDTO>> updateDayLog(
+            Authentication authentication,
+            @RequestBody UpdateDayLogRequestDTO request) {
+        try {
+            DayLogResponseDTO dto = menstrualCycleService.updateDayLog(authentication, request);
+            return ResponseEntity.ok(ApiResponse.success("Cập nhật thành công", dto));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
+    }
 
-            MenstrualCycleDashboardDTO dashboard = new MenstrualCycleDashboardDTO();
-            if (isEmpty) {
-                // Trả về dashboard mẫu nếu chưa có dữ liệu
-                dashboard.setPeriodPrediction(null);
-                dashboard.setFertilityWindow(null);
-                dashboard.setCycleAnalytics(null);
-                dashboard.setHealthInsights(List.of("Bạn chưa có dữ liệu chu kỳ nào. Hãy nhập nhật ký chu kỳ đầu tiên trong tháng này!"));
-            } else {
-                dashboard.setPeriodPrediction(prediction);
-                dashboard.setFertilityWindow(fertilityWindow);
-                dashboard.setCycleAnalytics(analytics);
-                dashboard.setHealthInsights(insights);
+    @PostMapping("/quick-log")
+    public ResponseEntity<ApiResponse<DayLogResponseDTO>> quickLog(
+            Authentication authentication,
+            @RequestBody QuickLogRequestDTO request) {
+        try {
+            DayLogResponseDTO result = menstrualCycleService.quickLog(authentication, request);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Ghi nhận nhanh thành công", result));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/phases/{year}/{month}")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getPhasesForMonth(
+            Authentication authentication,
+            @PathVariable int year,
+            @PathVariable int month) {
+        try {
+            Map<LocalDate, String> phases = menstrualCycleService.calculatePhasesForMonth(authentication, year, month);
+            
+            // Convert LocalDate to String for JSON response
+            Map<String, String> phasesResponse = phases.entrySet().stream()
+                .collect(Collectors.toMap(
+                    entry -> entry.getKey().toString(),
+                    Map.Entry::getValue
+                ));
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "Lấy phases thành công", phasesResponse));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/phases-detailed/{year}/{month}")
+    public ResponseEntity<ApiResponse<Map<String, PhaseInfoDTO>>> getDetailedPhasesForMonth(
+            Authentication authentication,
+            @PathVariable int year,
+            @PathVariable int month) {
+        try {
+            Map<LocalDate, PhaseInfoDTO> detailedPhases = menstrualCycleService.calculateDetailedPhasesForMonth(authentication, year, month);
+            
+            // Convert LocalDate to String for JSON response
+            Map<String, PhaseInfoDTO> phasesResponse = detailedPhases.entrySet().stream()
+                .collect(Collectors.toMap(
+                    entry -> entry.getKey().toString(),
+                    Map.Entry::getValue
+                ));
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "Lấy phases chi tiết thành công", phasesResponse));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    @GetMapping("/cycle-summary")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCycleSummary(Authentication authentication) {
+        try {
+            MenstrualCycleResponseDTO currentCycle = menstrualCycleService.getCurrentMenstrualCycle(authentication);
+            if (currentCycle == null) {
+                return ResponseEntity.ok(ApiResponse.error("Chưa có dữ liệu chu kỳ"));
             }
 
-            return ResponseEntity.ok(dashboard);
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("currentCycle", currentCycle);
+            
+            // Tính toán thông tin bổ sung
+            LocalDate today = LocalDate.now();
+            LocalDate nextPeriod = currentCycle.getNextPredictedPeriod();
+            LocalDate ovulationDate = currentCycle.getOvulationDate();
+            
+            if (nextPeriod != null) {
+                long daysToNextPeriod = ChronoUnit.DAYS.between(today, nextPeriod);
+                summary.put("daysToNextPeriod", daysToNextPeriod);
+            }
+            
+            if (ovulationDate != null) {
+                long daysToOvulation = ChronoUnit.DAYS.between(today, ovulationDate);
+                summary.put("daysToOvulation", daysToOvulation);
+            }
+            
+            summary.put("cycleLength", currentCycle.getCycleLength());
+            summary.put("periodDuration", currentCycle.getPeriodDuration());
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "Lấy thông tin chu kỳ thành công", summary));
         } catch (Exception e) {
-            logger.error("Error getting menstrual cycle dashboard: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to get dashboard data: " + e.getMessage());
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
 
-    // Helper method to get current user ID - you may need to implement this based on your authentication
-    private Integer getCurrentUserId() {
-        // Get current authenticated user from SecurityContext
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = userDetails.getUsername();
-
-        // Find user by username (you may need to inject UserRepository)
-        User user = userRepository.findUserByUsername(username);
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found in the system");
+    @GetMapping("/logs/{startDate}/{endDate}")
+    public ResponseEntity<ApiResponse<List<DayLogResponseDTO>>> getLogsForDateRange(
+            Authentication authentication,
+            @PathVariable String startDate,
+            @PathVariable String endDate) {
+        try {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            
+            List<MenstrualLog> logs = menstrualCycleService.getLogsForDateRange(authentication, start, end);
+            
+            List<DayLogResponseDTO> response = logs.stream()
+                .map(log -> {
+                    DayLogResponseDTO dto = new DayLogResponseDTO();
+                    dto.setDate(log.getLogDate().toLocalDate());
+                    dto.setIsPeriodDay(log.getIsActualPeriod());
+                    dto.setIntensity(log.getFlowIntensity() != null ? log.getFlowIntensity().name() : null);
+                    dto.setMood(log.getMood() != null ? log.getMood().name() : null);
+                    dto.setNotes(log.getNotes());
+                    
+                    // Get symptoms
+                    List<SymptomLog> symptomLogs = symptomLogRepository.findByMenstrualLog(log);
+                    String symptoms = symptomLogs.stream()
+                        .map(sl -> sl.getSymptom().getSymptomName() + 
+                             (sl.getSeverity() != null ? " (" + sl.getSeverity().name() + ")" : ""))
+                        .collect(Collectors.joining(", "));
+                    dto.setSymptoms(symptoms);
+                    
+                    return dto;
+                })
+                .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(new ApiResponse<>(true, "Lấy logs thành công", response));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, e.getMessage(), null));
         }
-        return user.getId();
+    }
+
+    @PatchMapping("/update")
+    public ResponseEntity<?> updateMenstrualCycle() {
+        return null;
+    }
+    
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteMenstrualCycle() {
+        return null;
+    }
+
+    @PatchMapping("/update-settings")
+    public ResponseEntity<ApiResponse<MenstrualCycleResponseDTO>> updateCycleSettings(
+            Authentication authentication,
+            @RequestBody UpdateCycleSettingsRequestDTO request) {
+        try {
+            MenstrualCycleResponseDTO dto = menstrualCycleService.updateCycleSettings(authentication, request);
+            return ResponseEntity.ok(ApiResponse.success("Cập nhật thiết lập chu kỳ thành công", dto));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
+        }
     }
 }

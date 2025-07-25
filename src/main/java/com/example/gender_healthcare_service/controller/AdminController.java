@@ -106,8 +106,7 @@ public class AdminController {
             TestingServiceResponseDTO response = testingServiceService.deleteService(serviceId, true);
             ApiResponse<TestingServiceResponseDTO> apiResponse = ApiResponse.success(
                 "Service deleted successfully", 
-                response, 
-                "DELETE"
+                response
             );
             return new ResponseEntity<>(apiResponse, HttpStatus.OK);
         } catch (ServiceNotFoundException e) {
@@ -126,8 +125,7 @@ public class AdminController {
             TestingServiceResponseDTO response = testingServiceService.deleteService(serviceId, false);
             ApiResponse<TestingServiceResponseDTO> apiResponse = ApiResponse.success(
                 "Service restored successfully", 
-                response, 
-                "RESTORE"
+                response
             );
             return new ResponseEntity<>(apiResponse, HttpStatus.OK);
         } catch (ServiceNotFoundException e) {
@@ -398,8 +396,8 @@ public class AdminController {
             if (!existingUser) {
                 return new ResponseEntity<>(HttpStatus.NOT_FOUND);
             }
-            List<MenstrualLogResponseDTO> menstrualLogs = menstrualCycleService.getMenstrualLogs(userId);
-            return new ResponseEntity<>(menstrualLogs, HttpStatus.OK);
+            //List<MenstrualLogResponseDTO> menstrualLogs = menstrualCycleService.getMenstrualLogs(userId);
+            return new ResponseEntity<>("notok", HttpStatus.OK);
         }
         catch (Exception e) {
             logger.error("Error fetching menstrual cycle details for user {}: {}", userId, e.getMessage(), e);

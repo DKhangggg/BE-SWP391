@@ -17,4 +17,8 @@ public interface UserService {
     UserResponseDTO updateUser(UserProfileRequest user);
     UserResponseDTO updateUserByAdmin(Integer userId, AdminUpdateUserRequestDTO updateUserDTO);
     void deleteUserByAdmin(Integer userId);
+
+    User findById(Integer userId);
+
+    User findUserByUsername(String username);
 }

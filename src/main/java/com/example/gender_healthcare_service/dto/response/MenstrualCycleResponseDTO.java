@@ -1,19 +1,23 @@
 package com.example.gender_healthcare_service.dto.response;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDate;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class MenstrualCycleResponseDTO {
     private LocalDate startDate;
-    private LocalDate LastTimeTakePeriod;
-    private LocalDate predictedPeriodDay;
+    private Integer cycleLength;
+    private Integer periodDuration;
+    private Double averageCycleLength;
+    private Double averagePeriodDuration;
+    private LocalDate periodDay;
+    private LocalDate nextPredictedPeriod;
+    private LocalDate fertilityWindowStart;
+    private LocalDate fertilityWindowEnd;
+    private LocalDate ovulationDate;
 }
-
