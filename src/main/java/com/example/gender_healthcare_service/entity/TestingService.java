@@ -44,6 +44,10 @@ public class TestingService {
     @Column(name = "DurationMinutes")
     private Integer durationMinutes;
 
+    @Size(max = 500)
+    @Column(name = "ImageUrl", length = 500)
+    private String imageUrl;
+
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
     private LocalDateTime createdAt;

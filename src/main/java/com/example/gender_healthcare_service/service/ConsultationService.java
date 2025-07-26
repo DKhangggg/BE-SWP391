@@ -2,6 +2,7 @@ package com.example.gender_healthcare_service.service;
 
 import com.example.gender_healthcare_service.dto.request.ConsultationBookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.ConsultationStatusUpdateDTO;
+import com.example.gender_healthcare_service.dto.request.ConsultationConfirmationDTO;
 import com.example.gender_healthcare_service.dto.request.RescheduleBookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateConsultationStatusRequestDTO;
 import com.example.gender_healthcare_service.dto.response.*;
@@ -31,6 +32,8 @@ public interface ConsultationService {
 
     ConsultationBookingResponseDTO updateConsultationStatus(Integer consultationId, ConsultationStatusUpdateDTO statusUpdateDTO);
 
+    ConsultationBookingResponseDTO confirmConsultation(Integer consultationId, ConsultationConfirmationDTO confirmationDTO);
+
     ConsultationDetailResponseDTO getConsultationDetails(Integer consultationId);
 
     ConsultationBookingResponseDTO cancelConsultation(Integer consultationId);
@@ -38,4 +41,13 @@ public interface ConsultationService {
     List<ConsultationBookingResponseDTO> getUserUpcomingConsultations();
 
     List<ConsultationBookingResponseDTO> getConsultationBookingsForCurrentConsultant(String date, String status);
+
+    // API cho consultant xem danh sách lịch hẹn chờ xác nhận
+    List<ConsultationBookingResponseDTO> getPendingAppointments();
+
+    // API cho consultant xem tất cả lịch hẹn của mình
+    List<ConsultationBookingResponseDTO> getMyAppointments(String status, LocalDate date);
+
+    // API xác nhận lịch hẹn và tạo link meeting
+    ConsultationBookingResponseDTO confirmWithMeetingLink(Integer consultationId);
 }

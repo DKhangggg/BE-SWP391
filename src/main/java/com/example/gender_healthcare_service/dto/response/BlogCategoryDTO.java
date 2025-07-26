@@ -4,14 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Simplified DTO for BlogCategory used in responses
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class BlogCategoryDTO {
-    private Integer categoryID;
-    private String categoryName;
+    private Integer id;
+    private String name;
+    private String slug;
     private String description;
 }

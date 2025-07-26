@@ -2,6 +2,7 @@ package com.example.gender_healthcare_service.controller;
 
 import com.example.gender_healthcare_service.dto.request.ConsultationBookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.ConsultationStatusUpdateDTO;
+import com.example.gender_healthcare_service.dto.request.ConsultationConfirmationDTO;
 import com.example.gender_healthcare_service.dto.response.ConsultationBookingResponseDTO;
 import com.example.gender_healthcare_service.dto.response.ConsultationDetailResponseDTO;
 import com.example.gender_healthcare_service.dto.response.ConsultantAvailabilityResponseDTO;
@@ -66,6 +67,15 @@ public class ConsultationController {
         return ResponseEntity.ok(updatedBooking);
     }
 
+    @PutMapping("/{consultationId}/confirm")
+    @PreAuthorize("hasAnyAuthority('ROLE_CONSULTANT', 'ROLE_ADMIN')")
+    public ResponseEntity<ConsultationBookingResponseDTO> confirmConsultation(
+            @PathVariable Integer consultationId,
+            @Valid @RequestBody ConsultationConfirmationDTO confirmationDTO) {
+        ConsultationBookingResponseDTO confirmedBooking = consultationService.confirmConsultation(consultationId, confirmationDTO);
+        return ResponseEntity.ok(confirmedBooking);
+    }
+
     @GetMapping("/{consultationId}")
     public ResponseEntity<ConsultationDetailResponseDTO> getConsultationDetails(@PathVariable Integer consultationId) {
         ConsultationDetailResponseDTO details = consultationService.getConsultationDetails(consultationId);
@@ -87,5 +97,32 @@ public class ConsultationController {
     public ResponseEntity<List<ConsultationBookingResponseDTO>> getUpcomingConsultations() {
         List<ConsultationBookingResponseDTO> upcomingBookings = consultationService.getUserUpcomingConsultations();
         return ResponseEntity.ok(upcomingBookings);
+    }
+
+    // API cho consultant xem danh sách lịch hẹn chờ xác nhận
+    @GetMapping("/consultant/pending-appointments")
+    @PreAuthorize("hasAnyAuthority('ROLE_CONSULTANT', 'ROLE_ADMIN')")
+    public ResponseEntity<List<ConsultationBookingResponseDTO>> getPendingAppointments() {
+        List<ConsultationBookingResponseDTO> pendingAppointments = consultationService.getPendingAppointments();
+        return ResponseEntity.ok(pendingAppointments);
+    }
+
+    // API cho consultant xem tất cả lịch hẹn của mình
+    @GetMapping("/consultant/my-appointments")
+    @PreAuthorize("hasAnyAuthority('ROLE_CONSULTANT', 'ROLE_ADMIN')")
+    public ResponseEntity<List<ConsultationBookingResponseDTO>> getMyAppointments(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        List<ConsultationBookingResponseDTO> appointments = consultationService.getMyAppointments(status, date);
+        return ResponseEntity.ok(appointments);
+    }
+
+    // API xác nhận lịch hẹn và tạo link meeting
+    @PostMapping("/consultant/{consultationId}/confirm-with-meeting")
+    @PreAuthorize("hasAnyAuthority('ROLE_CONSULTANT', 'ROLE_ADMIN')")
+    public ResponseEntity<ConsultationBookingResponseDTO> confirmWithMeetingLink(
+            @PathVariable Integer consultationId) {
+        ConsultationBookingResponseDTO confirmedBooking = consultationService.confirmWithMeetingLink(consultationId);
+        return ResponseEntity.ok(confirmedBooking);
     }
 }

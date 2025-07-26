@@ -123,9 +123,9 @@ public class QnAServiceImpl implements QAService {
     }
 
     @Override
-    public AnswerResponseDTO updateAnswer(Integer answerId, AnswerRequestDTO answerRequest) {
-        Answer answer = answerRepository.findById(answerId)
-                .orElseThrow(() -> new IllegalArgumentException("Answer not found with ID: " + answerId));
+    public AnswerResponseDTO updateAnswer(Integer id, AnswerRequestDTO answerRequest) {
+        Answer answer = answerRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Answer not found with ID: " + id));
 
         if (answerRequest.getContent() == null) {
             throw new IllegalArgumentException("Answer content must not be null");

@@ -226,7 +226,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             throw new RuntimeException("Không tìm thấy người dùng");
         }
 
-        // Get current cycle
         MenstrualCycle cycle = menstrualCycleRepository.findByUser_IdOrderByStartDateDesc(user.getId())
             .stream().max(comparing(MenstrualCycle::getStartDate)).orElse(null);
         
@@ -234,7 +233,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             throw new RuntimeException("Chưa có chu kỳ kinh nguyệt");
         }
 
-        // Find or create MenstrualLog for this date
         LocalDateTime startOfDay = request.getDate().atStartOfDay();
         LocalDateTime endOfDay = request.getDate().atTime(23, 59, 59);
         
@@ -251,17 +249,14 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             log.setCreatedAt(LocalDateTime.now());
         }
 
-        // Update log data
         log.setIsActualPeriod(request.getIsPeriodDay());
         log.setFlowIntensity(request.getIntensity() != null ? mapVietnameseFlowIntensityToEnum(request.getIntensity()) : null);
         
-        // Handle mood with Vietnamese mapping
         if (request.getMood() != null && !request.getMood().trim().isEmpty()) {
             MoodType mappedMood = mapMoodValueToEnum(request.getMood());
             if (mappedMood != null) {
                 log.setMood(mappedMood);
             } else {
-                // If mood cannot be mapped, store as notes
                 String currentNotes = log.getNotes() != null ? log.getNotes() + "\n" : "";
                 log.setNotes(currentNotes + "Tâm trạng: " + request.getMood());
                 log.setMood(null);
@@ -273,35 +268,27 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         log.setNotes(request.getNotes());
         log.setUpdatedAt(LocalDateTime.now());
 
-        // Save log
         log = menstrualLogRepository.save(log);
 
-        // Handle symptoms if provided
         if (request.getSymptoms() != null && !request.getSymptoms().trim().isEmpty()) {
-            // Save log first if it's new
             if (log.getId() == null) {
                 log = menstrualLogRepository.save(log);
             }
             
-            // Clear existing symptoms
             List<SymptomLog> existingSymptoms = symptomLogRepository.findByMenstrualLog(log);
             symptomLogRepository.deleteAll(existingSymptoms);
 
-            // Parse and create new symptoms
             String[] symptomValues = request.getSymptoms().split(",");
             for (String symptomValue : symptomValues) {
                 symptomValue = symptomValue.trim();
                 if (!symptomValue.isEmpty()) {
-                    // Map symptom value to name
                     String symptomName = mapSymptomValueToName(symptomValue);
                     
-                    // Find or create symptom
                     Optional<Symptom> symptomOpt = symptomRepository.findBySymptomNameIgnoreCase(symptomName);
                     Symptom symptom;
                     if (symptomOpt.isPresent()) {
                         symptom = symptomOpt.get();
                     } else {
-                        // Create new symptom
                         symptom = new Symptom();
                         symptom.setSymptomName(symptomName);
                         symptom.setCategory("General");
@@ -309,18 +296,16 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
                         symptom = symptomRepository.save(symptom);
                     }
 
-                    // Create symptom log
                     SymptomLog symptomLog = new SymptomLog();
                     symptomLog.setMenstrualLog(log);
                     symptomLog.setSymptom(symptom);
-                    symptomLog.setSeverity(SeverityLevel.MODERATE); // Default severity
+                    symptomLog.setSeverity(SeverityLevel.MODERATE);
                     symptomLog.setCreatedAt(LocalDateTime.now());
                     symptomLogRepository.save(symptomLog);
                 }
             }
         }
 
-        // Create response
         DayLogResponseDTO response = new DayLogResponseDTO();
         response.setDate(request.getDate());
         response.setIsPeriodDay(log.getIsActualPeriod());
@@ -328,7 +313,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         response.setMood(log.getMood() != null ? log.getMood().name() : null);
         response.setNotes(log.getNotes());
 
-        // Get symptoms for response
         List<SymptomLog> symptomLogs = symptomLogRepository.findByMenstrualLog(log);
         String symptoms = symptomLogs.stream()
             .map(sl -> sl.getSymptom().getSymptomName() + 
@@ -336,7 +320,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             .collect(Collectors.joining(", "));
         response.setSymptoms(symptoms);
 
-        // Determine phase
         MenstrualCycleResponseDTO currentCycle = getCurrentMenstrualCycle(authentication);
         if (currentCycle != null) {
             LocalDate cycleStart = currentCycle.getStartDate();
@@ -395,7 +378,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         switch (request.getType()) {
             case "SYMPTOMS":
                 if (request.getContent() != null && !request.getContent().trim().isEmpty()) {
-                    // Save log first if it's new
                     if (log.getId() == null) {
                         log = menstrualLogRepository.save(log);
                     }
@@ -407,7 +389,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
                     for (String symptomValue : symptomValues) {
                         symptomValue = symptomValue.trim();
                         if (!symptomValue.isEmpty()) {
-                            // Map symptom value to name
                             String symptomName = mapSymptomValueToName(symptomValue);
                             
                             Optional<Symptom> symptomOpt = symptomRepository.findBySymptomNameIgnoreCase(symptomName);
@@ -424,7 +405,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
                             SymptomLog symptomLog = new SymptomLog();
                             symptomLog.setMenstrualLog(log);
                             symptomLog.setSymptom(symptom);
-                            symptomLog.setSeverity(SeverityLevel.MODERATE); // Default severity
+                            symptomLog.setSeverity(SeverityLevel.MODERATE);
                             symptomLog.setCreatedAt(LocalDateTime.now());
                             symptomLogRepository.save(symptomLog);
                         }
@@ -437,7 +418,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
                     if (mappedMood != null) {
                         log.setMood(mappedMood);
                     } else {
-                        // If mood cannot be mapped, store as notes
                         String currentNotes = log.getNotes() != null ? log.getNotes() + "\n" : "";
                         log.setNotes(currentNotes + "Tâm trạng: " + request.getContent());
                         log.setMood(null);
@@ -493,26 +473,19 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
 
     @Override
     public MenstrualCycleResponseDTO updateMenstrualCycle(Integer userId, MenstrualCycleRequestDTO request) {
-        // TODO: implement
         return null;
     }
 
     @Override
     public void deleteMenstrualCycle(Integer userId, Integer cycleId) {
-        // TODO: implement
     }
 
-    /**
-     * Map mood values from frontend to MoodType enum
-     */
     private MoodType mapMoodValueToEnum(String moodValue) {
         if (moodValue == null) return null;
         
-        // First try direct enum mapping
         try {
             return MoodType.valueOf(moodValue);
         } catch (IllegalArgumentException e) {
-            // If not a direct enum, try Vietnamese mapping
             String mood = moodValue.toLowerCase().trim();
             
             switch (mood) {
@@ -557,9 +530,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         }
     }
 
-    /**
-     * Map Vietnamese flow intensity words to FlowIntensity enum
-     */
     private FlowIntensity mapVietnameseFlowIntensityToEnum(String vietnameseIntensity) {
         if (vietnameseIntensity == null) return null;
         
@@ -587,9 +557,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         }
     }
 
-    /**
-     * Map symptom values from frontend to backend symptom names
-     */
     private String mapSymptomValueToName(String symptomValue) {
         if (symptomValue == null) return null;
         
@@ -615,7 +582,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             case "OTHER":
                 return "Khác";
             default:
-                return symptomValue; // Return as is if not mapped
+                return symptomValue;
         }
     }
 
@@ -627,77 +594,61 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             throw new RuntimeException("Không tìm thấy người dùng");
         }
 
-        // Get current cycle
         MenstrualCycleResponseDTO currentCycle = getCurrentMenstrualCycle(authentication);
         if (currentCycle == null) {
             return "UNKNOWN";
         }
 
-        // Check if it's actual period day (from logs) - ƯU TIÊN CAO NHẤT
         List<MenstrualLog> logs = menstrualLogRepository.findByUserIdAndDateRange(
             user.getId(), date, date);
         if (!logs.isEmpty() && logs.get(0).getIsActualPeriod()) {
             return "PERIOD";
         }
 
-        // Check if user has logged anything for this date (even if not period)
         boolean hasUserLogged = !logs.isEmpty();
 
-        // Tính toán thông minh cho các phase
         String calculatedPhase = calculateSmartPhase(date, currentCycle, hasUserLogged);
         
         return calculatedPhase;
     }
 
-    /**
-     * Tính toán thông minh phase dựa trên chu kỳ và lịch sử
-     */
     private String calculateSmartPhase(LocalDate date, MenstrualCycleResponseDTO currentCycle, boolean hasUserLogged) {
         LocalDate cycleStart = currentCycle.getStartDate();
         int cycleLength = currentCycle.getCycleLength() != null ? currentCycle.getCycleLength() : 28;
         int periodDuration = currentCycle.getPeriodDuration() != null ? currentCycle.getPeriodDuration() : 5;
         
-        // Tính toán các chu kỳ tiếp theo
         List<LocalDate> predictedPeriodStarts = calculatePredictedPeriodStarts(cycleStart, cycleLength);
         List<LocalDate> ovulationDates = calculateOvulationDates(cycleStart, cycleLength);
         List<LocalDate> fertilityWindows = calculateFertilityWindows(ovulationDates);
         
-        // Kiểm tra xem ngày này có phải là kỳ kinh dự đoán không
         boolean isPredictedPeriod = isDateInPredictedPeriod(date, predictedPeriodStarts, periodDuration);
         
-        // Kiểm tra xem ngày này có phải là rụng trứng không
         boolean isOvulation = ovulationDates.contains(date);
         
-        // Kiểm tra xem ngày này có phải là thời kỳ màu mỡ không
         boolean isFertile = fertilityWindows.contains(date);
         
-        // Logic ưu tiên
         if (isPredictedPeriod) {
             if (hasUserLogged) {
-                return "PERIOD"; // User đã log → hiện PERIOD thực tế
+                return "PERIOD";
             } else {
-                return "PREDICTED"; // Chưa log → hiện PREDICTED
+                return "PREDICTED";
             }
         } else if (isOvulation) {
-            return "OVULATION"; // Luôn hiện OVULATION
+            return "OVULATION";
         } else if (isFertile) {
-            return "FERTILE"; // Luôn hiện FERTILE
+            return "FERTILE";
         } else {
             if (hasUserLogged) {
-                return "NORMAL"; // User đã log nhưng không phải phase đặc biệt
+                return "NORMAL";
             } else {
-                return "NORMAL"; // Không phải phase đặc biệt
+                return "NORMAL";
             }
         }
     }
 
-    /**
-     * Tính toán các ngày bắt đầu kỳ kinh dự đoán
-     */
     private List<LocalDate> calculatePredictedPeriodStarts(LocalDate lastPeriodStart, int cycleLength) {
         List<LocalDate> predictedStarts = new ArrayList<>();
         
-        // Tính toán 3 chu kỳ tiếp theo
         for (int i = 1; i <= 3; i++) {
             LocalDate nextPeriodStart = lastPeriodStart.plusDays(cycleLength * i);
             predictedStarts.add(nextPeriodStart);
@@ -706,13 +657,9 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         return predictedStarts;
     }
 
-    /**
-     * Tính toán các ngày rụng trứng
-     */
     private List<LocalDate> calculateOvulationDates(LocalDate lastPeriodStart, int cycleLength) {
         List<LocalDate> ovulationDates = new ArrayList<>();
         
-        // Rụng trứng thường xảy ra 14 ngày trước kỳ kinh tiếp theo
         for (int i = 1; i <= 3; i++) {
             LocalDate nextPeriodStart = lastPeriodStart.plusDays(cycleLength * i);
             LocalDate ovulationDate = nextPeriodStart.minusDays(14);
@@ -722,29 +669,20 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         return ovulationDates;
     }
 
-    /**
-     * Tính toán thời kỳ màu mỡ (5 ngày trước và 1 ngày sau rụng trứng)
-     */
     private List<LocalDate> calculateFertilityWindows(List<LocalDate> ovulationDates) {
         List<LocalDate> fertilityDates = new ArrayList<>();
         
         for (LocalDate ovulationDate : ovulationDates) {
-            // 5 ngày trước rụng trứng
             for (int i = 5; i >= 1; i--) {
                 fertilityDates.add(ovulationDate.minusDays(i));
             }
-            // Ngày rụng trứng
             fertilityDates.add(ovulationDate);
-            // 1 ngày sau rụng trứng
             fertilityDates.add(ovulationDate.plusDays(1));
         }
         
         return fertilityDates;
     }
 
-    /**
-     * Kiểm tra xem ngày có nằm trong kỳ kinh dự đoán không
-     */
     private boolean isDateInPredictedPeriod(LocalDate date, List<LocalDate> predictedStarts, int periodDuration) {
         for (LocalDate periodStart : predictedStarts) {
             if (date.isAfter(periodStart.minusDays(1)) && 
@@ -790,9 +728,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         return detailedPhases;
     }
 
-    /**
-     * Get detailed information for a phase including icon, color, and description
-     */
     private PhaseInfoDTO getPhaseInfo(String phase) {
         switch (phase) {
             case "PERIOD":
@@ -866,7 +801,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             throw new RuntimeException("Không tìm thấy người dùng");
         }
 
-        // Validate input
         if (request.getCycleLength() != null && (request.getCycleLength() < 20 || request.getCycleLength() > 40)) {
             throw new RuntimeException("Độ dài chu kỳ phải từ 20-40 ngày");
         }
@@ -874,7 +808,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             throw new RuntimeException("Số ngày kinh phải từ 3-10 ngày");
         }
 
-        // Get current cycle
         List<MenstrualCycle> cycles = menstrualCycleRepository.findByUser_IdOrderByStartDateDesc(user.getId());
         if (cycles == null || cycles.isEmpty()) {
             throw new RuntimeException("Bạn chưa có chu kỳ nào trong hệ thống");
@@ -888,7 +821,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             throw new RuntimeException("Không tìm thấy chu kỳ hiện tại");
         }
 
-        // Update cycle settings
         if (request.getCycleLength() != null) {
             currentCycle.setCycleLength(request.getCycleLength());
         }
@@ -896,7 +828,6 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
             currentCycle.setPeriodDuration(request.getPeriodDuration());
         }
 
-        // Save updated cycle
         MenstrualCycle updatedCycle = menstrualCycleRepository.save(currentCycle);
         
         return modelMapper.map(updatedCycle, MenstrualCycleResponseDTO.class);

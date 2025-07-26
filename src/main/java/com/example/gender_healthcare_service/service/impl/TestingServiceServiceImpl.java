@@ -7,6 +7,7 @@ import com.example.gender_healthcare_service.entity.TestingService;
 import com.example.gender_healthcare_service.exception.ServiceNotFoundException;
 import com.example.gender_healthcare_service.repository.TestingServiceRepository;
 import com.example.gender_healthcare_service.service.TestingServiceService;
+import com.example.gender_healthcare_service.service.CloudinaryService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class TestingServiceServiceImpl implements TestingServiceService {
@@ -24,6 +27,9 @@ public class TestingServiceServiceImpl implements TestingServiceService {
 
     @Autowired
     private ModelMapper modelMapper;
+    
+    @Autowired
+    private CloudinaryService cloudinaryService;
 
 
 
@@ -102,5 +108,24 @@ public class TestingServiceServiceImpl implements TestingServiceService {
         responseDTO.setOperationTime(LocalDateTime.now());
         
         return responseDTO;
+    }
+    
+    @Override
+    public String uploadServiceImage(MultipartFile file, Integer serviceId) {
+        try {
+            // Upload to Cloudinary
+            Map<String, Object> uploadResult = cloudinaryService.uploadImage(file);
+            String secureUrl = (String) uploadResult.get("secure_url");
+            
+            // Update service entity
+            TestingService service = getServiceById(serviceId);
+            service.setImageUrl(secureUrl);
+            service.setUpdatedAt(LocalDateTime.now());
+            testingServiceRepository.save(service);
+            
+            return secureUrl;
+        } catch (Exception e) {
+            throw new RuntimeException("Upload service image failed: " + e.getMessage());
+        }
     }
 }

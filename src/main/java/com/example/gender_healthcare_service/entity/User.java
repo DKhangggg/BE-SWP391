@@ -1,7 +1,5 @@
 package com.example.gender_healthcare_service.entity;
 
-import com.example.gender_healthcare_service.entity.enumpackage.ConsultationStatus;
-import com.example.gender_healthcare_service.entity.enumpackage.RequestStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -12,7 +10,6 @@ import org.hibernate.annotations.Nationalized;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -85,6 +82,14 @@ public class User implements UserDetails {
     @Nationalized
     @Column(name = "MedicalHistory", length = 1000)
     private String medicalHistory;
+
+    @Size(max = 500)
+    @Column(name = "AvatarUrl", length = 500)
+    private String avatarUrl;
+
+    @Size(max = 200)
+    @Column(name = "AvatarPublicId", length = 200)
+    private String avatarPublicId;
 
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")

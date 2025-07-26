@@ -105,6 +105,8 @@ public class ModelMapperConfig {
                 mapper.map(User::getMedicalHistory, UserResponseDTO::setMedicalHistory);
                 mapper.map(User::getGender, UserResponseDTO::setGender);
                 mapper.map(User::getDescription, UserResponseDTO::setDescription);
+                mapper.map(User::getAvatarUrl, UserResponseDTO::setAvatarUrl);
+                mapper.map(User::getAvatarPublicId, UserResponseDTO::setAvatarPublicId);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -114,8 +116,9 @@ public class ModelMapperConfig {
     private void configureBlogCategoryMapping(ModelMapper modelMapper) {
         TypeMap<BlogCategory, BlogCategoryDTO> typeMap = modelMapper.createTypeMap(BlogCategory.class, BlogCategoryDTO.class);
         typeMap.addMappings(mapper -> {
-            mapper.map(BlogCategory::getCategoryID, BlogCategoryDTO::setCategoryID);
-            mapper.map(BlogCategory::getCategoryName, BlogCategoryDTO::setCategoryName);
+            mapper.map(BlogCategory::getCategoryID, BlogCategoryDTO::setId);
+            mapper.map(BlogCategory::getCategoryName, BlogCategoryDTO::setName);
+            mapper.map(BlogCategory::getSlug, BlogCategoryDTO::setSlug);
             mapper.map(BlogCategory::getDescription, BlogCategoryDTO::setDescription);
         });
 

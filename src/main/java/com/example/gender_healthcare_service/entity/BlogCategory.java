@@ -10,6 +10,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import jakarta.validation.constraints.Size;
 
 @Getter
 @Setter
@@ -27,8 +28,15 @@ public class BlogCategory {
     @Column(name = "CategoryName", nullable = false, length = 100)
     private String categoryName;
 
+    @Column(name = "Slug", unique = true, length = 100)
+    private String slug;
+
     @Column(name = "Description", length = 500)
     private String description;
+
+    @Size(max = 500)
+    @Column(name = "ThumbnailUrl", length = 500)
+    private String thumbnailUrl;
 
     @Column(name = "CreatedAt")
     private LocalDateTime createdAt;

@@ -31,6 +31,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
 
 @Service
 public class ConsultantServiceImpl implements ConsultantService {
@@ -58,6 +66,9 @@ public class ConsultantServiceImpl implements ConsultantService {
 
     @Autowired
     private PaymentRepository paymentRepository;
+
+    @Value("${file.upload.path:uploads/}")
+    private String uploadPath;
 
     @Override
     public ConsultantDTO getConsultantById(Integer consultantId) {
@@ -287,5 +298,43 @@ public class ConsultantServiceImpl implements ConsultantService {
         result.put("amount", total);
         
         return result;
+    }
+
+    @Override
+    public String uploadProfileImage(org.springframework.web.multipart.MultipartFile file, Integer consultantId) {
+        try {
+            // Tạo thư mục nếu chưa có
+            Path uploadDir = Paths.get(uploadPath + "consultants/");
+            if (!Files.exists(uploadDir)) {
+                Files.createDirectories(uploadDir);
+            }
+
+            // Tạo tên file unique
+            String fileName = "consultant_" + consultantId + "_" + UUID.randomUUID() + "." + getExtension(file.getOriginalFilename());
+            Path filePath = uploadDir.resolve(fileName);
+
+            // Lưu file
+            Files.copy(file.getInputStream(), filePath);
+
+            // Tạo URL
+            String imageUrl = "/uploads/consultants/" + fileName;
+
+            // Update consultant entity
+            Consultant consultant = findConsultantByUserId(consultantId);
+            if (consultant != null) {
+                consultant.setProfileImageUrl(imageUrl);
+                consultantRepository.save(consultant);
+            }
+
+            return imageUrl;
+        } catch (Exception e) {
+            throw new RuntimeException("Upload profile image failed: " + e.getMessage());
+        }
+    }
+
+    private String getExtension(String filename) {
+        if (filename == null) return "";
+        int dot = filename.lastIndexOf('.');
+        return (dot == -1) ? "" : filename.substring(dot + 1);
     }
 }

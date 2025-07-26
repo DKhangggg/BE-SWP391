@@ -73,7 +73,10 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             // ========== WebSocket ==========
             "/ws/**",
             "/topic/**",
-            "/app/**"
+            "/app/**",
+            
+            // ========== Cloudinary APIs ==========
+            "/api/cloudinary/**"
     );
 
     /**
@@ -113,32 +116,57 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
             // Xử lý Authorization header cho private APIs
             String authHeader = request.getHeader("Authorization");
-            System.out.println("Authorization header present: " + (authHeader != null));
+            System.out.println("🔍 Authorization header present: " + (authHeader != null));
+            if (authHeader != null) {
+                System.out.println("🔍 Authorization header value: " + authHeader.substring(0, Math.min(50, authHeader.length())) + "...");
+            }
 
             if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
-                System.out.println("Processing JWT token...");
+                System.out.println("🔍 Processing JWT token... Token length: " + token.length());
+                System.out.println("🔍 Token preview: " + token.substring(0, Math.min(20, token.length())) + "...");
 
                 // Validate token
-                if (!tokenService.validateToken(token)) {
-                    System.out.println("Invalid JWT token");
+                try {
+                    if (!tokenService.validateToken(token)) {
+                        System.out.println("❌ Invalid JWT token");
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\": \"Invalid or expired JWT token\"}");
+                        return;
+                    }
+                    System.out.println("✅ JWT token is valid");
+                } catch (Exception e) {
+                    System.out.println("❌ JWT validation error: " + e.getMessage());
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json");
-                    response.getWriter().write("{\"error\": \"Invalid or expired JWT token\"}");
+                    response.getWriter().write("{\"error\": \"JWT validation error: " + e.getMessage() + "\"}");
                     return;
                 }
 
-                // Extract user and set authentication
-                String username = tokenService.getUserNameFromJWT(token);
-                UserDetails userDetails = authenticationService.loadUserByUsername(username);
-                
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                
-                System.out.println("Authentication successful for user: " + username + 
-                                 " with authorities: " + userDetails.getAuthorities());
+                                // Extract user and set authentication
+                try {
+                    String username = tokenService.getUserNameFromJWT(token);
+                    System.out.println("🔍 Extracted username from token: " + username);
+                    
+                    UserDetails userDetails = authenticationService.loadUserByUsername(username);
+                    System.out.println("🔍 Loaded user details for: " + username);
+                    
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+             
+                    System.out.println("✅ Authentication successful for user: " + username + 
+                                     " with authorities: " + userDetails.getAuthorities());
+                } catch (Exception e) {
+                    System.out.println("❌ Error during user authentication: " + e.getMessage());
+                    e.printStackTrace();
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"User authentication error: " + e.getMessage() + "\"}");
+                    return;
+                }
                 
                 filterChain.doFilter(request, response);
             } else {

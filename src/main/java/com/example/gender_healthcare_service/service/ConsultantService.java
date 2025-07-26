@@ -29,4 +29,5 @@ public interface ConsultantService {
     long getUnreadMessagesCount();
     Map<String, Object> getRevenue(String date, String month);
     Map<String, Object> getTotalRevenue();
+    String uploadProfileImage(org.springframework.web.multipart.MultipartFile file, Integer consultantId);
 }

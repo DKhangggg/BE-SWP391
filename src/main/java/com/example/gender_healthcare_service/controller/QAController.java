@@ -88,12 +88,12 @@ public class QAController {
         return ResponseEntity.status(HttpStatus.CREATED).body(newAnswer);
     }
 
-    @PutMapping("/answers/{answerId}")
+    @PutMapping("/answers/{id}")
     @PreAuthorize("hasAuthority('ROLE_CONSULTANT')")
     public ResponseEntity<AnswerResponseDTO> updateAnswer(
-            @PathVariable Integer answerId,
+            @PathVariable Integer id,
             @Valid @RequestBody AnswerRequestDTO answerRequest) {
-        AnswerResponseDTO updatedAnswer = qaService.updateAnswer(answerId, answerRequest);
+        AnswerResponseDTO updatedAnswer = qaService.updateAnswer(id, answerRequest);
         return ResponseEntity.ok(updatedAnswer);
     }
 

@@ -69,6 +69,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/services/testing-services/*").permitAll()
                 .requestMatchers("/api/test/**").permitAll()
                 
+                // Cloudinary APIs - Public for testing
+                .requestMatchers(HttpMethod.POST, "/api/cloudinary/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/cloudinary/**").permitAll()
+                .requestMatchers(HttpMethod.DELETE, "/api/cloudinary/**").permitAll()
+                
+                // Avatar APIs - Require authentication
+                .requestMatchers(HttpMethod.POST, "/api/user/avatar/upload").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/user/avatar/delete").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/user/avatar/check").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
+                
                 // ========== CUSTOMER/PATIENT APIs ==========
                 .requestMatchers(HttpMethod.POST, "/api/booking").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/booking/my-bookings").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")

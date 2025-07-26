@@ -70,7 +70,8 @@ public class JwtServiceImpl implements JwtService {
                     .getBody();
             return true;
         } catch (Exception e) {
-            throw new RuntimeException("Invalid JWT token: " + e.getMessage());
+            System.out.println("JWT validation failed: " + e.getMessage());
+            return false;
         }
     }
 }

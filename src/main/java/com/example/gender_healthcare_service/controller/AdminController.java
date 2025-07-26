@@ -35,6 +35,7 @@ import org.modelmapper.ModelMapper;
 import com.example.gender_healthcare_service.exception.ServiceNotFoundException;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.service.ReportService;
+import org.springframework.web.multipart.MultipartFile;
 
 @RequestMapping("/api/admin")
 @RestController()
@@ -316,6 +317,26 @@ public class AdminController {
         } catch (Exception e) {
             logger.error("Error deleting user: {}", e.getMessage(), e);
             return new ResponseEntity<>("Failed to delete user.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/users/{userId}/avatar")
+    public ResponseEntity<?> adminUploadUserAvatar(@PathVariable Integer userId, @RequestParam("file") MultipartFile file) {
+        try {
+            String url = userService.uploadAvatar(file, userId);
+            return ResponseEntity.ok(url);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Admin upload avatar failed: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/consultants/{consultantId}/profile-image")
+    public ResponseEntity<?> adminUploadConsultantProfileImage(@PathVariable Integer consultantId, @RequestParam("file") MultipartFile file) {
+        try {
+            String url = consultantService.uploadProfileImage(file, consultantId);
+            return ResponseEntity.ok(url);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Admin upload profile image failed: " + e.getMessage());
         }
     }
 

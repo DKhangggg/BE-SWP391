@@ -2,31 +2,42 @@ package com.example.gender_healthcare_service.service;
 
 import com.example.gender_healthcare_service.dto.request.BlogPostRequestDTO;
 import com.example.gender_healthcare_service.dto.response.BlogPostResponseDTO;
-import com.example.gender_healthcare_service.entity.BlogPost;
-import org.springframework.data.domain.Page;
+import com.example.gender_healthcare_service.dto.response.PageResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
-
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface BlogService {
-    Page<BlogPostResponseDTO> getBlogPosts(Pageable pageable);
-
-    BlogPost getBlogPostById(Integer postId) throws Exception;
-
-    boolean createBlogPost(BlogPostRequestDTO blogPostRequestDTO, Authentication authentication) throws Exception;
-
-    BlogPost updateBlogPost(Integer postId, BlogPostRequestDTO blogPostRequestDTO, Authentication authentication) throws Exception;
-
-    boolean deleteBlogPost(Integer postId) throws Exception;
-
-    Page<BlogPost> getBlogPostsByCategory(Integer categoryId, Pageable pageable) throws Exception;
-
-    Page<BlogPost> searchBlogPosts(String keyword, Pageable pageable);
-
-    Page<BlogPost> getFeaturedBlogPosts(Pageable pageable);
-
-    Page<BlogPost> getBlogPostsByAuthor(Integer userId, Pageable pageable) throws Exception;
-
-
+    
+    // CRUD Operations
+    PageResponse<BlogPostResponseDTO> getAllBlogPosts(int pageNumber, int pageSize);
+    
+    BlogPostResponseDTO getBlogPostById(Integer postId);
+    
+    BlogPostResponseDTO createBlogPost(BlogPostRequestDTO request, MultipartFile coverImage, Authentication authentication);
+    
+    BlogPostResponseDTO updateBlogPost(Integer postId, BlogPostRequestDTO request, MultipartFile coverImage, Authentication authentication);
+    
+    boolean deleteBlogPost(Integer postId, Authentication authentication);
+    
+    // Search and Filter
+    PageResponse<BlogPostResponseDTO> searchBlogPosts(String keyword, int pageNumber, int pageSize);
+    
+    PageResponse<BlogPostResponseDTO> getBlogPostsByCategory(Integer categoryId, int pageNumber, int pageSize);
+    
+    PageResponse<BlogPostResponseDTO> getBlogPostsByAuthor(Integer authorId, int pageNumber, int pageSize);
+    
+    PageResponse<BlogPostResponseDTO> getPublishedBlogPosts(int pageNumber, int pageSize);
+    
+    // Image Management
+    String uploadCoverImage(MultipartFile file, Integer postId);
+    
+    boolean deleteCoverImage(Integer postId);
+    
+    // Analytics
+    void incrementViews(Integer postId);
+    
+    void toggleLike(Integer postId, Integer userId);
+    
+    boolean isLikedByUser(Integer postId, Integer userId);
 }

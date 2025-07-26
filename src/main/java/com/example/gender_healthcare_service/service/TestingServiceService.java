@@ -6,6 +6,7 @@ import com.example.gender_healthcare_service.dto.response.TestingServiceResponse
 import com.example.gender_healthcare_service.entity.TestingService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface TestingServiceService {
@@ -15,5 +16,6 @@ public interface TestingServiceService {
     TestingServiceResponseDTO deleteService(Integer id, boolean isDeleted);
     Page<TestingService> getAllServices(Pageable pageable);
     List<TestingServiceResponseDTO> getAllService();
+    String uploadServiceImage(MultipartFile file, Integer serviceId);
 }
 

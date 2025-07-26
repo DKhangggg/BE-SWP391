@@ -1,341 +1,253 @@
 package com.example.gender_healthcare_service.controller;
 
-import com.example.gender_healthcare_service.dto.request.BlogCategoryRequestDTO;
 import com.example.gender_healthcare_service.dto.request.BlogPostRequestDTO;
-import com.example.gender_healthcare_service.dto.response.BlogCategoryDTO;
-import com.example.gender_healthcare_service.dto.response.BlogCategoryWithPostsDTO;
+import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.dto.response.BlogPostResponseDTO;
 import com.example.gender_healthcare_service.dto.response.PageResponse;
-import com.example.gender_healthcare_service.entity.BlogCategory;
-import com.example.gender_healthcare_service.entity.BlogPost;
-import com.example.gender_healthcare_service.service.BlogCategoryService;
 import com.example.gender_healthcare_service.service.BlogService;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/blog")
+@RequiredArgsConstructor
 public class BlogController {
-    @Autowired
-    private BlogService blogService;
 
-    @Autowired
-    private BlogCategoryService blogCategoryService;
+    private final BlogService blogService;
 
-    @Autowired
-    private ModelMapper modelMapper;
+    // ==================== CRUD OPERATIONS ====================
 
-    // Blog Post APIs
     @GetMapping("/posts")
-    public ResponseEntity<PageResponse<BlogPostResponseDTO>> getBlogPosts(
-        @RequestParam(defaultValue = "1") int pageNumber,
-        @RequestParam(defaultValue = "10") int pageSize
-    ) {
+    public ResponseEntity<ApiResponse<PageResponse<BlogPostResponseDTO>>> getAllBlogPosts(
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize) {
         try {
-            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            Page<BlogPostResponseDTO> blogPosts = blogService.getBlogPosts(pageable);
-            if(blogPosts.getTotalElements() == 0) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            PageResponse<BlogPostResponseDTO> response = blogService.getAllBlogPosts(pageNumber, pageSize);
+            if (response.getContent().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error("Chưa có bài viết nào trong hệ thống"));
             }
-            PageResponse<BlogPostResponseDTO> response = new PageResponse<>();
-            response.setContent(blogPosts.getContent());
-            response.setPageNumber(blogPosts.getNumber() + 1);
-            response.setPageSize(blogPosts.getSize());
-            response.setTotalElements(blogPosts.getTotalElements());
-            response.setTotalPages(blogPosts.getTotalPages());
-            response.setHasNext(blogPosts.hasNext());
-            response.setHasPrevious(blogPosts.hasPrevious());
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài viết thành công", response));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách bài viết: " + e.getMessage()));
         }
     }
 
     @GetMapping("/posts/{postId}")
-    public ResponseEntity<?> getBlogPostById(@PathVariable Integer postId) {
+    public ResponseEntity<ApiResponse<BlogPostResponseDTO>> getBlogPostById(@PathVariable Integer postId) {
         try {
-            BlogPost blogPost = blogService.getBlogPostById(postId);
-            return ResponseEntity.ok(blogPost);
+            BlogPostResponseDTO blogPost = blogService.getBlogPostById(postId);
+            return ResponseEntity.ok(ApiResponse.success("Lấy bài viết thành công", blogPost));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Không tìm thấy bài viết với ID: " + postId));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy bài viết: " + e.getMessage()));
         }
     }
 
     @PostMapping("/posts")
     @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
-    public ResponseEntity<?> createBlogPost(@RequestBody BlogPostRequestDTO blogPostRequestDTO, Authentication authentication) {
+    public ResponseEntity<ApiResponse<BlogPostResponseDTO>> createBlogPost(
+            @RequestPart("blogPost") BlogPostRequestDTO blogPostRequest,
+            @RequestPart(value = "coverImage", required = false) MultipartFile coverImage,
+            Authentication authentication) {
         try {
-            boolean done = blogService.createBlogPost(blogPostRequestDTO, authentication);
-            return ResponseEntity.status(HttpStatus.CREATED).body(done);
+            BlogPostResponseDTO createdPost = blogService.createBlogPost(blogPostRequest, coverImage, authentication);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Tạo bài viết thành công", createdPost));
         } catch (org.springframework.security.access.AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
-        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi tạo bài viết";
-            if (msg.contains("Category not found")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(msg);
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi không xác định khi tạo bài viết"));
         }
     }
 
     @PutMapping("/posts/{postId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
-    public ResponseEntity<?> updateBlogPost(@PathVariable Integer postId, @RequestBody BlogPostRequestDTO blogPostRequestDTO, Authentication authentication) {
+    public ResponseEntity<ApiResponse<BlogPostResponseDTO>> updateBlogPost(
+            @PathVariable Integer postId,
+            @RequestPart("blogPost") BlogPostRequestDTO blogPostRequest,
+            @RequestPart(value = "coverImage", required = false) MultipartFile coverImage,
+            Authentication authentication) {
         try {
-            BlogPost updatedBlogPost = blogService.updateBlogPost(postId, blogPostRequestDTO, authentication);
-            return ResponseEntity.ok(updatedBlogPost);
+            BlogPostResponseDTO updatedPost = blogService.updateBlogPost(postId, blogPostRequest, coverImage, authentication);
+            return ResponseEntity.ok(ApiResponse.success("Cập nhật bài viết thành công", updatedPost));
         } catch (org.springframework.security.access.AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
-        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi cập nhật bài viết";
-            if (msg.contains("not found")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(msg);
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi không xác định khi cập nhật bài viết"));
         }
     }
 
     @DeleteMapping("/posts/{postId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<?> deleteBlogPost(@PathVariable Integer postId, Authentication authentication) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
+    public ResponseEntity<ApiResponse<String>> deleteBlogPost(@PathVariable Integer postId, Authentication authentication) {
         try {
-            boolean isDeleted = blogService.deleteBlogPost(postId);
+            boolean isDeleted = blogService.deleteBlogPost(postId, authentication);
             if (isDeleted) {
-                return ResponseEntity.ok("Blog post deleted successfully");
+                return ResponseEntity.ok(ApiResponse.success("Bài viết đã được xóa thành công!", null));
             } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to delete blog post");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error("Không thể xóa bài viết!"));
             }
         } catch (org.springframework.security.access.AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
-        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi xóa bài viết";
-            if (msg.contains("not found")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(msg);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi không xác định khi xóa bài viết"));
+        }
+    }
+
+    // ==================== SEARCH AND FILTER ====================
+
+    @GetMapping("/posts/search")
+    public ResponseEntity<ApiResponse<PageResponse<BlogPostResponseDTO>>> searchBlogPosts(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        try {
+            PageResponse<BlogPostResponseDTO> response = blogService.searchBlogPosts(keyword, pageNumber, pageSize);
+            if (response.getContent().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error("Không tìm thấy bài viết nào với từ khóa: " + keyword));
             }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
+            return ResponseEntity.ok(ApiResponse.success("Tìm kiếm bài viết thành công", response));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi tìm kiếm bài viết: " + e.getMessage()));
         }
     }
 
     @GetMapping("/posts/category/{categoryId}")
-    public ResponseEntity<PageResponse<BlogPostResponseDTO>> getBlogPostsByCategory(
-        @PathVariable Integer categoryId,
-        @RequestParam(defaultValue = "1") int pageNumber,
-        @RequestParam(defaultValue = "10") int pageSize
-    ) {
+    public ResponseEntity<ApiResponse<PageResponse<BlogPostResponseDTO>>> getBlogPostsByCategory(
+            @PathVariable Integer categoryId,
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize) {
         try {
-            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            Page<BlogPost> blogPosts = blogService.getBlogPostsByCategory(categoryId, pageable);
-            if(blogPosts.getTotalElements() == 0) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+            PageResponse<BlogPostResponseDTO> response = blogService.getBlogPostsByCategory(categoryId, pageNumber, pageSize);
+            if (response.getContent().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error("Không tìm thấy bài viết nào trong danh mục này"));
             }
-            PageResponse<BlogPostResponseDTO> response = new PageResponse<>();
-            response.setContent(blogPosts.getContent().stream()
-                .map(post -> org.modelmapper.ModelMapper.class.cast(blogService).map(post, BlogPostResponseDTO.class))
-                .collect(java.util.stream.Collectors.toList()));
-            response.setPageNumber(blogPosts.getNumber() + 1);
-            response.setPageSize(blogPosts.getSize());
-            response.setTotalElements(blogPosts.getTotalElements());
-            response.setTotalPages(blogPosts.getTotalPages());
-            response.setHasNext(blogPosts.hasNext());
-            response.setHasPrevious(blogPosts.hasPrevious());
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài viết theo danh mục thành công", response));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Không tìm thấy danh mục với ID: " + categoryId));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy bài viết theo danh mục: " + e.getMessage()));
         }
     }
 
-    @GetMapping("/posts/search")
-    public ResponseEntity<PageResponse<BlogPostResponseDTO>> searchBlogPosts(
-        @RequestParam String keyword,
-        @RequestParam(defaultValue = "1") int pageNumber,
-        @RequestParam(defaultValue = "10") int pageSize
-    ) {
+    @GetMapping("/posts/author/{authorId}")
+    public ResponseEntity<PageResponse<BlogPostResponseDTO>> getBlogPostsByAuthor(
+            @PathVariable Integer authorId,
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize) {
         try {
-            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            Page<BlogPost> blogPosts = blogService.searchBlogPosts(keyword, pageable);
-            if(blogPosts.getTotalElements() == 0) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-            }
-            PageResponse<BlogPostResponseDTO> response = new PageResponse<>();
-            response.setContent(blogPosts.getContent().stream()
-                .map(post -> org.modelmapper.ModelMapper.class.cast(blogService).map(post, BlogPostResponseDTO.class))
-                .collect(java.util.stream.Collectors.toList()));
-            response.setPageNumber(blogPosts.getNumber() + 1);
-            response.setPageSize(blogPosts.getSize());
-            response.setTotalElements(blogPosts.getTotalElements());
-            response.setTotalPages(blogPosts.getTotalPages());
-            response.setHasNext(blogPosts.hasNext());
-            response.setHasPrevious(blogPosts.hasPrevious());
+            PageResponse<BlogPostResponseDTO> response = blogService.getBlogPostsByAuthor(authorId, pageNumber, pageSize);
             return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @GetMapping("/posts/featured")
-    public ResponseEntity<PageResponse<BlogPostResponseDTO>> getFeaturedBlogPosts(
-        @RequestParam(defaultValue = "1") int pageNumber,
-        @RequestParam(defaultValue = "10") int pageSize
-    ) {
-        try {
-            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            Page<BlogPost> featuredPosts = blogService.getFeaturedBlogPosts(pageable);
-            if(featuredPosts.getTotalElements() == 0) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-            }
-            PageResponse<BlogPostResponseDTO> response = new PageResponse<>();
-            response.setContent(featuredPosts.getContent().stream()
-                .map(post -> org.modelmapper.ModelMapper.class.cast(blogService).map(post, BlogPostResponseDTO.class))
-                .collect(java.util.stream.Collectors.toList()));
-            response.setPageNumber(featuredPosts.getNumber() + 1);
-            response.setPageSize(featuredPosts.getSize());
-            response.setTotalElements(featuredPosts.getTotalElements());
-            response.setTotalPages(featuredPosts.getTotalPages());
-            response.setHasNext(featuredPosts.hasNext());
-            response.setHasPrevious(featuredPosts.hasPrevious());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    // Blog Category APIs
-
-    @GetMapping("/categories")
-    public ResponseEntity<List<BlogCategoryDTO>> getBlogCategories() {
-        try {
-            List<BlogCategory> categories = blogCategoryService.getAllCategories();
-            if (categories.isEmpty()) {
-                return ResponseEntity.noContent().build();
-            }
-
-            List<BlogCategoryDTO> categoryDTOs = categories.stream()
-                .map(category -> modelMapper.map(category, BlogCategoryDTO.class))
-                .collect(java.util.stream.Collectors.toList());
-
-            return ResponseEntity.ok(categoryDTOs);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-    @GetMapping("/categories/{categoryId}")
-    public ResponseEntity<BlogCategoryDTO> getBlogCategoryById(@PathVariable Integer categoryId) {
+    @GetMapping("/posts/published")
+    public ResponseEntity<ApiResponse<PageResponse<BlogPostResponseDTO>>> getPublishedBlogPosts(
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize) {
         try {
-            BlogCategory category = blogCategoryService.getCategoryById(categoryId);
-            BlogCategoryDTO categoryDTO = modelMapper.map(category, BlogCategoryDTO.class);
-            return ResponseEntity.ok(categoryDTO);
+            PageResponse<BlogPostResponseDTO> response = blogService.getPublishedBlogPosts(pageNumber, pageSize);
+            if (response.getContent().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error("Chưa có bài viết nào được xuất bản"));
+            }
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài viết đã xuất bản thành công", response));
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách bài viết đã xuất bản: " + e.getMessage()));
         }
     }
 
-    @PostMapping("/categories")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<?> createBlogCategory(@RequestBody BlogCategoryRequestDTO blogCategoryRequestDTO, Authentication authentication) {
+    // ==================== IMAGE MANAGEMENT ====================
+
+    @PostMapping("/posts/{postId}/cover-image")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
+    public ResponseEntity<?> uploadCoverImage(
+            @PathVariable Integer postId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) {
         try {
-            BlogCategory createdCategory = blogCategoryService.createCategory(blogCategoryRequestDTO);
-            BlogCategoryDTO categoryDTO = modelMapper.map(createdCategory, BlogCategoryDTO.class);
-            return ResponseEntity.status(HttpStatus.CREATED).body(categoryDTO);
-        } catch (org.springframework.security.access.AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
-        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
+            String imageUrl = blogService.uploadCoverImage(file, postId);
+            return ResponseEntity.ok(imageUrl);
         } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi tạo danh mục";
-            if (msg.contains("already exists")) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tên danh mục đã tồn tại!");
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi upload hình ảnh");
         }
     }
 
-    @PutMapping("/categories/{categoryId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<?> updateBlogCategory(@PathVariable Integer categoryId,
-                                             @RequestBody BlogCategoryRequestDTO blogCategoryRequestDTO, Authentication authentication) {
+    @DeleteMapping("/posts/{postId}/cover-image")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
+    public ResponseEntity<?> deleteCoverImage(@PathVariable Integer postId, Authentication authentication) {
         try {
-            BlogCategory updatedCategory = blogCategoryService.updateCategory(categoryId, blogCategoryRequestDTO);
-            BlogCategoryDTO categoryDTO = modelMapper.map(updatedCategory, BlogCategoryDTO.class);
-            return ResponseEntity.ok(categoryDTO);
-        } catch (org.springframework.security.access.AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
-        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
-        } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi cập nhật danh mục";
-            if (msg.contains("not found")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy danh mục!");
-            }
-            if (msg.contains("already exists")) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Tên danh mục đã tồn tại!");
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
-        }
-    }
-
-    @DeleteMapping("/categories/{categoryId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public ResponseEntity<?> deleteBlogCategory(@PathVariable Integer categoryId, Authentication authentication) {
-        try {
-            boolean isDeleted = blogCategoryService.deleteCategory(categoryId);
+            boolean isDeleted = blogService.deleteCoverImage(postId);
             if (isDeleted) {
-                return ResponseEntity.ok("Danh mục đã được xóa thành công!");
+                return ResponseEntity.ok("Hình ảnh đã được xóa thành công!");
             } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Không thể xóa danh mục!");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Không thể xóa hình ảnh!");
             }
-        } catch (org.springframework.security.access.AccessDeniedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này!");
-        } catch (org.springframework.security.authentication.AuthenticationCredentialsNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Bạn chưa đăng nhập hoặc token không hợp lệ!");
         } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi xóa danh mục";
-            if (msg.contains("not found")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy danh mục!");
-            }
-            if (msg.contains("has posts")) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Không thể xóa danh mục đang có bài viết!");
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(msg);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi xóa hình ảnh");
         }
     }
 
-    @GetMapping("/categories/{categoryId}/with-posts")
-    public ResponseEntity<BlogCategoryWithPostsDTO> getCategoryWithPosts(@PathVariable Integer categoryId) {
+    // ==================== ANALYTICS ====================
+
+    @PostMapping("/posts/{postId}/like")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
+    public ResponseEntity<?> toggleLike(@PathVariable Integer postId, Authentication authentication) {
         try {
-            BlogCategoryWithPostsDTO category = blogCategoryService.getCategoryWithPosts(categoryId);
-            return ResponseEntity.ok(category);
+            // TODO: Get user ID from authentication
+            Integer userId = 1; // Placeholder
+            blogService.toggleLike(postId, userId);
+            return ResponseEntity.ok("Đã cập nhật trạng thái like!");
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi cập nhật like");
         }
     }
 
-    @GetMapping("/categories/with-posts")
-    public ResponseEntity<List<BlogCategoryWithPostsDTO>> getAllCategoriesWithPosts() {
+    @GetMapping("/posts/{postId}/is-liked")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
+    public ResponseEntity<Boolean> isLikedByUser(@PathVariable Integer postId, Authentication authentication) {
         try {
-            List<BlogCategoryWithPostsDTO> categories = blogCategoryService.getAllCategoriesWithPosts();
-            if (categories.isEmpty()) {
-                return ResponseEntity.noContent().build();
-            }
-            return ResponseEntity.ok(categories);
+            // TODO: Get user ID from authentication
+            Integer userId = 1; // Placeholder
+            boolean isLiked = blogService.isLikedByUser(postId, userId);
+            return ResponseEntity.ok(isLiked);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(false);
         }
     }
 }

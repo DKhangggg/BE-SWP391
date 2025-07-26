@@ -6,14 +6,15 @@ import lombok.NoArgsConstructor;
 
 import java.util.Set;
 
-
 /**
  * Data Transfer Object for Blog Category requests
  */
 @Data
-
+@NoArgsConstructor
+@AllArgsConstructor
 public class BlogCategoryRequestDTO {
     private String name;
+    private String slug;
     private String description;
     private Set<Integer> categoryIds;
 }

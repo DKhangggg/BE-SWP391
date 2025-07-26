@@ -15,7 +15,6 @@ import java.time.LocalTime;
 public class TimeSlotResponseDTO {
     private Integer timeSlotId;
     private LocalDate slotDate;
-    private String SlotType;
     private LocalTime startTime;
     private LocalTime endTime;
     private Integer duration;

@@ -38,6 +38,10 @@ public class Consultant {
     @Column(name = "Specialization", length = 100)
     private String specialization;
 
+    @Size(max = 500)
+    @Column(name = "ProfileImageUrl", length = 500)
+    private String profileImageUrl;
+
     @ColumnDefault("0")
     @Column(name = "IsDeleted")
     private Boolean isDeleted;

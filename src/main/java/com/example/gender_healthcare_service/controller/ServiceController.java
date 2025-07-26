@@ -16,10 +16,12 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/services")
@@ -70,6 +72,19 @@ public class ServiceController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
         return new ResponseEntity<>(booking, HttpStatus.OK);
+    }
+
+    @PostMapping("/testing-services/{serviceId}/image")
+    public ResponseEntity<?> uploadServiceImage(
+            @PathVariable Integer serviceId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            String imageUrl = testingService.uploadServiceImage(file, serviceId);
+            return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Upload service image failed: " + e.getMessage());
+        }
     }
 
 }

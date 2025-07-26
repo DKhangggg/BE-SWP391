@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 
 import java.util.List;
 import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("api/consultant")
@@ -189,6 +190,16 @@ public class ConsultantController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(400).body("Failed to get total revenue: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/profile-image")
+    public ResponseEntity<?> uploadProfileImage(@RequestParam("file") MultipartFile file, @RequestParam Integer consultantId) {
+        try {
+            String url = consultantService.uploadProfileImage(file, consultantId);
+            return ResponseEntity.ok(url);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("Upload profile image failed: " + e.getMessage());
         }
     }
 }

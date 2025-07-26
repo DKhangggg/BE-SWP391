@@ -21,4 +21,25 @@ public interface UserService {
     User findById(Integer userId);
 
     User findUserByUsername(String username);
+    String uploadAvatar(org.springframework.web.multipart.MultipartFile file, Integer userId);
+    
+    /**
+     * Validate avatar URL và trả về fallback nếu cần
+     */
+    String validateAvatarUrl(String avatarUrl, String avatarPublicId);
+    
+    /**
+     * Xóa avatar của user
+     */
+    boolean deleteAvatar(Integer userId);
+
+    /**
+     * Cập nhật avatar cho user hiện tại
+     */
+    UserResponseDTO updateUserAvatar(String publicId, String avatarUrl);
+
+    /**
+     * Xóa avatar của user hiện tại
+     */
+    UserResponseDTO deleteUserAvatar();
 }

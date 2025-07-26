@@ -17,5 +17,6 @@ public class UserResponseDTO {
     private String gender;
     private String description;
     private String status; // e.g., "ACTIVE", "INACTIVE", "SUSPENDED"
-
+    private String avatarUrl; // URL ảnh đại diện
+    private String avatarPublicId; // Public ID của ảnh trên Cloudinary
 }

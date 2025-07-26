@@ -16,7 +16,7 @@ public interface QAService {
     Page<QuestionResponseDTO> getConsultantQuestions(String category, Pageable pageable);
     QuestionResponseDTO getQuestionById(Integer questionId);
     AnswerResponseDTO answerQuestion(Integer questionId, AnswerRequestDTO answerRequest);
-    AnswerResponseDTO updateAnswer(Integer answerId, AnswerRequestDTO answerRequest);
+    AnswerResponseDTO updateAnswer(Integer id, AnswerRequestDTO answerRequest);
     List<QuestionResponseDTO> getFAQs(String category);
     QuestionResponseDTO markQuestionAsPublic(Integer questionId, boolean isPublic);
     void deleteQuestion(Integer questionId);

@@ -42,7 +42,6 @@ public class Consultation {
     private Location location;
 
     @Enumerated(EnumType.STRING)
-    @Size(max = 255)
     @NotNull
     @Nationalized
     @Column(name = "Status", nullable = false)
