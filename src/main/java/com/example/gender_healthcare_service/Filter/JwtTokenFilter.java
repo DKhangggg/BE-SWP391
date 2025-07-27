@@ -1,7 +1,7 @@
 package com.example.gender_healthcare_service.Filter;
 
 import com.example.gender_healthcare_service.service.AuthenticationService;
-import com.example.gender_healthcare_service.service.impl.JwtServiceImpl;
+import com.example.gender_healthcare_service.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,7 +23,7 @@ import java.util.List;
 public class JwtTokenFilter extends OncePerRequestFilter {
 
     @Autowired
-    private JwtServiceImpl tokenService;
+    private JwtService tokenService;
     @Autowired
     private AuthenticationService authenticationService;
     
@@ -64,7 +64,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             "/blog",
             
             // ========== Public API Content ==========
-            "/api/homepage/**",
+            "/api/homepage/featured-doctors",
+            "/api/homepage/latest-blog-posts", 
+            "/api/homepage/consultants",
+            "/api/homepage/details",
+            "/api/homepage/blog/**",
             "/api/qa/faq",              // FAQ công khai
             "/api/services/testing-services",     // Xem danh sách dịch vụ
             "/api/services/testing-services/*",   // Xem chi tiết dịch vụ
@@ -107,81 +111,59 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             
             // Kiểm tra nếu là public API
             if (isPublicAPI(requestURI, method)) {
-                System.out.println("✅ Public API detected: " + requestURI + " (" + method + ") - Bypassing JWT filter");
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            System.out.println("🔒 Protected API: " + requestURI + " - Checking JWT token");
-
             // Xử lý Authorization header cho private APIs
             String authHeader = request.getHeader("Authorization");
-            System.out.println("🔍 Authorization header present: " + (authHeader != null));
-            if (authHeader != null) {
-                System.out.println("🔍 Authorization header value: " + authHeader.substring(0, Math.min(50, authHeader.length())) + "...");
-            }
 
             if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
-                System.out.println("🔍 Processing JWT token... Token length: " + token.length());
-                System.out.println("🔍 Token preview: " + token.substring(0, Math.min(20, token.length())) + "...");
 
                 // Validate token
                 try {
                     if (!tokenService.validateToken(token)) {
-                        System.out.println("❌ Invalid JWT token");
                         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         response.setContentType("application/json");
-                        response.getWriter().write("{\"error\": \"Invalid or expired JWT token\"}");
+                        response.getWriter().write("{\"error\": \"JWT token không hợp lệ hoặc đã hết hạn\"}");
                         return;
                     }
-                    System.out.println("✅ JWT token is valid");
                 } catch (Exception e) {
-                    System.out.println("❌ JWT validation error: " + e.getMessage());
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json");
-                    response.getWriter().write("{\"error\": \"JWT validation error: " + e.getMessage() + "\"}");
+                    response.getWriter().write("{\"error\": \"Lỗi xác thực JWT: " + e.getMessage() + "\"}");
                     return;
                 }
 
-                                // Extract user and set authentication
+                // Extract user and set authentication
                 try {
                     String username = tokenService.getUserNameFromJWT(token);
-                    System.out.println("🔍 Extracted username from token: " + username);
                     
                     UserDetails userDetails = authenticationService.loadUserByUsername(username);
-                    System.out.println("🔍 Loaded user details for: " + username);
                     
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-             
-                    System.out.println("✅ Authentication successful for user: " + username + 
-                                     " with authorities: " + userDetails.getAuthorities());
                 } catch (Exception e) {
-                    System.out.println("❌ Error during user authentication: " + e.getMessage());
-                    e.printStackTrace();
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json");
-                    response.getWriter().write("{\"error\": \"User authentication error: " + e.getMessage() + "\"}");
+                    response.getWriter().write("{\"error\": \"Lỗi xác thực người dùng: " + e.getMessage() + "\"}");
                     return;
                 }
                 
                 filterChain.doFilter(request, response);
             } else {
                 // No valid auth header for private API
-                System.out.println("Missing or invalid Authorization header for protected endpoint");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
-                response.getWriter().write("{\"error\": \"Authorization header is required\"}");
+                response.getWriter().write("{\"error\": \"Yêu cầu header Authorization\"}");
             }
         } catch (Exception e) {
-            System.err.println("JWT Filter error: " + e.getMessage());
-            e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Authentication failed: " + e.getMessage() + "\"}");
+            response.getWriter().write("{\"error\": \"Xác thực thất bại: " + e.getMessage() + "\"}");
         }
     }
 }

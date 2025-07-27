@@ -79,7 +79,7 @@ public class TimeSlotServiceImpl implements TimeSlotService {
             timeSlot.setConsultant(consultant);
             timeSlot.setCapacity(capacity != null ? capacity : 1);
             timeSlot.setBookedCount(0);
-            timeSlot.setIsAvailable(true);
+                            timeSlot.setIsAvailable(true);
             timeSlot.setIsDeleted(false);
             timeSlot.setDescription(slotType + " slot");
             
@@ -123,7 +123,7 @@ public class TimeSlotServiceImpl implements TimeSlotService {
         TimeSlot timeSlot = timeSlotRepository.findById(timeSlotId)
                 .orElseThrow(() -> new ServiceNotFoundException("Time slot not found with ID: " + timeSlotId));
         
-        timeSlot.setIsAvailable(false);
+                    timeSlot.setIsAvailable(false);
         timeSlotRepository.save(timeSlot);
     }
 
@@ -158,12 +158,12 @@ public class TimeSlotServiceImpl implements TimeSlotService {
         dto.setEndTime(timeSlot.getEndTime());
         dto.setDuration(timeSlot.getDuration());
         dto.setDescription(timeSlot.getDescription());
-        dto.setIsActive(timeSlot.getIsAvailable());
+                    dto.setIsAvailable(timeSlot.getIsAvailable());
         dto.setCapacity(timeSlot.getCapacity());
         dto.setBookedCount(timeSlot.getBookedCount());
         dto.setAvailableSlots(timeSlot.getCapacity() - timeSlot.getBookedCount());
         dto.setSlotType(timeSlot.getSlotType());
-        dto.setIsAvailable(timeSlot.isAvailable());
+                    dto.setIsAvailable(timeSlot.isSlotAvailable());
         dto.setDisplayInfo(timeSlot.getDisplayInfo());
         
         if (timeSlot.getConsultant() != null) {

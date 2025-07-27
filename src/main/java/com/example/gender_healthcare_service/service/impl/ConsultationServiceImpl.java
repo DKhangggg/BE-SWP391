@@ -1,6 +1,7 @@
 package com.example.gender_healthcare_service.service.impl;
 
 import com.example.gender_healthcare_service.dto.request.ConsultationBookingRequestDTO;
+import com.example.gender_healthcare_service.dto.request.ConsultantCreateConsultationRequestDTO;
 import com.example.gender_healthcare_service.dto.request.ConsultationStatusUpdateDTO;
 import com.example.gender_healthcare_service.dto.request.ConsultationConfirmationDTO;
 import com.example.gender_healthcare_service.dto.response.*;
@@ -267,7 +268,7 @@ public class ConsultationServiceImpl implements ConsultationService {
                 });
         
         // Kiểm tra time slot có available không
-        if (!timeSlot.isAvailable()) {
+        if (!timeSlot.isSlotAvailable()) {
             throw new RuntimeException("Time slot is not available");
         }
         
@@ -317,6 +318,78 @@ public class ConsultationServiceImpl implements ConsultationService {
         
         log.info("Consultation booked: ID={}, Customer={}, Consultant={}, TimeSlot={}", 
                 savedConsultation.getId(), customer.getFullName(), consultant.getFullName(), timeSlot.getTimeSlotID());
+        
+        return mapToConsultationBookingResponseDTO(savedConsultation);
+    }
+
+    @Override
+    public ConsultationBookingResponseDTO createConsultationForUser(ConsultantCreateConsultationRequestDTO consultationRequest) {
+        // Verify that current user is a consultant
+        String currentUsername = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentConsultant = userRepository.findUserByUsername(currentUsername);
+        if(currentConsultant == null) {
+            throw new RuntimeException("Consultant not found: " + currentUsername);
+        }
+        
+        // Verify consultant role
+        if (!currentConsultant.getRoleName().equals("ROLE_CONSULTANT")) {
+            throw new IllegalStateException("Only consultants can create consultations for users");
+        }
+
+        // Find the target user
+        User targetUser = userRepository.findById(consultationRequest.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + consultationRequest.getUserId()));
+
+        // Verify user has CUSTOMER role
+        if (!targetUser.getRoleName().equals("ROLE_CUSTOMER")) {
+            throw new IllegalStateException("Can only create consultations for customers");
+        }
+
+        // Tìm time slot phù hợp với start time và end time
+        List<TimeSlot> availableTimeSlots = timeSlotRepository.findAvailableTimeSlotsByDate(consultationRequest.getStartTime().toLocalDate());
+        log.info("Found {} available time slots for date {}", availableTimeSlots.size(), consultationRequest.getStartTime().toLocalDate());
+        
+        TimeSlot timeSlot = availableTimeSlots.stream()
+                .filter(ts -> ts.getStartTime().equals(consultationRequest.getStartTime().toLocalTime()) && 
+                              ts.getEndTime().equals(consultationRequest.getEndTime().toLocalTime()) &&
+                              "CONSULTATION".equals(ts.getSlotType()))
+                .findFirst()
+                .orElseThrow(() -> {
+                    log.error("No available time slot found for date: {}, startTime: {}, endTime: {}, slotType: CONSULTATION", 
+                             consultationRequest.getStartTime().toLocalDate(), 
+                             consultationRequest.getStartTime().toLocalTime(), 
+                             consultationRequest.getEndTime().toLocalTime());
+                    return new RuntimeException("No available time slot found for the requested time");
+                });
+        
+        // Kiểm tra time slot có available không
+        if (!timeSlot.isSlotAvailable()) {
+            throw new RuntimeException("Time slot is not available");
+        }
+        
+        // Kiểm tra xem customer đã có consultation trong time slot này chưa
+        boolean customerHasConsultation = consultationRepository.findConsultationsByCustomer(targetUser).stream()
+                .anyMatch(c -> c.getTimeSlot().getTimeSlotID().equals(timeSlot.getTimeSlotID()) && 
+                              c.getTimeSlot().getSlotDate().equals(timeSlot.getSlotDate()) &&
+                              !c.getStatus().equals(ConsultationStatus.CANCELLED));
+        
+        if (customerHasConsultation) {
+            throw new RuntimeException("Customer already has a consultation in this time slot");
+        }
+        
+        // Tạo consultation với status SCHEDULED (đã lên lịch)
+        Consultation consultation = new Consultation();
+        consultation.setCustomer(targetUser);
+        consultation.setConsultant(currentConsultant);
+        consultation.setTimeSlot(timeSlot);
+        consultation.setStatus(ConsultationStatus.SCHEDULED);
+        consultation.setNotes(consultationRequest.getNotes());
+        consultation.setIsDeleted(false);
+        
+        Consultation savedConsultation = consultationRepository.save(consultation);
+        
+        log.info("Consultation created by consultant (SCHEDULED): ID={}, Customer={}, Consultant={}, TimeSlot={}", 
+                savedConsultation.getId(), targetUser.getFullName(), currentConsultant.getFullName(), timeSlot.getTimeSlotID());
         
         return mapToConsultationBookingResponseDTO(savedConsultation);
     }
@@ -567,7 +640,7 @@ public class ConsultationServiceImpl implements ConsultationService {
             slotDTO.setBookedCount(consultation.getTimeSlot().getBookedCount());
             // slotDTO.setAvailableSlots(...); // Nếu có logic tính
             slotDTO.setDisplayInfo(consultation.getTimeSlot().getDisplayInfo());
-            slotDTO.setIsAvailable(consultation.getTimeSlot().isAvailable());
+            slotDTO.setIsAvailable(consultation.getTimeSlot().isSlotAvailable());
             dto.setTimeSlot(slotDTO);
         } else {
             dto.setTimeSlot(null);
@@ -693,7 +766,7 @@ public class ConsultationServiceImpl implements ConsultationService {
         // Tạo reminder cho user về lịch hẹn đã được xác nhận
         createConsultationReminder(savedConsultation);
         
-        log.info("Consultation {} confirmed with meeting link: {}", consultationId, meetingLink);
+        log.info("Consultation {} confirmed from SCHEDULED to CONFIRMED with meeting link: {}", consultationId, meetingLink);
         
         return mapToConsultationBookingResponseDTO(savedConsultation);
     }

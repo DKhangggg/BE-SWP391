@@ -1,6 +1,7 @@
 package com.example.gender_healthcare_service.service;
 
 import com.example.gender_healthcare_service.dto.request.ConsultationBookingRequestDTO;
+import com.example.gender_healthcare_service.dto.request.ConsultantCreateConsultationRequestDTO;
 import com.example.gender_healthcare_service.dto.request.ConsultationStatusUpdateDTO;
 import com.example.gender_healthcare_service.dto.request.ConsultationConfirmationDTO;
 import com.example.gender_healthcare_service.dto.request.RescheduleBookingRequestDTO;
@@ -23,6 +24,7 @@ public interface ConsultationService {
     List<ConsultationBookingResponseDTO> getConsultationBookingsForCurrentConsultant();
     ConsultationBookingResponseDTO getConsultationBookingByIdForAdmin(Integer bookingId);
     ConsultationBookingResponseDTO bookConsultation(ConsultationBookingRequestDTO bookingRequest);
+    ConsultationBookingResponseDTO createConsultationForUser(ConsultantCreateConsultationRequestDTO consultationRequest);
     void updateConsultationStatus(Integer id, String status);
      List<ConsultationHistoryDTO> getConsultationHistoryForCurrentConsultant();
     UserResponseDTO getPatientInfoForConsultation(Integer id);

@@ -1,35 +1,29 @@
 package com.example.gender_healthcare_service.service;
 
-import com.example.gender_healthcare_service.dto.request.ChatMessageRequestDTO;
-import com.example.gender_healthcare_service.dto.response.ChatMessageResponseDTO;
-import com.example.gender_healthcare_service.dto.response.ChatConversationResponseDTO;
-import org.springframework.security.core.Authentication;
+import com.example.gender_healthcare_service.dto.request.MessageRequestDTO;
+import com.example.gender_healthcare_service.dto.response.ConversationResponseDTO;
+import com.example.gender_healthcare_service.dto.response.AvailableConsultantResponseDTO;
+import com.example.gender_healthcare_service.dto.response.MessageResponseDTO;
 
 import java.util.List;
 
 public interface ChatService {
     
-    // Gửi tin nhắn
-    ChatMessageResponseDTO sendMessage(Authentication authentication, ChatMessageRequestDTO request);
+    // Conversation management
+    List<ConversationResponseDTO> getConversations();
+    ConversationResponseDTO createConversation(Integer consultantId);
+    ConversationResponseDTO getConversationDetails(Integer conversationId);
+    void deleteConversation(Integer conversationId);
+    void markConversationAsRead(Integer conversationId);
     
-    // Lấy tin nhắn giữa 2 user
-    List<ChatMessageResponseDTO> getMessagesBetweenUsers(Authentication authentication, Integer otherUserId);
+    // Message management
+    List<MessageResponseDTO> getConversationMessages(Integer conversationId);
+    MessageResponseDTO sendMessage(Integer conversationId, MessageRequestDTO messageRequest);
     
-    // Lấy tin nhắn với pagination
-    List<ChatMessageResponseDTO> getMessagesWithPagination(Authentication authentication, Integer otherUserId, int page, int size);
+    // Consultant specific
+    Integer getConsultantUnreadCount();
+    List<ConversationResponseDTO> getAvailableCustomers();
     
-    // Đánh dấu tin nhắn đã đọc
-    void markMessagesAsRead(Authentication authentication, Integer senderId);
-    
-    // Lấy tất cả conversation
-    List<ChatConversationResponseDTO> getConversations(Authentication authentication);
-    
-    // Tạo hoặc lấy conversation
-    ChatConversationResponseDTO getOrCreateConversation(Authentication authentication, Integer consultantId);
-    
-    // Đếm tin nhắn chưa đọc
-    Long getUnreadMessageCount(Authentication authentication);
-    
-    // Lấy tin nhắn chưa đọc
-    List<ChatMessageResponseDTO> getUnreadMessages(Authentication authentication);
+    // Customer specific
+    List<AvailableConsultantResponseDTO> getAvailableConsultants();
 } 

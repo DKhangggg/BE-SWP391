@@ -4,6 +4,7 @@ import com.example.gender_healthcare_service.dto.request.ConsultantUpdateDTO;
 import com.example.gender_healthcare_service.dto.request.CreateNewConsultantRequest;
 import com.example.gender_healthcare_service.dto.request.UnavailabilityRequest;
 import com.example.gender_healthcare_service.dto.response.ConsultantDTO;
+import com.example.gender_healthcare_service.dto.response.UserResponseDTO;
 import com.example.gender_healthcare_service.entity.Consultant;
 import com.example.gender_healthcare_service.entity.ConsultantUnavailability;
 
@@ -15,6 +16,8 @@ public interface ConsultantService {
     ConsultantDTO getConsultantById(Integer id);
     ConsultantDTO getCurrentConsultant();
     List<ConsultantDTO> getAllConsultants();
+    List<ConsultantDTO> getFeaturedConsultants();
+    List<ConsultantDTO> getAvailableConsultants();
 
     void PermanentlyDeleteConsultant(Integer id);
     boolean addUnavailability(UnavailabilityRequest unavailabilityRequest);
@@ -24,6 +27,9 @@ public interface ConsultantService {
     void deleteConsultant(Integer id);
 
     Consultant findConsultantByUserId(Integer userId); // Changed return type to Consultant entity
+
+    // Get customers for consultant
+    List<UserResponseDTO> getCustomers();
 
     // Dashboard APIs
     long getUnreadMessagesCount();

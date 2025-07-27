@@ -7,7 +7,7 @@ import java.util.Date;
 @Data
 public class ConsultantDTO {
 
-    private String Id;
+    private Integer id;
     private String username;
     private String email;
     private String fullName;
@@ -19,5 +19,6 @@ public class ConsultantDTO {
     private String qualifications;
     private Integer experienceYears;
     private String specialization;
+    private String profileImageUrl; // Field này map với ProfileImageUrl trong database
 
 }

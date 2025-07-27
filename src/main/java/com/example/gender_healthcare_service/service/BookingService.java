@@ -2,6 +2,7 @@ package com.example.gender_healthcare_service.service;
 
 import com.example.gender_healthcare_service.dto.request.BookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.BookingFilterRequestDTO;
+import com.example.gender_healthcare_service.dto.request.ConsultantCreateBookingRequestDTO;
 import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
 import com.example.gender_healthcare_service.dto.response.BookingPageResponseDTO;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
@@ -16,12 +17,14 @@ import org.springframework.http.ResponseEntity;
 
 public interface BookingService {
     BookingResponseDTO createBooking(BookingRequestDTO bookingRequestDTO);
+    BookingResponseDTO createBookingForUser(ConsultantCreateBookingRequestDTO bookingRequestDTO);
     List<BookingResponseDTO> getUserBookings();
     BookingResponseDTO getBookingByIdForUser(Integer bookingId);
     BookingResponseDTO getBookingByIdForAdmin(Integer bookingId);
     BookingResponseDTO updateBookingStatus(Integer bookingId, UpdateBookingStatusRequestDTO status);
     BookingResponseDTO updateTestResult(Integer bookingId, UpdateTestResultRequestDTO resultRequest);
     BookingResponseDTO cancelBooking(Integer bookingId);
+    BookingResponseDTO confirmBooking(Integer bookingId);
     ResponseEntity<?> cancelBookingWithResponse(Integer bookingId);
     
     // Pagination methods

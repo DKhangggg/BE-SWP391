@@ -20,8 +20,6 @@ public class BlogController {
 
     private final BlogService blogService;
 
-    // ==================== CRUD OPERATIONS ====================
-
     @GetMapping("/posts")
     public ResponseEntity<ApiResponse<PageResponse<BlogPostResponseDTO>>> getAllBlogPosts(
             @RequestParam(defaultValue = "1") int pageNumber,
@@ -64,7 +62,7 @@ public class BlogController {
                     .body(ApiResponse.success("Tạo bài viết thành công", createdPost));
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này!"));
+                    .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này"));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
@@ -86,7 +84,7 @@ public class BlogController {
             return ResponseEntity.ok(ApiResponse.success("Cập nhật bài viết thành công", updatedPost));
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này!"));
+                    .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này"));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
@@ -102,14 +100,14 @@ public class BlogController {
         try {
             boolean isDeleted = blogService.deleteBlogPost(postId, authentication);
             if (isDeleted) {
-                return ResponseEntity.ok(ApiResponse.success("Bài viết đã được xóa thành công!", null));
+                return ResponseEntity.ok(ApiResponse.success("Bài viết đã được xóa thành công", null));
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(ApiResponse.error("Không thể xóa bài viết!"));
+                        .body(ApiResponse.error("Không thể xóa bài viết"));
             }
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này!"));
+                    .body(ApiResponse.error("Bạn không có quyền thực hiện thao tác này"));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ApiResponse.error(e.getMessage()));
@@ -118,8 +116,6 @@ public class BlogController {
                     .body(ApiResponse.error("Lỗi không xác định khi xóa bài viết"));
         }
     }
-
-    // ==================== SEARCH AND FILTER ====================
 
     @GetMapping("/posts/search")
     public ResponseEntity<ApiResponse<PageResponse<BlogPostResponseDTO>>> searchBlogPosts(
@@ -189,8 +185,6 @@ public class BlogController {
         }
     }
 
-    // ==================== IMAGE MANAGEMENT ====================
-
     @PostMapping("/posts/{postId}/cover-image")
     @PreAuthorize("hasAnyRole('ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
     public ResponseEntity<?> uploadCoverImage(
@@ -202,7 +196,7 @@ public class BlogController {
             return ResponseEntity.ok(imageUrl);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Lỗi khi upload hình ảnh");
+                    .body("Lỗi khi tải lên hình ảnh");
         }
     }
 
@@ -212,9 +206,9 @@ public class BlogController {
         try {
             boolean isDeleted = blogService.deleteCoverImage(postId);
             if (isDeleted) {
-                return ResponseEntity.ok("Hình ảnh đã được xóa thành công!");
+                return ResponseEntity.ok("Hình ảnh đã được xóa thành công");
             } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Không thể xóa hình ảnh!");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Không thể xóa hình ảnh");
             }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -222,16 +216,13 @@ public class BlogController {
         }
     }
 
-    // ==================== ANALYTICS ====================
-
     @PostMapping("/posts/{postId}/like")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
     public ResponseEntity<?> toggleLike(@PathVariable Integer postId, Authentication authentication) {
         try {
-            // TODO: Get user ID from authentication
-            Integer userId = 1; // Placeholder
+            Integer userId = 1;
             blogService.toggleLike(postId, userId);
-            return ResponseEntity.ok("Đã cập nhật trạng thái like!");
+            return ResponseEntity.ok("Đã cập nhật trạng thái like");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Lỗi khi cập nhật like");
@@ -242,8 +233,7 @@ public class BlogController {
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'CONSULTANT', 'STAFF', 'MANAGER')")
     public ResponseEntity<Boolean> isLikedByUser(@PathVariable Integer postId, Authentication authentication) {
         try {
-            // TODO: Get user ID from authentication
-            Integer userId = 1; // Placeholder
+            Integer userId = 1;
             boolean isLiked = blogService.isLikedByUser(postId, userId);
             return ResponseEntity.ok(isLiked);
         } catch (Exception e) {

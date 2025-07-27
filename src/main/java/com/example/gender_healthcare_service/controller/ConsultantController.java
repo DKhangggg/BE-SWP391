@@ -27,6 +27,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.gender_healthcare_service.repository.UserRepository;
+import org.modelmapper.ModelMapper;
 
 @RestController
 @RequestMapping("api/consultant")
@@ -38,6 +40,10 @@ public class ConsultantController {
     private ConsultationService consultationService;
     @Autowired
     private ReminderService reminderService;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private ModelMapper modelMapper;
 
     @GetMapping("/getProfile")
     public ResponseEntity<?> getProfile(){
@@ -105,6 +111,53 @@ public class ConsultantController {
             return ResponseEntity.ok().body(patient);
         } catch (Exception e) {
             return ResponseEntity.status(400).body("Failed to get patient info: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/customers")
+    public ResponseEntity<?> getCustomers() {
+        try {
+            List<UserResponseDTO> customers = consultantService.getCustomers();
+            return ResponseEntity.ok().body(Map.of(
+                "success", true,
+                "data", customers
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(Map.of(
+                "success", false,
+                "message", "Failed to get customers: " + e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/create-test-customer")
+    public ResponseEntity<?> createTestCustomer() {
+        try {
+            // Tạo test customer
+            User testCustomer = new User();
+            testCustomer.setUsername("testcustomer" + System.currentTimeMillis());
+            testCustomer.setEmail("testcustomer" + System.currentTimeMillis() + "@test.com");
+            testCustomer.setPasswordHash("$2a$10$dummy"); // Dummy password hash
+            testCustomer.setFullName("Test Customer");
+            testCustomer.setRoleName("ROLE_CUSTOMER");
+            testCustomer.setIsDeleted(false);
+            testCustomer.setPhoneNumber("0123456789");
+            testCustomer.setCreatedAt(LocalDateTime.now());
+            testCustomer.setUpdatedAt(LocalDateTime.now());
+            
+            User savedCustomer = userRepository.save(testCustomer);
+            UserResponseDTO customerDTO = modelMapper.map(savedCustomer, UserResponseDTO.class);
+            
+            return ResponseEntity.ok().body(Map.of(
+                "success", true,
+                "message", "Test customer created successfully",
+                "data", customerDTO
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(Map.of(
+                "success", false,
+                "message", "Failed to create test customer: " + e.getMessage()
+            ));
         }
     }
 

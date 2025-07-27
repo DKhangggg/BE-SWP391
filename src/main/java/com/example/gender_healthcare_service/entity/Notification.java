@@ -35,6 +35,15 @@ public class Notification {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "Type")
+    private String type; // CONSULTATION, TEST_RESULT, CYCLE_REMINDER, QUESTION_ANSWERED
+
+    @Column(name = "Title")
+    private String title;
+
+    @Column(name = "Description")
+    private String description;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

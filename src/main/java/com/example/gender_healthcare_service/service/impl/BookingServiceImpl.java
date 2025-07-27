@@ -2,6 +2,7 @@ package com.example.gender_healthcare_service.service.impl;
 
 import com.example.gender_healthcare_service.dto.request.BookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.BookingFilterRequestDTO;
+import com.example.gender_healthcare_service.dto.request.ConsultantCreateBookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateBookingStatusRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateTestResultRequestDTO;
 import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
@@ -59,7 +60,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ServiceNotFoundException("TimeSlot not found with ID: " + bookingRequestDTO.getTimeSlotId()));
 
         // Validate time slot is available
-        if (!timeSlot.isAvailable()) {
+        if (!timeSlot.isSlotAvailable()) {
             throw new IllegalStateException("This time slot is not available for booking.");
         }
 
@@ -101,6 +102,70 @@ public class BookingServiceImpl implements BookingService {
         return bookingRepository.findByCustomerID(currentUser).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public BookingResponseDTO createBookingForUser(ConsultantCreateBookingRequestDTO bookingRequestDTO) {
+        // Verify that current user is a consultant
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentPrincipalName = authentication.getName();
+        User currentConsultant = userRepository.findUserByUsername(currentPrincipalName);
+        if(currentConsultant == null) {
+            throw new ServiceNotFoundException("Consultant not found: " + currentPrincipalName);
+        }
+        
+        // Verify consultant role
+        if (!currentConsultant.getRoleName().equals("ROLE_CONSULTANT")) {
+            throw new IllegalStateException("Only consultants can create bookings for users");
+        }
+
+        // Find the target user
+        User targetUser = userRepository.findById(bookingRequestDTO.getUserId())
+                .orElseThrow(() -> new ServiceNotFoundException("User not found with ID: " + bookingRequestDTO.getUserId()));
+
+        // Verify user has CUSTOMER role
+        if (!targetUser.getRoleName().equals("ROLE_CUSTOMER")) {
+            throw new IllegalStateException("Can only create bookings for customers");
+        }
+
+        TestingService service = testingServiceRepository.findById(bookingRequestDTO.getServiceId())
+                .orElseThrow(() -> new ServiceNotFoundException("TestingService not found with ID: " + bookingRequestDTO.getServiceId()));
+
+        TimeSlot timeSlot = timeSlotRepository.findById(bookingRequestDTO.getTimeSlotId())
+                .orElseThrow(() -> new ServiceNotFoundException("TimeSlot not found with ID: " + bookingRequestDTO.getTimeSlotId()));
+
+        // Validate time slot is available
+        if (!timeSlot.isSlotAvailable()) {
+            throw new IllegalStateException("This time slot is not available for booking.");
+        }
+
+        // Check if user already has a booking for this time slot
+        if (bookingRepository.existsByCustomerIDAndTimeSlotAndStatusNot(targetUser, timeSlot, "CANCELLED")) {
+            throw new BookingConflictException("Người dùng đã đặt lịch cho khung giờ này.");
+        }
+
+        Booking booking = new Booking();
+        booking.setCustomerID(targetUser);
+        booking.setService(service);
+        booking.setTimeSlot(timeSlot);
+        booking.setStatus("PENDING");
+        booking.setBookingDate(bookingRequestDTO.getBookingDate());
+        booking.setDescription(bookingRequestDTO.getDescription());
+        booking.setIsDeleted(false);
+        booking.setCreatedAt(LocalDateTime.now());
+        booking.setUpdatedAt(LocalDateTime.now());
+        
+        // Increment booked count in time slot
+        timeSlot.incrementBookedCount();
+        timeSlotRepository.save(timeSlot);
+
+        Booking savedBooking = bookingRepository.save(booking);
+        
+        // Send real-time notification for new booking
+        bookingTrackingService.notifyNewBooking(savedBooking);
+        
+        return convertToDto(savedBooking);
     }
 
     @Override
@@ -233,6 +298,35 @@ public class BookingServiceImpl implements BookingService {
         bookingTrackingService.notifyBookingStatusChange(cancelledBooking, "CANCELLED", previousStatus, currentPrincipalName);
         
         return convertToDto(cancelledBooking);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponseDTO confirmBooking(Integer bookingId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentPrincipalName = authentication.getName();
+        User currentUser = userRepository.findUserByUsername(currentPrincipalName);
+        if(currentUser == null) {
+            throw new ServiceNotFoundException("User not found: " + currentPrincipalName);
+        }
+        
+        Booking booking = bookingRepository.findByIdAndCustomerIdAndIsDeletedFalse(bookingId, currentUser.getId())
+                .orElseThrow(() -> new ServiceNotFoundException("Không tìm thấy booking hoặc bạn không có quyền xác nhận booking này"));
+
+        if (!booking.getStatus().equals("PENDING")) {
+            throw new IllegalStateException("Chỉ có thể xác nhận booking khi trạng thái là PENDING");
+        }
+
+        String previousStatus = booking.getStatus();
+        booking.setStatus("CONFIRMED");
+        booking.setUpdatedAt(LocalDateTime.now());
+        
+        Booking confirmedBooking = bookingRepository.save(booking);
+        
+        // Send real-time notification for confirmation
+        bookingTrackingService.notifyBookingStatusChange(confirmedBooking, "CONFIRMED", previousStatus, currentPrincipalName);
+        
+        return convertToDto(confirmedBooking);
     }
 
     @Override

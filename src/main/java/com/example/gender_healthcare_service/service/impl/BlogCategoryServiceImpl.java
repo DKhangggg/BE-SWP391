@@ -33,14 +33,14 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
     @Override
     public BlogCategory getCategoryById(Integer categoryId) throws Exception {
         return blogCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new Exception("Blog category not found with ID: " + categoryId));
+                .orElseThrow(() -> new Exception("Không tìm thấy danh mục với ID: " + categoryId));
     }
 
     @Override
     public BlogCategory createCategory(BlogCategoryRequestDTO blogCategoryRequestDTO) throws Exception {
         BlogCategory existingCategory = blogCategoryRepository.findByCategoryName(blogCategoryRequestDTO.getName());
         if (existingCategory != null) {
-            throw new Exception("A category with this name already exists");
+            throw new Exception("Đã tồn tại danh mục với tên này");
         }
 
         BlogCategory blogCategory = new BlogCategory();
@@ -55,11 +55,11 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
     @Override
     public BlogCategory updateCategory(Integer categoryId, BlogCategoryRequestDTO blogCategoryRequestDTO) throws Exception {
         BlogCategory existingCategory = blogCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new Exception("Blog category not found with ID: " + categoryId));
+                .orElseThrow(() -> new Exception("Không tìm thấy danh mục với ID: " + categoryId));
 
         BlogCategory categoryWithSameName = blogCategoryRepository.findByCategoryName(blogCategoryRequestDTO.getName());
         if (categoryWithSameName != null && !categoryWithSameName.getCategoryID().equals(categoryId)) {
-            throw new Exception("Another category with this name already exists");
+            throw new Exception("Đã tồn tại danh mục khác với tên này");
         }
 
         existingCategory.setCategoryName(blogCategoryRequestDTO.getName());
@@ -72,11 +72,10 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
     @Override
     public boolean deleteCategory(Integer categoryId) throws Exception {
         BlogCategory category = blogCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new Exception("Blog category not found with ID: " + categoryId));
+                .orElseThrow(() -> new Exception("Không tìm thấy danh mục với ID: " + categoryId));
 
-        // Check if there are any blog posts associated with this category
         if (category.getBlogPosts() != null && !category.getBlogPosts().isEmpty()) {
-            throw new Exception("Cannot delete category because it has associated blog posts");
+            throw new Exception("Không thể xóa danh mục vì có bài viết liên quan");
         }
 
         blogCategoryRepository.delete(category);
@@ -86,7 +85,7 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
     @Override
     public BlogCategoryWithPostsDTO getCategoryWithPosts(Integer categoryId) throws Exception {
         BlogCategory category = blogCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new Exception("Blog category not found with ID: " + categoryId));
+                .orElseThrow(() -> new Exception("Không tìm thấy danh mục với ID: " + categoryId));
 
         return mapCategoryToWithPostsDTO(category);
     }

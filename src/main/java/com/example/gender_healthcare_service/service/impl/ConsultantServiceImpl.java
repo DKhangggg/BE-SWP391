@@ -4,6 +4,7 @@ import com.example.gender_healthcare_service.dto.request.ConsultantUpdateDTO;
 import com.example.gender_healthcare_service.dto.request.CreateNewConsultantRequest;
 import com.example.gender_healthcare_service.dto.request.UnavailabilityRequest;
 import com.example.gender_healthcare_service.dto.response.ConsultantDTO;
+import com.example.gender_healthcare_service.dto.response.UserResponseDTO;
 import com.example.gender_healthcare_service.entity.Consultant;
 import com.example.gender_healthcare_service.entity.ConsultantUnavailability;
 import com.example.gender_healthcare_service.entity.enumpackage.RequestStatus;
@@ -39,6 +40,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
+import com.example.gender_healthcare_service.entity.Chat;
+import com.example.gender_healthcare_service.service.CloudinaryService;
 
 @Service
 public class ConsultantServiceImpl implements ConsultantService {
@@ -67,6 +70,9 @@ public class ConsultantServiceImpl implements ConsultantService {
     @Autowired
     private PaymentRepository paymentRepository;
 
+    @Autowired
+    private CloudinaryService cloudinaryService;
+
     @Value("${file.upload.path:uploads/}")
     private String uploadPath;
 
@@ -74,7 +80,9 @@ public class ConsultantServiceImpl implements ConsultantService {
     public ConsultantDTO getConsultantById(Integer consultantId) {
         Consultant consultant = consultantRepository.findById(consultantId)
                 .orElseThrow(() -> new RuntimeException("Consultant not found with ID: " + consultantId));
-        return modelMapper.map(consultant, ConsultantDTO.class);
+        ConsultantDTO dto = modelMapper.map(consultant, ConsultantDTO.class);
+        // profileImageUrl sẽ được map tự động từ entity Consultant
+        return dto;
     }
     @Override
     public ConsultantDTO getCurrentConsultant(){
@@ -85,6 +93,8 @@ public class ConsultantServiceImpl implements ConsultantService {
         }
         Consultant consultant = consultantRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new RuntimeException("Consultant not found for the current user."));
+        
+        // Map consultant to DTO - profileImageUrl sẽ được map tự động
         return modelMapper.map(consultant, ConsultantDTO.class);
     }
 
@@ -98,10 +108,102 @@ public class ConsultantServiceImpl implements ConsultantService {
         for (Consultant c1 : c) {
             System.out.println("Consultant: " + c1.toString());
             ConsultantDTO dto = modelMapper.map(c1, ConsultantDTO.class);
+            // profileImageUrl sẽ được map tự động từ entity Consultant
             dtos.add(dto);
             System.out.println(dto.toString());
         }
         return dtos;
+    }
+
+    @Override
+    public List<ConsultantDTO> getFeaturedConsultants() {
+        List<Consultant> consultants = consultantRepository.findFeaturedConsultants();
+        List<ConsultantDTO> consultantDTOs = new ArrayList<>();
+        for (Consultant consultant : consultants) {
+            ConsultantDTO dto = modelMapper.map(consultant, ConsultantDTO.class);
+            consultantDTOs.add(dto);
+        }
+        return consultantDTOs;
+    }
+
+    @Override
+    public List<ConsultantDTO> getAvailableConsultants() {
+        try {
+            System.out.println("=== DEBUG: getAvailableConsultants ===");
+            
+            // Lấy tất cả consultant từ database
+            List<Consultant> allConsultants = consultantRepository.findAll();
+            System.out.println("Total consultants in DB: " + allConsultants.size());
+            
+            // Filter consultants không bị xóa
+            List<Consultant> consultants = allConsultants.stream()
+                    .filter(consultant -> consultant != null && (consultant.getIsDeleted() == null || !consultant.getIsDeleted()))
+                    .toList();
+            
+            System.out.println("Active consultants: " + consultants.size());
+            
+            List<ConsultantDTO> consultantDTOs = new ArrayList<>();
+            
+            for (Consultant consultant : consultants) {
+                System.out.println("Processing consultant ID: " + consultant.getId());
+                System.out.println("Consultant user: " + (consultant.getUser() != null ? consultant.getUser().getFullName() : "NULL"));
+                
+                ConsultantDTO dto = modelMapper.map(consultant, ConsultantDTO.class);
+                
+                // Set ID manually
+                dto.setId(consultant.getId());
+                
+                // Thêm thông tin user vào DTO
+                if (consultant.getUser() != null) {
+                    dto.setUsername(consultant.getUser().getUsername());
+                    dto.setFullName(consultant.getUser().getFullName());
+                    dto.setEmail(consultant.getUser().getEmail());
+                    dto.setPhoneNumber(consultant.getUser().getPhoneNumber());
+                    dto.setGender(consultant.getUser().getGender());
+                    dto.setAddress(consultant.getUser().getAddress());
+                    
+                    // Convert LocalDate to Date for birthDate
+                    if (consultant.getUser().getDateOfBirth() != null) {
+                        dto.setBirthDate(java.sql.Date.valueOf(consultant.getUser().getDateOfBirth()));
+                    }
+                    
+                    // Sử dụng profileImageUrl từ Consultant entity, fallback về avatarUrl của User
+                    String imageUrl = consultant.getProfileImageUrl();
+                    if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                        imageUrl = consultant.getUser().getAvatarUrl();
+                    }
+                    dto.setProfileImageUrl(imageUrl);
+                }
+                
+                // Set consultant-specific fields
+                dto.setBiography(consultant.getBiography());
+                dto.setQualifications(consultant.getQualifications());
+                dto.setExperienceYears(consultant.getExperienceYears());
+                dto.setSpecialization(consultant.getSpecialization());
+                
+                // Set profileImageUrl (already set above, but ensure it's set)
+                if (dto.getProfileImageUrl() == null || dto.getProfileImageUrl().trim().isEmpty()) {
+                    String imageUrl = consultant.getProfileImageUrl();
+                    if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                        imageUrl = consultant.getUser().getAvatarUrl();
+                    }
+                    dto.setProfileImageUrl(imageUrl);
+                }
+                
+                System.out.println("DTO created: " + dto.toString());
+                
+                consultantDTOs.add(dto);
+            }
+            
+            System.out.println("Returning DTOs: " + consultantDTOs.size());
+            System.out.println("First DTO: " + (consultantDTOs.isEmpty() ? "EMPTY" : consultantDTOs.get(0).toString()));
+            return consultantDTOs;
+            
+        } catch (Exception e) {
+            System.err.println("ERROR in getAvailableConsultants: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Error getting available consultants: " + e.getMessage());
+        }
     }
 
     @Override
@@ -211,8 +313,28 @@ public class ConsultantServiceImpl implements ConsultantService {
 
     @Override
     public Consultant findConsultantByUserId(Integer userId) {
-        Optional<Consultant> consultantOptional = consultantRepository.findById(userId);
-        return consultantOptional.orElse(null);
+        return consultantRepository.findByUserId(userId);
+    }
+
+    @Override
+    public List<UserResponseDTO> getCustomers() {
+        List<User> customers = userRepository.findAllByRoleNameAndIsDeletedFalse("ROLE_CUSTOMER");
+        System.out.println("Found " + customers.size() + " customers with role ROLE_CUSTOMER");
+        
+        if (customers.isEmpty()) {
+            // Kiểm tra xem có users nào không
+            List<User> allUsers = userRepository.findAll();
+            System.out.println("Total users in database: " + allUsers.size());
+            
+            // Kiểm tra roles có sẵn
+            allUsers.forEach(user -> {
+                System.out.println("User: " + user.getUsername() + ", Role: " + user.getRoleName() + ", Deleted: " + user.getIsDeleted());
+            });
+        }
+        
+        return customers.stream()
+                .map(user -> modelMapper.map(user, UserResponseDTO.class))
+                .toList();
     }
 
     @Override
@@ -256,8 +378,13 @@ public class ConsultantServiceImpl implements ConsultantService {
     // Dashboard APIs
     @Override
     public long getUnreadMessagesCount() {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return chatRepository.findByConsultant(currentUser).stream()
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(username);
+        if (currentUser == null) {
+            return 0;
+        }
+        List<Chat> chats = chatRepository.findByConsultant(currentUser);
+        return chats.stream()
                 .filter(chat -> "PENDING".equalsIgnoreCase(chat.getStatus()))
                 .count();
     }
@@ -303,30 +430,29 @@ public class ConsultantServiceImpl implements ConsultantService {
     @Override
     public String uploadProfileImage(org.springframework.web.multipart.MultipartFile file, Integer consultantId) {
         try {
-            // Tạo thư mục nếu chưa có
-            Path uploadDir = Paths.get(uploadPath + "consultants/");
-            if (!Files.exists(uploadDir)) {
-                Files.createDirectories(uploadDir);
+            // Tìm consultant
+            Consultant consultant = findConsultantByUserId(consultantId);
+            if (consultant == null) {
+                throw new RuntimeException("Consultant not found");
             }
 
-            // Tạo tên file unique
-            String fileName = "consultant_" + consultantId + "_" + UUID.randomUUID() + "." + getExtension(file.getOriginalFilename());
-            Path filePath = uploadDir.resolve(fileName);
+            // Upload lên Cloudinary
+            Map<String, Object> uploadResult = cloudinaryService.uploadImage(file);
+            
+            String secureUrl = (String) uploadResult.get("secure_url");
+            String uploadedPublicId = (String) uploadResult.get("public_id");
 
-            // Lưu file
-            Files.copy(file.getInputStream(), filePath);
-
-            // Tạo URL
-            String imageUrl = "/uploads/consultants/" + fileName;
+            // Xóa ảnh cũ nếu có
+            if (consultant.getProfileImageUrl() != null && !consultant.getProfileImageUrl().trim().isEmpty()) {
+                // Có thể cần thêm logic để xóa ảnh cũ trên Cloudinary
+                // cloudinaryService.deleteOldImage(oldPublicId);
+            }
 
             // Update consultant entity
-            Consultant consultant = findConsultantByUserId(consultantId);
-            if (consultant != null) {
-                consultant.setProfileImageUrl(imageUrl);
-                consultantRepository.save(consultant);
-            }
+            consultant.setProfileImageUrl(secureUrl);
+            consultantRepository.save(consultant);
 
-            return imageUrl;
+            return secureUrl;
         } catch (Exception e) {
             throw new RuntimeException("Upload profile image failed: " + e.getMessage());
         }

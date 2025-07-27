@@ -12,6 +12,7 @@ import com.example.gender_healthcare_service.repository.BlogPostRepository;
 import com.example.gender_healthcare_service.repository.UserRepository;
 import com.example.gender_healthcare_service.service.BlogService;
 import com.example.gender_healthcare_service.service.CloudinaryService;
+import com.example.gender_healthcare_service.util.SlugUtils;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -46,7 +48,6 @@ public class BlogServiceImpl implements BlogService {
         Page<BlogPost> blogPosts = blogPostRepository.findAllByIsDeletedFalse(pageable);
         
         if (blogPosts.isEmpty()) {
-            // Trả về response rỗng thay vì throw exception
             return new PageResponse<BlogPostResponseDTO>(new ArrayList<>(), pageNumber, pageSize, 0, 0);
         }
         
@@ -57,9 +58,8 @@ public class BlogServiceImpl implements BlogService {
     @Transactional(readOnly = true)
     public BlogPostResponseDTO getBlogPostById(Integer postId) {
         BlogPost blogPost = blogPostRepository.findByIdAndIsDeletedFalse(postId)
-                .orElseThrow(() -> new RuntimeException("Blog post not found with ID: " + postId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết với ID: " + postId));
         
-        // Increment views
         incrementViews(postId);
         
         return blogMapper.toResponseDTO(blogPost);
@@ -70,15 +70,18 @@ public class BlogServiceImpl implements BlogService {
     public BlogPostResponseDTO createBlogPost(BlogPostRequestDTO request, MultipartFile coverImage, Authentication authentication) {
         User author = getUserFromAuthentication(authentication);
         
-        // Validate categories
         Set<BlogCategory> categories = validateAndGetCategories(request.getCategoryIds());
         
-        // Create blog post
         BlogPost blogPost = new BlogPost();
         blogPost.setTitle(request.getTitle());
         blogPost.setContent(request.getContent());
         blogPost.setSummary(request.getSummary());
         blogPost.setTags(request.getTags());
+        
+        // Tự động tạo slug từ title
+        String slug = generateUniqueSlug(request.getTitle());
+        blogPost.setSlug(slug);
+        
         blogPost.setAuthor(author);
         blogPost.setCategories(categories);
         blogPost.setCreatedAt(LocalDateTime.now());
@@ -86,19 +89,12 @@ public class BlogServiceImpl implements BlogService {
         blogPost.setIsPublished(request.getIsPublished() != null ? request.getIsPublished() : false);
         blogPost.setIsDeleted(false);
         
-        // Handle cover image
-        if (coverImage != null && !coverImage.isEmpty()) {
-            String imageUrl = uploadCoverImage(coverImage, null); // Will be updated after save
-            blogPost.setCoverImageUrl(imageUrl);
-        }
-        
         BlogPost savedPost = blogPostRepository.save(blogPost);
         
-        // Update image URL with post ID if needed
+        // Upload cover image sau khi có postID
         if (coverImage != null && !coverImage.isEmpty()) {
-            String finalImageUrl = uploadCoverImage(coverImage, savedPost.getPostID());
-            savedPost.setCoverImageUrl(finalImageUrl);
-            blogPostRepository.save(savedPost);
+            String imageUrl = uploadCoverImage(coverImage, savedPost.getPostID());
+            // Không cần save lại vì uploadCoverImage đã tự động update database
         }
         
         return blogMapper.toResponseDTO(savedPost);
@@ -109,35 +105,35 @@ public class BlogServiceImpl implements BlogService {
     public BlogPostResponseDTO updateBlogPost(Integer postId, BlogPostRequestDTO request, MultipartFile coverImage, Authentication authentication) {
         User currentUser = getUserFromAuthentication(authentication);
         BlogPost existingPost = blogPostRepository.findByIdAndIsDeletedFalse(postId)
-                .orElseThrow(() -> new RuntimeException("Blog post not found with ID: " + postId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết với ID: " + postId));
         
-        // Check permissions
         if (!existingPost.getAuthor().getId().equals(currentUser.getId()) && 
             !hasAdminRole(authentication)) {
-            throw new RuntimeException("You don't have permission to update this blog post");
+            throw new RuntimeException("Bạn không có quyền cập nhật bài viết này");
         }
         
-        // Update basic fields
         existingPost.setTitle(request.getTitle());
         existingPost.setContent(request.getContent());
         existingPost.setSummary(request.getSummary());
         existingPost.setTags(request.getTags());
+        
+        // Cập nhật slug nếu title thay đổi
+        String newSlug = generateUniqueSlug(request.getTitle());
+        existingPost.setSlug(newSlug);
+        
         existingPost.setUpdatedAt(LocalDateTime.now());
         
-        // Update categories if provided
         if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
             Set<BlogCategory> categories = validateAndGetCategories(request.getCategoryIds());
             existingPost.setCategories(categories);
         }
         
-        // Handle cover image
         if (coverImage != null && !coverImage.isEmpty()) {
-            // Delete old image if exists
             if (existingPost.getCoverImageUrl() != null) {
                 deleteCoverImage(postId);
             }
             String imageUrl = uploadCoverImage(coverImage, postId);
-            existingPost.setCoverImageUrl(imageUrl);
+            // Không cần set coverImageUrl vì uploadCoverImage đã tự động update database
         }
         
         BlogPost updatedPost = blogPostRepository.save(existingPost);
@@ -149,20 +145,17 @@ public class BlogServiceImpl implements BlogService {
     public boolean deleteBlogPost(Integer postId, Authentication authentication) {
         User currentUser = getUserFromAuthentication(authentication);
         BlogPost blogPost = blogPostRepository.findByIdAndIsDeletedFalse(postId)
-                .orElseThrow(() -> new RuntimeException("Blog post not found with ID: " + postId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết với ID: " + postId));
         
-        // Check permissions
         if (!blogPost.getAuthor().getId().equals(currentUser.getId()) && 
             !hasAdminRole(authentication)) {
-            throw new RuntimeException("You don't have permission to delete this blog post");
+            throw new RuntimeException("Bạn không có quyền xóa bài viết này");
         }
         
-        // Soft delete
         blogPost.setIsDeleted(true);
         blogPost.setUpdatedAt(LocalDateTime.now());
         blogPostRepository.save(blogPost);
         
-        // Delete cover image from Firebase
         if (blogPost.getCoverImageUrl() != null) {
             deleteCoverImage(postId);
         }
@@ -187,7 +180,7 @@ public class BlogServiceImpl implements BlogService {
     @Transactional(readOnly = true)
     public PageResponse<BlogPostResponseDTO> getBlogPostsByCategory(Integer categoryId, int pageNumber, int pageSize) {
         BlogCategory category = blogCategoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found with ID: " + categoryId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục với ID: " + categoryId));
         
         Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
         Page<BlogPost> blogPosts = blogPostRepository.findByCategoriesAndIsDeletedFalse(category, pageable);
@@ -203,7 +196,7 @@ public class BlogServiceImpl implements BlogService {
     @Transactional(readOnly = true)
     public PageResponse<BlogPostResponseDTO> getBlogPostsByAuthor(Integer authorId, int pageNumber, int pageSize) {
         User author = userRepository.findById(authorId)
-                .orElseThrow(() -> new RuntimeException("User not found with ID: " + authorId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + authorId));
         
         Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
         Page<BlogPost> blogPosts = blogPostRepository.findByAuthorAndIsDeletedFalse(author, pageable);
@@ -229,29 +222,40 @@ public class BlogServiceImpl implements BlogService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<BlogPostResponseDTO> getLatestBlogPosts(int limit) {
+        List<BlogPost> latestPosts = blogPostRepository.findLatestPublishedPosts(limit);
+        List<BlogPostResponseDTO> responseDTOs = new ArrayList<>();
+        
+        for (BlogPost post : latestPosts) {
+            responseDTOs.add(blogMapper.toResponseDTO(post));
+        }
+        
+        return responseDTOs;
+    }
+
+    @Override
     public String uploadCoverImage(MultipartFile file, Integer postId) {
         try {
-            // Upload to Cloudinary
             Map<String, Object> uploadResult = cloudinaryService.uploadImage(file);
             String secureUrl = (String) uploadResult.get("secure_url");
             
-            // Update blog post if postId is provided
+            // Chỉ update database nếu postId được cung cấp và khác null
             if (postId != null) {
                 BlogPost blogPost = blogPostRepository.findById(postId)
-                        .orElseThrow(() -> new RuntimeException("Blog post not found with ID: " + postId));
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết với ID: " + postId));
                 blogPost.setCoverImageUrl(secureUrl);
                 blogPostRepository.save(blogPost);
             }
             
             return secureUrl;
         } catch (Exception e) {
-            throw new RuntimeException("Upload cover image failed: " + e.getMessage());
+            throw new RuntimeException("Lỗi khi tải lên hình ảnh: " + e.getMessage());
         }
     }
 
     @Override
     public boolean deleteCoverImage(Integer postId) {
-        // TODO: Implement Firebase delete logic
         return true;
     }
 
@@ -264,11 +268,9 @@ public class BlogServiceImpl implements BlogService {
     @Override
     @Transactional
     public void toggleLike(Integer postId, Integer userId) {
-        // TODO: Implement like/unlike logic with separate table
         BlogPost blogPost = blogPostRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Blog post not found"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài viết"));
         
-        // For now, just increment likes
         blogPost.setLikes(blogPost.getLikes() + 1);
         blogPostRepository.save(blogPost);
     }
@@ -276,16 +278,14 @@ public class BlogServiceImpl implements BlogService {
     @Override
     @Transactional(readOnly = true)
     public boolean isLikedByUser(Integer postId, Integer userId) {
-        // TODO: Implement check if user liked the post
         return false;
     }
 
-    // Helper methods
     private User getUserFromAuthentication(Authentication authentication) {
         String username = authentication.getName();
         User user = userRepository.findUserByUsername(username);
         if (user == null) {
-            throw new RuntimeException("User not found");
+            throw new RuntimeException("Không tìm thấy người dùng");
         }
         return user;
     }
@@ -300,7 +300,7 @@ public class BlogServiceImpl implements BlogService {
         Set<BlogCategory> categories = new HashSet<>();
         for (Integer categoryId : categoryIds) {
             BlogCategory category = blogCategoryRepository.findById(categoryId)
-                    .orElseThrow(() -> new RuntimeException("Category not found with ID: " + categoryId));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục với ID: " + categoryId));
             categories.add(category);
         }
         return categories;
@@ -316,5 +316,18 @@ public class BlogServiceImpl implements BlogService {
         response.setHasNext(blogPosts.hasNext());
         response.setHasPrevious(blogPosts.hasPrevious());
         return response;
+    }
+    
+    private String generateUniqueSlug(String title) {
+        String baseSlug = SlugUtils.generateSlug(title);
+        String uniqueSlug = baseSlug;
+        int counter = 1;
+        
+        while (blogPostRepository.countBySlugAndIsDeletedFalse(uniqueSlug) > 0) {
+            uniqueSlug = baseSlug + "-" + counter;
+            counter++;
+        }
+        
+        return uniqueSlug;
     }
 }

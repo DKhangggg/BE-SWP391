@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 public interface BlogService {
     
     // CRUD Operations
@@ -28,6 +30,9 @@ public interface BlogService {
     PageResponse<BlogPostResponseDTO> getBlogPostsByAuthor(Integer authorId, int pageNumber, int pageSize);
     
     PageResponse<BlogPostResponseDTO> getPublishedBlogPosts(int pageNumber, int pageSize);
+    
+    // Homepage APIs
+    List<BlogPostResponseDTO> getLatestBlogPosts(int limit);
     
     // Image Management
     String uploadCoverImage(MultipartFile file, Integer postId);

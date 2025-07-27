@@ -1,5 +1,6 @@
 package com.example.gender_healthcare_service.controller;
 
+import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
 import com.example.gender_healthcare_service.dto.response.PageResponse;
 import com.example.gender_healthcare_service.dto.response.TestingServiceResponseDTO;
@@ -38,52 +39,69 @@ public class ServiceController {
 
 
     @GetMapping("/testing-services")
-    public ResponseEntity<PageResponse<TestingServiceResponseDTO>> getService(
+    public ResponseEntity<ApiResponse<PageResponse<TestingServiceResponseDTO>>> getService(
         @RequestParam(defaultValue = "1") int pageNumber,
         @RequestParam(defaultValue = "10") int pageSize
     ) {
-        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-        Page<TestingService> services = testingService.getAllServices(pageable);
-        PageResponse<TestingServiceResponseDTO> response = new PageResponse<>();
-        response.setContent(services.getContent().stream().map(service -> mapper.map(service, TestingServiceResponseDTO.class)).collect(Collectors.toList()));
-        response.setPageNumber(services.getNumber() + 1);
-        response.setPageSize(services.getSize());
-        response.setTotalElements(services.getTotalElements());
-        response.setTotalPages(services.getTotalPages());
-        response.setHasNext(services.hasNext());
-        response.setHasPrevious(services.hasPrevious());
-        return ResponseEntity.ok(response);
+        try {
+            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
+            Page<TestingService> services = testingService.getAllServices(pageable);
+            PageResponse<TestingServiceResponseDTO> response = new PageResponse<>();
+            response.setContent(services.getContent().stream().map(service -> mapper.map(service, TestingServiceResponseDTO.class)).collect(Collectors.toList()));
+            response.setPageNumber(services.getNumber() + 1);
+            response.setPageSize(services.getSize());
+            response.setTotalElements(services.getTotalElements());
+            response.setTotalPages(services.getTotalPages());
+            response.setHasNext(services.hasNext());
+            response.setHasPrevious(services.hasPrevious());
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách dịch vụ xét nghiệm thành công", response));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách dịch vụ xét nghiệm: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/testing-services/{serviceId}")
-    public ResponseEntity<?> getTestingServiceDetails(@PathVariable Integer serviceId) {
-        TestingService service = testingService.getServiceById(serviceId);
-        if (service == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<ApiResponse<TestingServiceResponseDTO>> getTestingServiceDetails(@PathVariable Integer serviceId) {
+        try {
+            TestingService service = testingService.getServiceById(serviceId);
+            if (service == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Không tìm thấy dịch vụ xét nghiệm với ID: " + serviceId));
+            }
+            TestingServiceResponseDTO dto = mapper.map(service, TestingServiceResponseDTO.class);
+            return ResponseEntity.ok(ApiResponse.success("Lấy chi tiết dịch vụ xét nghiệm thành công", dto));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy chi tiết dịch vụ xét nghiệm: " + e.getMessage()));
         }
-        TestingServiceResponseDTO dto = mapper.map(service, TestingServiceResponseDTO.class);
-        return new ResponseEntity<>(dto, HttpStatus.OK);
     }
 
     @GetMapping("/testing-services/bookings/{bookingId}/results")
-    public ResponseEntity<?> getTestingServiceBookingResults(@PathVariable Integer bookingId, Principal principal) {
-        BookingResponseDTO booking = bookingService.getBookingByIdAndUsername(bookingId, principal.getName());
-        if (booking == null) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<ApiResponse<BookingResponseDTO>> getTestingServiceBookingResults(@PathVariable Integer bookingId, Principal principal) {
+        try {
+            BookingResponseDTO booking = bookingService.getBookingByIdAndUsername(bookingId, principal.getName());
+            if (booking == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Không tìm thấy booking với ID: " + bookingId));
+            }
+            return ResponseEntity.ok(ApiResponse.success("Lấy kết quả booking thành công", booking));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy kết quả booking: " + e.getMessage()));
         }
-        return new ResponseEntity<>(booking, HttpStatus.OK);
     }
 
     @PostMapping("/testing-services/{serviceId}/image")
-    public ResponseEntity<?> uploadServiceImage(
+    public ResponseEntity<ApiResponse<Map<String, String>>> uploadServiceImage(
             @PathVariable Integer serviceId,
             @RequestParam("file") MultipartFile file) {
         try {
             String imageUrl = testingService.uploadServiceImage(file, serviceId);
-            return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
+            return ResponseEntity.ok(ApiResponse.success("Upload ảnh dịch vụ thành công", Map.of("imageUrl", imageUrl)));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Upload service image failed: " + e.getMessage());
+                    .body(ApiResponse.error("Lỗi khi upload ảnh dịch vụ: " + e.getMessage()));
         }
     }
 

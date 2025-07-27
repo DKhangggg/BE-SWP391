@@ -4,11 +4,11 @@ import com.example.gender_healthcare_service.dto.response.QuestionResponseDTO;
 import com.example.gender_healthcare_service.entity.Question;
 import com.example.gender_healthcare_service.entity.User;
 import com.example.gender_healthcare_service.entity.enumpackage.QuestionStatus;
-import io.micrometer.observation.ObservationFilter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 
@@ -29,4 +29,8 @@ public interface QuestionRepository extends JpaRepository<Question, Integer> {
     Page<Question> findQuestionsByUser(User user, Pageable pageable);
     @Query("SELECT q FROM Question q WHERE q.isDeleted = false")
     Page<Question> findAllQuestion(Pageable pageable);
+    
+    // Dashboard methods
+    @Query("SELECT COUNT(q) FROM Question q WHERE q.user.id = :userId AND q.status = :status")
+    long countByUser_IdAndStatus(@Param("userId") Integer userId, @Param("status") QuestionStatus status);
 }

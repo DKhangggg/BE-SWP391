@@ -47,11 +47,13 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Integer> {
 
     // Find active time slots ordered by start time
     @Query("SELECT ts FROM TimeSlot ts WHERE ts.isAvailable = true ORDER BY ts.startTime")
-    List<TimeSlot> findByIsAvailableTrueOrderByStartTime();
+    List<TimeSlot> findByIsActiveTrueOrderByStartTime();
 
     @Query("SELECT t FROM TimeSlot t WHERE t.consultant.id = :consultantId AND t.slotDate BETWEEN :fromDate AND :toDate AND t.isAvailable = true")
     List<TimeSlot> findAvailableByConsultantAndDateRange(@Param("consultantId") Integer consultantId,
                                                      @Param("fromDate") LocalDate fromDate,
                                                      @Param("toDate") LocalDate toDate);
+    @Query("SELECT t FROM TimeSlot t WHERE t.isAvailable = true ORDER BY t.startTime")
+    List<TimeSlot> findByIsAvailableTrueOrderByStartTime();
 }
 

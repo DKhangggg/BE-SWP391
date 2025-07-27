@@ -117,32 +117,22 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
 
     public ResponseEntity<?>loginUser(LoginRequest loginRequest) {
         try {
-            System.out.println("Attempting login for user: " + loginRequest.getUsername());
-            System.out.println("Password provided: " + (loginRequest.getPassword() != null ? "YES (length: " + loginRequest.getPassword().length() + ")" : "NO"));
-
             User user = userRepository.findUserByUsername(loginRequest.getUsername());
 
             if (user == null) {
-                System.out.println("User not found: " + loginRequest.getUsername());
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Tên đăng nhập hoặc mật khẩu không đúng");
             }
-
-            System.out.println("Found user in DB. Stored password hash: " + user.getPasswordHash());
-            System.out.println("User role: " + user.getRoleName());
 
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     loginRequest.getUsername(),
                     loginRequest.getPassword()
             );
-            System.out.println("Authentication token created with credentials: " + (authToken.getCredentials() != null));
 
             Authentication authentication = authenticationManager.authenticate(authToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            System.out.println("Authentication successful for user: " + loginRequest.getUsername());
-
             if(user.getIsDeleted()) {
-                throw new RuntimeException("User account is deleted");
+                throw new RuntimeException("Tài khoản người dùng đã bị xóa");
             }
 
             UserResponseDTO userDTO = modelMapper.map(user, UserResponseDTO.class);
@@ -150,9 +140,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             String refreshToken = jwtService.generateRefreshToken(authentication);
             return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken,user.getFullName(), user.getRoleName(),user.getEmail()));
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Login failed. Error: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Tên đăng nhập hoặc mật khẩu không đúng");
         }
     }
 
@@ -160,7 +148,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findUserByUsername(username);
         if (user == null) {
-            throw new UsernameNotFoundException("User not found with username: " + username);
+            throw new UsernameNotFoundException("Không tìm thấy người dùng với tên đăng nhập: " + username);
         }
         String role = user.getRoleName();
         if (!role.startsWith("ROLE_")) {
@@ -192,14 +180,14 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
                 consultantRepository.save(consultant);
             }
         } else {
-            throw new RuntimeException("User not found with ID: " + Userid);
+            throw new RuntimeException("Không tìm thấy người dùng với ID: " + Userid);
         }
     }
 
     public ResponseEntity<?> refreshAccessToken(String refreshTokenString) {
         try {
             if (refreshTokenString == null || refreshTokenString.isEmpty()) {
-                return ResponseEntity.badRequest().body("Refresh token is missing");
+                return ResponseEntity.badRequest().body("Refresh token bị thiếu");
             }
 
             jwtService.validateToken(refreshTokenString);
@@ -215,9 +203,9 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             return ResponseEntity.ok(new AuthResponseDTO(newAccessToken, refreshTokenString));
 
         } catch (UsernameNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found for the provided refresh token");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Không tìm thấy người dùng cho refresh token được cung cấp");
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or expired refresh token: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token không hợp lệ hoặc đã hết hạn: " + e.getMessage());
         }
     }
 
@@ -255,7 +243,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
     public ResponseEntity<?> loginByGoogle(SocialLoginRequestDTO requestDTO) {
 
         if (requestDTO == null || requestDTO.getCode() == null || requestDTO.getCode().isEmpty()) {
-            return ResponseEntity.badRequest().body("Authorization code is missing.");
+            return ResponseEntity.badRequest().body("Mã xác thực bị thiếu.");
         }
 
         try {
@@ -278,7 +266,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
 
             if (idToken == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Invalid Google ID token");
+                        .body("Token Google ID không hợp lệ");
             }
             GoogleIdToken.Payload payload = idToken.getPayload();
             String email = payload.getEmail();
@@ -289,7 +277,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             } else if (email != null && !email.isEmpty()) {
                 fullNameToSet = email.split("@")[0];
             } else {
-                fullNameToSet = "New User";
+                fullNameToSet = "Người dùng mới";
             }
 
             User user = userRepository.findUserByEmail(email);
@@ -318,9 +306,8 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             );
             return ResponseEntity.ok(response);
         }catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error processing Google login: " + e.getMessage());
+                    .body("Lỗi xử lý đăng nhập Google: " + e.getMessage());
         }
     }
     @Override
@@ -335,71 +322,56 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
 
     @Transactional
     public ResponseEntity<?> sendResetPasswordEmail(String email, String otpVerificationLink) {
-        System.out.println("[LOG] Received password reset request for email: " + email);
         User user = userRepository.findUserByEmail(email);
         if (user == null) {
-            System.out.println("[LOG] User not found with email: " + email);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with email: " + email);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy người dùng với email: " + email);
         }
-        System.out.println("[LOG] User found: " + user.getUsername() + " (ID: " + user.getId() + ")");
 
-        System.out.println("[LOG] Deleting existing OTP codes for user ID: " + user.getId());
         passwordResetOTPRepository.deleteByUser(user);
 
         String otpCode = generateOTP();
-        System.out.println("[LOG] Generated new OTP code: " + otpCode);
         PasswordResetOTP passwordResetOTP = new PasswordResetOTP(otpCode, user);
         passwordResetOTPRepository.save(passwordResetOTP);
-        System.out.println("[LOG] Saved new OTP code to database. OTP ID: " + passwordResetOTP.getId() + ", Expiry: " + passwordResetOTP.getExpiryDate());
-        System.out.println("[LOG] Calling emailService.sendOTPEmail for email: " + user.getEmail() + " with OTP: " + otpCode);
         emailService.sendOTPEmail(user.getEmail(), user.getFullName(), otpCode, otpVerificationLink);
-        System.out.println("[LOG] sendOTPEmail service call completed.");
 
-        return ResponseEntity.ok().body("If your email address is in our database, you will receive an OTP code shortly.");
+        return ResponseEntity.ok().body("Nếu địa chỉ email của bạn có trong cơ sở dữ liệu, bạn sẽ nhận được mã OTP trong thời gian ngắn.");
     }
 
     @Transactional
     public ResponseEntity<?> validateOtp(String email, String otp) {
-        System.out.println("[LOG] Validating OTP code: " + otp + " for email: " + email);
 
         PasswordResetOTP resetOTP = passwordResetOTPRepository.findByOtpCodeAndUser_Email(otp, email);
 
         if (resetOTP == null) {
-            System.out.println("[LOG] Invalid OTP code for email: " + email);
             return ResponseEntity.badRequest().body("Mã OTP không hợp lệ.");
         }
 
         if (resetOTP.isExpired()) {
-            System.out.println("[LOG] OTP code expired for email: " + email);
             passwordResetOTPRepository.delete(resetOTP);
             return ResponseEntity.badRequest().body("Mã OTP đã hết hạn.");
         }
 
-        System.out.println("[LOG] OTP code valid for email: " + email);
         return ResponseEntity.ok().body("Mã OTP hợp lệ.");
     }
 
     @Transactional
     public ResponseEntity<?> resetPassword(OTPRequestDTO otpRequest) {
-        System.out.println("[LOG] Resetting password with OTP for email: " + otpRequest.getEmail());
 
         PasswordResetOTP resetOTP = passwordResetOTPRepository.findByOtpCodeAndUser_Email(
                 otpRequest.getOtpCode(), otpRequest.getEmail());
 
         if (resetOTP == null) {
-            System.out.println("[LOG] Invalid OTP code for email: " + otpRequest.getEmail());
-            return ResponseEntity.badRequest().body("Invalid OTP code.");
+            return ResponseEntity.badRequest().body("Mã OTP không hợp lệ.");
         }
 
         if (resetOTP.isExpired()) {
-            System.out.println("[LOG] OTP code expired for email: " + otpRequest.getEmail());
             passwordResetOTPRepository.delete(resetOTP);
-            return ResponseEntity.badRequest().body("OTP code has expired.");
+            return ResponseEntity.badRequest().body("Mã OTP đã hết hạn.");
         }
 
         User user = resetOTP.getUser();
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("User associated with OTP not found.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Không tìm thấy người dùng liên kết với OTP.");
         }
 
         user.setPasswordHash(passwordEncoder.encode(otpRequest.getNewPassword()));
@@ -409,6 +381,6 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
 
         emailService.resetPasswordEmail(user.getEmail(), null);
 
-        return ResponseEntity.ok().body("Password has been reset successfully.");
+        return ResponseEntity.ok().body("Mật khẩu đã được đặt lại thành công.");
     }
 }

@@ -60,8 +60,15 @@ public class SecurityConfig {
                 .requestMatchers("/favicon.ico").permitAll()
                 .requestMatchers("/ws/**").permitAll() // WebSocket endpoints
                 
+                // Chat APIs - Require authentication
+                .requestMatchers("/api/chat/**").authenticated()
+                
                 // Homepage & Blog - Public content
-                .requestMatchers(HttpMethod.GET, "/api/homepage/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/homepage/featured-doctors").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/homepage/latest-blog-posts").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/homepage/consultants").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/homepage/details").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/homepage/blog/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/blog/posts/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/blog/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/qa/faq").permitAll()
@@ -73,6 +80,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/cloudinary/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/cloudinary/**").permitAll()
                 .requestMatchers(HttpMethod.DELETE, "/api/cloudinary/**").permitAll()
+                
+                // Default Images APIs
+                .requestMatchers(HttpMethod.GET, "/api/default-images/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/default-images/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
+                .requestMatchers(HttpMethod.PUT, "/api/default-images/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
+                .requestMatchers(HttpMethod.DELETE, "/api/default-images/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_MANAGER")
                 
                 // Avatar APIs - Require authentication
                 .requestMatchers(HttpMethod.POST, "/api/user/avatar/upload").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
@@ -91,6 +104,21 @@ public class SecurityConfig {
                 .requestMatchers("/api/consultation/user-bookings").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
                 .requestMatchers("/api/feedback/consultation").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
                 
+                // ========== DASHBOARD APIs ==========
+                .requestMatchers(HttpMethod.GET, "/api/homepage/stats").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/homepage/notifications").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/homepage/upcoming-appointments").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/homepage/notifications/*/mark-read").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/homepage/notifications/mark-all-read").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
+                
+                // ========== NOTIFICATION APIs ==========
+                .requestMatchers(HttpMethod.GET, "/api/notifications").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/notifications/type/*").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/notifications/unread-count").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/notifications/*/read").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/notifications/mark-all-read").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/notifications/create-sample").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
+                
                 // ========== CONSULTANT APIs ==========
                 .requestMatchers("/api/consultant/**").hasAnyAuthority("ROLE_CONSULTANT", "ROLE_MANAGER", "ROLE_ADMIN")
                 .requestMatchers("/api/consultation/consultant-bookings").hasAnyAuthority("ROLE_CONSULTANT", "ROLE_MANAGER", "ROLE_ADMIN")
@@ -105,6 +133,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/api/booking/*/status").hasAnyAuthority("ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/booking/*/admin").hasAnyAuthority("ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
                 .requestMatchers("/api/services/testing-services/bookings/*/results").hasAnyAuthority("ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/staff/dashboard/stats").hasAnyAuthority("ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
                 
                 // ========== MANAGER APIs ==========
                 .requestMatchers(HttpMethod.GET, "/api/admin/consultants/**").hasAnyAuthority("ROLE_MANAGER", "ROLE_ADMIN")

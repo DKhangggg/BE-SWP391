@@ -14,7 +14,7 @@ import java.util.List;
 @Setter
 @Entity
 @Table(name = "Conversations")
-public class Chat {
+public class Conversation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ConversationID", nullable = false)
@@ -106,4 +106,4 @@ public class Chat {
     public void resetConsultantUnread() {
         this.consultantUnreadCount = 0;
     }
-}
+} 

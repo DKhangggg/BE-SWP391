@@ -1,296 +1,360 @@
 package com.example.gender_healthcare_service.service.impl;
 
-import com.example.gender_healthcare_service.dto.request.ChatMessageRequestDTO;
-import com.example.gender_healthcare_service.dto.response.ChatMessageResponseDTO;
-import com.example.gender_healthcare_service.dto.response.ChatConversationResponseDTO;
-import com.example.gender_healthcare_service.entity.ChatMessage;
-import com.example.gender_healthcare_service.entity.ChatConversation;
-import com.example.gender_healthcare_service.entity.User;
+import com.example.gender_healthcare_service.dto.request.MessageRequestDTO;
+import com.example.gender_healthcare_service.dto.response.ConversationResponseDTO;
+import com.example.gender_healthcare_service.dto.response.AvailableConsultantResponseDTO;
+import com.example.gender_healthcare_service.dto.response.MessageResponseDTO;
+import com.example.gender_healthcare_service.entity.Chat;
 import com.example.gender_healthcare_service.entity.Consultant;
-import com.example.gender_healthcare_service.repository.ChatMessageRepository;
-import com.example.gender_healthcare_service.repository.ChatConversationRepository;
-import com.example.gender_healthcare_service.repository.UserRepository;
+import com.example.gender_healthcare_service.entity.Message;
+import com.example.gender_healthcare_service.entity.User;
+import com.example.gender_healthcare_service.repository.ChatRepository;
 import com.example.gender_healthcare_service.repository.ConsultantRepository;
+import com.example.gender_healthcare_service.repository.MessageRepository;
+import com.example.gender_healthcare_service.repository.UserRepository;
 import com.example.gender_healthcare_service.service.ChatService;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    @Autowired
-    private ChatMessageRepository chatMessageRepository;
-
-    @Autowired
-    private ChatConversationRepository chatConversationRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ConsultantRepository consultantRepository;
-
-    @Autowired
-    private ModelMapper modelMapper;
-
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private final ChatRepository chatRepository;
+    private final UserRepository userRepository;
+    private final ConsultantRepository consultantRepository;
+    private final MessageRepository messageRepository;
+    private final ModelMapper modelMapper;
 
     @Override
-    @Transactional
-    public ChatMessageResponseDTO sendMessage(Authentication authentication, ChatMessageRequestDTO request) {
-        String username = authentication.getName();
-        User sender = userRepository.findUserByUsername(username);
-        if (sender == null) {
-            throw new RuntimeException("Không tìm thấy người gửi");
-        }
-
-        User receiver = userRepository.findById(request.getReceiverId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người nhận"));
-
-        // Tạo tin nhắn
-        ChatMessage message = new ChatMessage();
-        message.setSender(sender);
-        message.setReceiver(receiver);
-        message.setContent(request.getContent());
-        message.setMessageType(request.getMessageType());
-        message.setIsRead(false);
-
-        ChatMessage savedMessage = chatMessageRepository.save(message);
-
-        // Cập nhật hoặc tạo conversation
-        updateOrCreateConversation(sender, receiver, request.getContent());
-
-        // Gửi tin nhắn qua WebSocket
-        ChatMessageResponseDTO messageDTO = convertToMessageDTO(savedMessage);
-        messagingTemplate.convertAndSendToUser(
-                receiver.getId().toString(),
-                "/queue/chat",
-                messageDTO
-        );
-
-        return messageDTO;
-    }
-
-    @Override
-    public List<ChatMessageResponseDTO> getMessagesBetweenUsers(Authentication authentication, Integer otherUserId) {
-        String username = authentication.getName();
+    @Transactional(readOnly = true)
+    public List<ConversationResponseDTO> getConversations() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findUserByUsername(username);
-        if (currentUser == null) {
-            throw new RuntimeException("Không tìm thấy người dùng");
-        }
-
-        List<ChatMessage> messages = chatMessageRepository.findMessagesBetweenUsers(currentUser.getId(), otherUserId);
-        return messages.stream()
-                .map(this::convertToMessageDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<ChatMessageResponseDTO> getMessagesWithPagination(Authentication authentication, Integer otherUserId, int page, int size) {
-        String username = authentication.getName();
-        User currentUser = userRepository.findUserByUsername(username);
-        if (currentUser == null) {
-            throw new RuntimeException("Không tìm thấy người dùng");
-        }
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<ChatMessage> messagePage = chatMessageRepository.findMessagesBetweenUsersWithPagination(
-                currentUser.getId(), otherUserId, pageable);
-
-        return messagePage.getContent().stream()
-                .map(this::convertToMessageDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional
-    public void markMessagesAsRead(Authentication authentication, Integer senderId) {
-        String username = authentication.getName();
-        User currentUser = userRepository.findUserByUsername(username);
-        if (currentUser == null) {
-            throw new RuntimeException("Không tìm thấy người dùng");
-        }
-
-        List<ChatMessage> unreadMessages = chatMessageRepository.findByReceiverIdAndIsReadFalseOrderByCreatedAtAsc(currentUser.getId());
         
-        for (ChatMessage message : unreadMessages) {
-            if (message.getSender().getId().equals(senderId)) {
-                message.setIsRead(true);
-                message.setReadAt(LocalDateTime.now());
-                chatMessageRepository.save(message);
-            }
-        }
-
-        // Cập nhật unread count trong conversation
-        updateConversationUnreadCount(currentUser.getId(), senderId);
-    }
-
-    @Override
-    public List<ChatConversationResponseDTO> getConversations(Authentication authentication) {
-        String username = authentication.getName();
-        User currentUser = userRepository.findUserByUsername(username);
         if (currentUser == null) {
-            throw new RuntimeException("Không tìm thấy người dùng");
+            throw new RuntimeException("User not found");
         }
 
-        List<ChatConversation> conversations;
+        List<Chat> chats;
         if (currentUser.getRoleName().equals("ROLE_CONSULTANT")) {
-            Consultant consultant = consultantRepository.findByUserId(currentUser.getId());
-            if (consultant == null) {
-                throw new RuntimeException("Không tìm thấy consultant");
-            }
-            conversations = chatConversationRepository.findByConsultantIdOrderByUpdatedAtDesc(consultant.getId());
+            chats = chatRepository.findByConsultant(currentUser);
         } else {
-            conversations = chatConversationRepository.findByUserIdOrderByUpdatedAtDesc(currentUser.getId());
+            chats = chatRepository.findByCustomer(currentUser);
         }
 
-        return conversations.stream()
-                .map(this::convertToConversationDTO)
+        return chats.stream()
+                .filter(chat -> !chat.getIsDeleted())
+                .map(this::mapToConversationResponseDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public ChatConversationResponseDTO getOrCreateConversation(Authentication authentication, Integer consultantId) {
-        String username = authentication.getName();
-        User currentUser = userRepository.findUserByUsername(username);
-        if (currentUser == null) {
-            throw new RuntimeException("Không tìm thấy người dùng");
+    public ConversationResponseDTO createConversation(Integer consultantId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User customer = userRepository.findUserByUsername(username);
+        User consultant = userRepository.findById(consultantId).orElse(null);
+        
+        if (customer == null || consultant == null) {
+            throw new RuntimeException("User not found");
         }
 
-        Consultant consultant = consultantRepository.findById(consultantId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy consultant"));
+        // Kiểm tra xem conversation đã tồn tại chưa
+        Chat existingChat = chatRepository.findByCustomerAndConsultant(customer, consultant);
 
-        Optional<ChatConversation> existingConversation = chatConversationRepository
-                .findByUserIdAndConsultantId(currentUser.getId(), consultantId);
-
-        if (existingConversation.isPresent()) {
-            return convertToConversationDTO(existingConversation.get());
+        if (existingChat != null) {
+            return mapToConversationResponseDTO(existingChat);
         }
 
         // Tạo conversation mới
-        ChatConversation newConversation = new ChatConversation();
-        newConversation.setUser(currentUser);
-        newConversation.setConsultant(consultant);
-        newConversation.setIsActive(true);
-        newConversation.setUnreadCount(0);
+        Chat newChat = new Chat();
+        newChat.setCustomer(customer);
+        newChat.setConsultant(consultant);
+        newChat.setStatus("ACTIVE");
+        newChat.setCreatedAt(LocalDateTime.now());
+        newChat.setIsDeleted(false);
 
-        ChatConversation savedConversation = chatConversationRepository.save(newConversation);
-        return convertToConversationDTO(savedConversation);
+        Chat savedChat = chatRepository.save(newChat);
+        return mapToConversationResponseDTO(savedChat);
     }
 
     @Override
-    public Long getUnreadMessageCount(Authentication authentication) {
-        String username = authentication.getName();
-        User currentUser = userRepository.findUserByUsername(username);
-        if (currentUser == null) {
-            throw new RuntimeException("Không tìm thấy người dùng");
+    @Transactional(readOnly = true)
+    public ConversationResponseDTO getConversationDetails(Integer conversationId) {
+        Chat chat = chatRepository.findById(conversationId).orElse(null);
+        if (chat == null || chat.getIsDeleted()) {
+            throw new RuntimeException("Conversation not found");
         }
 
-        return chatMessageRepository.countUnreadMessages(currentUser.getId());
+        // Kiểm tra quyền truy cập
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(username);
+        
+        if (!chat.getCustomer().getId().equals(currentUser.getId()) && 
+            (chat.getConsultant() == null || !chat.getConsultant().getId().equals(currentUser.getId()))) {
+            throw new RuntimeException("Access denied");
+        }
+
+        return mapToConversationResponseDTO(chat);
     }
 
     @Override
-    public List<ChatMessageResponseDTO> getUnreadMessages(Authentication authentication) {
-        String username = authentication.getName();
-        User currentUser = userRepository.findUserByUsername(username);
-        if (currentUser == null) {
-            throw new RuntimeException("Không tìm thấy người dùng");
+    @Transactional
+    public void deleteConversation(Integer conversationId) {
+        Chat chat = chatRepository.findById(conversationId).orElse(null);
+        if (chat == null) {
+            throw new RuntimeException("Conversation not found");
         }
 
-        List<ChatMessage> unreadMessages = chatMessageRepository.findByReceiverIdAndIsReadFalseOrderByCreatedAtAsc(currentUser.getId());
-        return unreadMessages.stream()
-                .map(this::convertToMessageDTO)
+        // Kiểm tra quyền truy cập
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(username);
+        
+        if (!chat.getCustomer().getId().equals(currentUser.getId()) && 
+            (chat.getConsultant() == null || !chat.getConsultant().getId().equals(currentUser.getId()))) {
+            throw new RuntimeException("Access denied");
+        }
+
+        chat.setIsDeleted(true);
+        chatRepository.save(chat);
+    }
+
+    @Override
+    @Transactional
+    public void markConversationAsRead(Integer conversationId) {
+        Chat chat = chatRepository.findById(conversationId).orElse(null);
+        if (chat == null) {
+            throw new RuntimeException("Conversation not found");
+        }
+
+        // Kiểm tra quyền truy cập
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(username);
+        
+        if (!chat.getCustomer().getId().equals(currentUser.getId()) && 
+            (chat.getConsultant() == null || !chat.getConsultant().getId().equals(currentUser.getId()))) {
+            throw new RuntimeException("Access denied");
+        }
+
+        // Cập nhật trạng thái đã đọc dựa trên role của user
+        
+        if (chat.getCustomer().getId().equals(currentUser.getId())) {
+            chat.resetCustomerUnread();
+        } else if (chat.getConsultant().getId().equals(currentUser.getId())) {
+            chat.resetConsultantUnread();
+        }
+        
+        chatRepository.save(chat);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MessageResponseDTO> getConversationMessages(Integer conversationId) {
+        Chat chat = chatRepository.findById(conversationId).orElse(null);
+        if (chat == null || chat.getIsDeleted()) {
+            throw new RuntimeException("Conversation not found");
+        }
+
+        // Kiểm tra quyền truy cập
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(username);
+        
+        if (!chat.getCustomer().getId().equals(currentUser.getId()) && 
+            (chat.getConsultant() == null || !chat.getConsultant().getId().equals(currentUser.getId()))) {
+            throw new RuntimeException("Access denied");
+        }
+
+        // Lấy tin nhắn từ bảng Messages
+        List<Message> messages = messageRepository.findByConversationOrderByCreatedAtAsc(chat);
+        
+        return messages.stream()
+                .map(this::mapToMessageResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    private void updateOrCreateConversation(User sender, User receiver, String lastMessage) {
-        Optional<ChatConversation> conversationOpt = chatConversationRepository
-                .findByUserIdAndConsultantId(sender.getId(), receiver.getId());
-
-        ChatConversation conversation;
-        if (conversationOpt.isPresent()) {
-            conversation = conversationOpt.get();
-        } else {
-            // Tạo conversation mới
-            Consultant consultant = consultantRepository.findByUserId(receiver.getId());
-            if (consultant == null) {
-                throw new RuntimeException("Người nhận không phải là consultant");
-            }
-
-            conversation = new ChatConversation();
-            conversation.setUser(sender);
-            conversation.setConsultant(consultant);
-            conversation.setIsActive(true);
+    @Override
+    @Transactional
+    public MessageResponseDTO sendMessage(Integer conversationId, MessageRequestDTO messageRequest) {
+        Chat chat = chatRepository.findById(conversationId).orElse(null);
+        if (chat == null || chat.getIsDeleted()) {
+            throw new RuntimeException("Conversation not found");
         }
 
-        conversation.setLastMessage(lastMessage);
-        conversation.setLastMessageTime(LocalDateTime.now());
+        // Kiểm tra quyền truy cập
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(username);
         
-        // Tăng unread count nếu người gửi không phải là chủ conversation
-        if (!sender.getId().equals(conversation.getUser().getId())) {
-            conversation.setUnreadCount(conversation.getUnreadCount() + 1);
+        if (!chat.getCustomer().getId().equals(currentUser.getId()) && 
+            (chat.getConsultant() == null || !chat.getConsultant().getId().equals(currentUser.getId()))) {
+            throw new RuntimeException("Access denied");
         }
 
-        chatConversationRepository.save(conversation);
-    }
+        // Tạo tin nhắn mới
+        Message newMessage = new Message();
+        newMessage.setConversation(chat);
+        newMessage.setSender(currentUser);
+        newMessage.setContent(messageRequest.getContent());
+        newMessage.setMessageType(messageRequest.getMessageType());
+        newMessage.setAttachmentUrl(messageRequest.getAttachmentUrl());
+        newMessage.setFileName(messageRequest.getFileName());
+        newMessage.setFileSize(messageRequest.getFileSize());
+        newMessage.setStatus("SENT");
+        newMessage.setCreatedAt(LocalDateTime.now());
+        newMessage.setIsDeleted(false);
 
-    private void updateConversationUnreadCount(Integer userId, Integer senderId) {
-        Optional<ChatConversation> conversationOpt = chatConversationRepository
-                .findByUserIdAndConsultantId(userId, senderId);
+        Message savedMessage = messageRepository.save(newMessage);
 
-        if (conversationOpt.isPresent()) {
-            ChatConversation conversation = conversationOpt.get();
-            Long unreadCount = chatMessageRepository.countUnreadMessagesFromSender(senderId, userId);
-            conversation.setUnreadCount(unreadCount.intValue());
-            chatConversationRepository.save(conversation);
+        // Cập nhật conversation với tin nhắn mới
+        chat.setLastMessage(messageRequest.getContent());
+        chat.setLastMessageTime(LocalDateTime.now());
+        chat.setStatus("ACTIVE");
+        
+        // Tăng unread count cho người nhận
+        if (chat.getCustomer().getId().equals(currentUser.getId())) {
+            chat.incrementConsultantUnread();
+        } else {
+            chat.incrementCustomerUnread();
         }
+        
+        chatRepository.save(chat);
+
+        return mapToMessageResponseDTO(savedMessage);
     }
 
-    private ChatMessageResponseDTO convertToMessageDTO(ChatMessage message) {
-        ChatMessageResponseDTO dto = new ChatMessageResponseDTO();
-        dto.setId(message.getId());
-        dto.setSenderId(message.getSender().getId());
-        dto.setSenderName(message.getSender().getFullName());
-        dto.setSenderRole(message.getSender().getRoleName());
-        dto.setReceiverId(message.getReceiver().getId());
-        dto.setReceiverName(message.getReceiver().getFullName());
-        dto.setContent(message.getContent());
-        dto.setMessageType(message.getMessageType());
-        dto.setIsRead(message.getIsRead());
-        dto.setCreatedAt(message.getCreatedAt());
-        dto.setReadAt(message.getReadAt());
+    @Override
+    @Transactional(readOnly = true)
+    public Integer getConsultantUnreadCount() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(username);
+        
+        if (currentUser == null || !currentUser.getRoleName().equals("ROLE_CONSULTANT")) {
+            throw new RuntimeException("Access denied");
+        }
+
+        List<Chat> chats = chatRepository.findByConsultant(currentUser);
+        int totalUnread = 0;
+        
+        for (Chat chat : chats) {
+            if (!chat.getIsDeleted()) {
+                totalUnread += chat.getConsultantUnreadCount() != null ? chat.getConsultantUnreadCount() : 0;
+            }
+        }
+        
+        return totalUnread;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConversationResponseDTO> getAvailableCustomers() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(username);
+        
+        if (currentUser == null || !currentUser.getRoleName().equals("ROLE_CONSULTANT")) {
+            throw new RuntimeException("Access denied");
+        }
+
+        List<Chat> chats = chatRepository.findByConsultant(currentUser);
+        return chats.stream()
+                .filter(chat -> !chat.getIsDeleted())
+                .map(this::mapToConversationResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AvailableConsultantResponseDTO> getAvailableConsultants() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findUserByUsername(username);
+        
+        if (currentUser == null) {
+            throw new RuntimeException("User not found");
+        }
+        List<Consultant> consultants = consultantRepository.findAll();
+        return consultants.stream()
+                .filter(consultant -> !consultant.getIsDeleted()) // Chỉ lấy consultant chưa bị xóa
+                .map(consultant -> {
+                    AvailableConsultantResponseDTO dto = new AvailableConsultantResponseDTO();
+                    dto.setConsultantId(consultant.getId());
+                    dto.setConsultantName(consultant.getUser() != null ? consultant.getUser().getFullName() : "Unknown");
+                    dto.setConsultantAvatar(consultant.getUser() != null ? consultant.getProfileImageUrl() : null);
+                    dto.setConsultantSpecialization(consultant.getSpecialization());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private ConversationResponseDTO mapToConversationResponseDTO(Chat chat) {
+        ConversationResponseDTO dto = new ConversationResponseDTO();
+        dto.setId(chat.getId());
+        dto.setCustomerId(chat.getCustomer().getId());
+        dto.setCustomerName(chat.getCustomer().getFullName());
+        dto.setCustomerAvatar(chat.getCustomer().getAvatarUrl());
+        
+        if (chat.getConsultant() != null) {
+            dto.setConsultantId(chat.getConsultant().getId());
+            dto.setConsultantName(chat.getConsultant().getFullName());
+            dto.setConsultantAvatar(chat.getConsultant().getAvatarUrl());
+            
+            // Lấy thông tin consultant
+            Consultant consultant = consultantRepository.findById(chat.getConsultant().getId()).orElse(null);
+            if (consultant != null) {
+                dto.setConsultantSpecialization(consultant.getSpecialization());
+            }
+        }
+        
+        // Lấy tin nhắn cuối cùng từ bảng Messages
+        List<Message> lastMessages = messageRepository.findLastMessageByConversation(chat);
+        if (!lastMessages.isEmpty()) {
+            Message lastMessage = lastMessages.get(0);
+            dto.setLastMessage(lastMessage.getContent());
+            dto.setLastMessageTime(lastMessage.getCreatedAt());
+        } else {
+            // Fallback nếu chưa có tin nhắn
+            dto.setLastMessage(chat.getLastMessage());
+            dto.setLastMessageTime(chat.getLastMessageTime());
+        }
+        
+        dto.setCustomerUnreadCount(chat.getCustomerUnreadCount());
+        dto.setConsultantUnreadCount(chat.getConsultantUnreadCount());
+        dto.setStatus(chat.getStatus());
+        dto.setCreatedAt(chat.getCreatedAt());
+        dto.setUpdatedAt(chat.getUpdatedAt());
+        dto.setIsActive(chat.isActive());
+        
+        // Tính tổng số tin nhắn
+        Long totalMessages = messageRepository.countByConversation(chat);
+        dto.setTotalMessages(totalMessages != null ? totalMessages.intValue() : 0);
+        
         return dto;
     }
 
-    private ChatConversationResponseDTO convertToConversationDTO(ChatConversation conversation) {
-        ChatConversationResponseDTO dto = new ChatConversationResponseDTO();
-        dto.setId(conversation.getId());
-        dto.setUserId(conversation.getUser().getId());
-        dto.setUserName(conversation.getUser().getFullName());
-        dto.setUserAvatar(null); // User entity không có avatar field
-        dto.setConsultantId(conversation.getConsultant().getId());
-        dto.setConsultantName(conversation.getConsultant().getUser().getFullName());
-        dto.setConsultantAvatar(null); // User entity không có avatar field
-        dto.setLastMessage(conversation.getLastMessage());
-        dto.setLastMessageTime(conversation.getLastMessageTime());
-        dto.setUnreadCount(conversation.getUnreadCount());
-        dto.setIsActive(conversation.getIsActive());
-        dto.setCreatedAt(conversation.getCreatedAt());
-        dto.setUpdatedAt(conversation.getUpdatedAt());
+    private MessageResponseDTO mapToMessageResponseDTO(Message message) {
+        MessageResponseDTO dto = new MessageResponseDTO();
+        dto.setId(message.getId());
+        dto.setConversationId(message.getConversation().getId());
+        dto.setSenderId(message.getSender().getId());
+        dto.setSenderName(message.getSender().getFullName());
+        dto.setSenderRole(message.getSender().getRoleName());
+        dto.setContent(message.getContent());
+        dto.setMessageType(message.getMessageType());
+        dto.setAttachmentUrl(message.getAttachmentUrl());
+        dto.setFileName(message.getFileName());
+        dto.setFileSize(message.getFileSize());
+        dto.setStatus(message.getStatus());
+        dto.setCreatedAt(message.getCreatedAt());
+        dto.setReadAt(message.getReadAt());
+        dto.setIsEdited(message.getIsEdited());
+        dto.setEditedAt(message.getEditedAt());
+        dto.setIsDeleted(message.getIsDeleted());
+        
         return dto;
     }
 } 

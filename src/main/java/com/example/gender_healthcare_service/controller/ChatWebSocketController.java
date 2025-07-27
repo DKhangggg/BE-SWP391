@@ -1,7 +1,7 @@
 package com.example.gender_healthcare_service.controller;
 
-import com.example.gender_healthcare_service.dto.request.ChatMessageRequestDTO;
-import com.example.gender_healthcare_service.dto.response.ChatMessageResponseDTO;
+import com.example.gender_healthcare_service.dto.request.MessageRequestDTO;
+import com.example.gender_healthcare_service.dto.response.MessageResponseDTO;
 import com.example.gender_healthcare_service.service.ChatService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,19 +22,18 @@ public class ChatWebSocketController {
     private SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/chat.send")
-    public void sendMessage(@Payload ChatMessageRequestDTO chatMessage, SimpMessageHeaderAccessor headerAccessor) {
+    public void sendMessage(@Payload MessageRequestDTO chatMessage, SimpMessageHeaderAccessor headerAccessor) {
         try {
             // Lấy user từ WebSocket session
             String username = headerAccessor.getUser().getName();
             log.info("Received message from {}: {}", username, chatMessage.getContent());
 
             // Gửi tin nhắn qua service (sẽ lưu vào DB và gửi qua WebSocket)
-            ChatMessageResponseDTO messageDTO = chatService.sendMessage(null, chatMessage);
+            MessageResponseDTO messageDTO = chatService.sendMessage(null, chatMessage);
 
-            // Gửi tin nhắn đến người nhận
-            messagingTemplate.convertAndSendToUser(
-                    chatMessage.getReceiverId().toString(),
-                    "/queue/chat",
+            // Gửi tin nhắn đến người nhận (tạm thời bỏ qua receiverId)
+            messagingTemplate.convertAndSend(
+                    "/topic/chat",
                     messageDTO
             );
 
@@ -75,8 +74,8 @@ public class ChatWebSocketController {
             String username = headerAccessor.getUser().getName();
             log.info("User {} marking messages from {} as read", username, senderId);
 
-            // Đánh dấu tin nhắn đã đọc
-            chatService.markMessagesAsRead(null, senderId);
+            // Đánh dấu tin nhắn đã đọc (tạm thời bỏ qua)
+            // chatService.markMessagesAsRead(null, senderId);
 
             // Gửi thông báo đã đọc đến người gửi
             messagingTemplate.convertAndSendToUser(

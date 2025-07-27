@@ -43,6 +43,16 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
     @Query("SELECT b FROM Booking b WHERE b.customerID = :customer AND b.isDeleted = false")
     List<Booking> findByCustomerIDAndIsDeletedFalse(User customer);
     
+    // Dashboard methods
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.customerID.id = :customerId AND b.status = :status")
+    long countByCustomerID_IdAndStatus(@Param("customerId") Integer customerId, @Param("status") String status);
+    
+    @Query("SELECT b FROM Booking b WHERE b.customerID.id = :customerId AND b.timeSlot.slotDate > :date ORDER BY b.timeSlot.slotDate ASC")
+    List<Booking> findByCustomerID_IdAndTimeSlot_SlotDateAfterOrderByTimeSlot_SlotDateAsc(@Param("customerId") Integer customerId, @Param("date") LocalDate date);
+    
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.customerID.id = :customerId AND b.timeSlot.slotDate > :date")
+    long countByCustomerID_IdAndTimeSlot_SlotDateAfter(@Param("customerId") Integer customerId, @Param("date") LocalDate date);
+    
     // Pagination and filtering methods
     @Query("SELECT b FROM Booking b WHERE b.isDeleted = false")
     Page<Booking> findAllActive(Pageable pageable);

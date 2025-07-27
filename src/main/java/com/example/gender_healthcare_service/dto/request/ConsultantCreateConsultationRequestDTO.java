@@ -7,13 +7,10 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-public class ConsultationBookingRequestDTO {
+public class ConsultantCreateConsultationRequestDTO {
 
     @NotNull(message = "User ID is required")
     private Integer userId;
-
-    @NotNull(message = "Consultant ID is required")
-    private Integer consultantId;
 
     @NotNull(message = "Consultation start time is required")
     @FutureOrPresent(message = "Consultation time must be in the future or present")
@@ -24,6 +21,5 @@ public class ConsultationBookingRequestDTO {
     private LocalDateTime endTime;
 
     private String consultationType; // e.g., "ONLINE", "IN_PERSON"
-
     private String notes;
-}
+} 

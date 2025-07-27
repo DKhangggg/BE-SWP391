@@ -49,4 +49,14 @@ public interface ConsultationRepository extends JpaRepository<Consultation,Integ
     boolean existsByConsultantIdAndTimeSlotAndDate(@Param("consultantId") Integer consultantId, 
                                                   @Param("timeSlotId") Integer timeSlotId, 
                                                   @Param("date") LocalDate date);
+    
+    // Dashboard methods
+    @Query("SELECT COUNT(c) FROM Consultation c WHERE c.customer.id = :customerId AND c.status = :status")
+    long countByCustomer_IdAndStatus(@Param("customerId") Integer customerId, @Param("status") ConsultationStatus status);
+    
+    @Query("SELECT c FROM Consultation c WHERE c.customer.id = :customerId AND c.timeSlot.slotDate > :date ORDER BY c.timeSlot.slotDate ASC")
+    List<Consultation> findByCustomer_IdAndTimeSlot_SlotDateAfterOrderByTimeSlot_SlotDateAsc(@Param("customerId") Integer customerId, @Param("date") LocalDate date);
+    
+    @Query("SELECT COUNT(c) FROM Consultation c WHERE c.customer.id = :customerId AND c.timeSlot.slotDate > :date")
+    long countByCustomer_IdAndTimeSlot_SlotDateAfter(@Param("customerId") Integer customerId, @Param("date") LocalDate date);
 }

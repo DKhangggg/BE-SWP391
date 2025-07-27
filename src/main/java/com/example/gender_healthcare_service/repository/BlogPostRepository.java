@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -23,6 +24,14 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Integer> {
     
     @Query("SELECT b FROM BlogPost b WHERE b.id = :id AND b.isDeleted = false")
     Optional<BlogPost> findByIdAndIsDeletedFalse(@Param("id") Integer id);
+    
+    // ==================== SLUG VALIDATION ====================
+    
+    @Query("SELECT b FROM BlogPost b WHERE b.slug = :slug AND b.isDeleted = false")
+    Optional<BlogPost> findBySlugAndIsDeletedFalse(@Param("slug") String slug);
+    
+    @Query("SELECT COUNT(b) FROM BlogPost b WHERE b.slug = :slug AND b.isDeleted = false")
+    long countBySlugAndIsDeletedFalse(@Param("slug") String slug);
     
     // ==================== SEARCH AND FILTER ====================
     
@@ -37,6 +46,9 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Integer> {
     
     @Query("SELECT b FROM BlogPost b WHERE b.isPublished = true AND b.isDeleted = false ORDER BY b.createdAt DESC")
     Page<BlogPost> findByIsPublishedTrueAndIsDeletedFalse(Pageable pageable);
+    
+    @Query(value = "SELECT TOP(:limit) * FROM BlogPosts b WHERE b.IsPublished = 1 AND b.IsDeleted = 0 ORDER BY b.CreatedAt DESC", nativeQuery = true)
+    List<BlogPost> findLatestPublishedPosts(@Param("limit") int limit);
     
     // ==================== EXISTING METHODS (KEEP FOR COMPATIBILITY) ====================
     

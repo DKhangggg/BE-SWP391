@@ -82,12 +82,12 @@ public class TimeSlot {
     }
 
     // Helper methods
-    public boolean isAvailable() {
+    public boolean isSlotAvailable() {
         return isAvailable && !isDeleted && bookedCount < capacity;
     }
 
     public boolean canAcceptBooking() {
-        return isAvailable();
+        return isSlotAvailable();
     }
 
     public void incrementBookedCount() {
