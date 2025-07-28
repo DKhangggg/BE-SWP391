@@ -109,7 +109,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             String jwt = jwtService.generateToken(authentication);
             String refreshToken = jwtService.generateRefreshToken(authentication);
             emailService.welcomeEmail(newUser.getEmail(), newUser.getFullName());
-            return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken, newUser.getUsername(), newUser.getRoleName(),newUser.getEmail()));
+            return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken, newUser.getId(), newUser.getUsername(), newUser.getRoleName(), newUser.getEmail()));
         }
         return ResponseEntity.badRequest().body("Yêu cầu đăng ký không hợp lệ");
     }
@@ -138,7 +138,7 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             UserResponseDTO userDTO = modelMapper.map(user, UserResponseDTO.class);
             String jwt = jwtService.generateToken(authentication);
             String refreshToken = jwtService.generateRefreshToken(authentication);
-            return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken,user.getFullName(), user.getRoleName(),user.getEmail()));
+            return ResponseEntity.ok(new AuthResponseDTO(jwt, refreshToken, user.getId(), user.getUsername(), user.getRoleName(), user.getEmail(), user.getFullName(), user.getAvatarUrl()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Tên đăng nhập hoặc mật khẩu không đúng");
         }
@@ -300,9 +300,12 @@ public class AuthenticationServiceImpl implements UserDetailsService, Authentica
             AuthResponseDTO response = new AuthResponseDTO(
                     accessToken,
                     refreshToken,
+                    user.getId(),
                     user.getUsername(),
                     user.getRoleName(),
-                    user.getEmail()
+                    user.getEmail(),
+                    user.getFullName(),
+                    user.getAvatarUrl()
             );
             return ResponseEntity.ok(response);
         }catch (Exception e) {

@@ -4,11 +4,11 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class CreateConversationRequestDTO {
+public class ChatCreateConversationRequestDTO {
     
     @NotNull(message = "ID của consultant không được để trống")
     private Integer consultantId;
     
     // Optional: tin nhắn đầu tiên
     private String initialMessage;
-} 
+}

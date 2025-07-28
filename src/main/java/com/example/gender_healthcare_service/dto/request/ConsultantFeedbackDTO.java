@@ -10,6 +10,8 @@ import lombok.Setter;
 public class ConsultantFeedbackDTO {
     private Integer customerId;
     private Integer consultantId;
+    private Integer consultationId; // Thêm consultationId
+    private Integer bookingId; // Thêm bookingId
     private String comment;
     private Integer rating;
 }

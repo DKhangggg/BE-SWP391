@@ -16,4 +16,11 @@ public class ConsultationBookingResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String notes;
+    private String meetingLink;
+    
+    // Feedback info
+    private Boolean hasFeedback;
+    private Integer feedbackRating;
+    private String feedbackComment;
+    private LocalDateTime feedbackCreatedAt;
 }

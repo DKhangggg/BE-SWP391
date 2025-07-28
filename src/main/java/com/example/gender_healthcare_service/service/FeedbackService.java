@@ -15,5 +15,8 @@ public interface FeedbackService  {
     void deleteFeedback(Integer id);
 
     FeedbackResponseDTO submitConsultationFeedback(ConsultantFeedbackDTO feedbackDTO);
+    FeedbackResponseDTO updateFeedback(Integer id, ConsultantFeedbackDTO feedbackDTO);
     List<FeedbackResponseDTO> getConsultantFeedback(Long consultantId);
+    FeedbackResponseDTO getConsultationFeedback(Integer consultationId);
+    FeedbackResponseDTO getBookingFeedback(Integer bookingId);
 }

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
+import org.hibernate.annotations.Nationalized;
 
 @Getter
 @Setter
@@ -21,12 +22,15 @@ public class Symptom {
     @Column(name = "SymptomID")
     private Integer id;
 
+    @Nationalized
     @Column(name = "SymptomName", nullable = false, unique = true)
     private String symptomName;
 
+    @Nationalized
     @Column(name = "Category")
     private String category;
 
+    @Nationalized
     @Column(name = "Description")
     private String description;
 

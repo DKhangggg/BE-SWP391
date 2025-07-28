@@ -213,6 +213,8 @@ public class ConsultantController {
         }
     }
 
+    // ✅ TẠMTHỜI DISABLE CHAT API
+    /*
     @GetMapping("/messages/unread-count")
     public ResponseEntity<?> getUnreadMessagesCount() {
         try {
@@ -222,6 +224,7 @@ public class ConsultantController {
             return ResponseEntity.status(400).body("Failed to get unread messages count: " + e.getMessage());
         }
     }
+    */
 
 
     @GetMapping("/revenue")

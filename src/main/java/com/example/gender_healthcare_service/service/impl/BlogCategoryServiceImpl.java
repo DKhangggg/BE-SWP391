@@ -27,43 +27,74 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
 
     @Override
     public List<BlogCategory> getAllCategories() {
-        return blogCategoryRepository.findAll();
+        return blogCategoryRepository.findAllActive();
     }
 
     @Override
     public BlogCategory getCategoryById(Integer categoryId) throws Exception {
-        return blogCategoryRepository.findById(categoryId)
+        return blogCategoryRepository.findByIdAndIsDeletedFalse(categoryId)
                 .orElseThrow(() -> new Exception("Không tìm thấy danh mục với ID: " + categoryId));
     }
 
     @Override
     public BlogCategory createCategory(BlogCategoryRequestDTO blogCategoryRequestDTO) throws Exception {
-        BlogCategory existingCategory = blogCategoryRepository.findByCategoryName(blogCategoryRequestDTO.getName());
-        if (existingCategory != null) {
+        // Kiểm tra tên danh mục đã tồn tại
+        BlogCategory existingCategory = blogCategoryRepository.findByCategoryName(blogCategoryRequestDTO.getCategoryName());
+        if (existingCategory != null && !existingCategory.getIsDeleted()) {
             throw new Exception("Đã tồn tại danh mục với tên này");
         }
 
+        // Tạo slug nếu không được cung cấp
+        String slug = blogCategoryRequestDTO.getSlug();
+        if (slug == null || slug.trim().isEmpty()) {
+            slug = generateSlug(blogCategoryRequestDTO.getCategoryName());
+        }
+
+        // Kiểm tra slug đã tồn tại
+        if (blogCategoryRepository.findBySlug(slug).isPresent()) {
+            throw new Exception("Đã tồn tại danh mục với slug này");
+        }
+
         BlogCategory blogCategory = new BlogCategory();
-        blogCategory.setCategoryName(blogCategoryRequestDTO.getName());
+        blogCategory.setCategoryName(blogCategoryRequestDTO.getCategoryName());
+        blogCategory.setSlug(slug);
         blogCategory.setDescription(blogCategoryRequestDTO.getDescription());
+        blogCategory.setThumbnailUrl(blogCategoryRequestDTO.getThumbnailUrl());
         blogCategory.setCreatedAt(LocalDateTime.now());
         blogCategory.setUpdatedAt(LocalDateTime.now());
+        blogCategory.setIsDeleted(false);
 
         return blogCategoryRepository.save(blogCategory);
     }
 
     @Override
     public BlogCategory updateCategory(Integer categoryId, BlogCategoryRequestDTO blogCategoryRequestDTO) throws Exception {
-        BlogCategory existingCategory = blogCategoryRepository.findById(categoryId)
+        BlogCategory existingCategory = blogCategoryRepository.findByIdAndIsDeletedFalse(categoryId)
                 .orElseThrow(() -> new Exception("Không tìm thấy danh mục với ID: " + categoryId));
 
-        BlogCategory categoryWithSameName = blogCategoryRepository.findByCategoryName(blogCategoryRequestDTO.getName());
-        if (categoryWithSameName != null && !categoryWithSameName.getCategoryID().equals(categoryId)) {
+        // Kiểm tra tên danh mục đã tồn tại
+        BlogCategory categoryWithSameName = blogCategoryRepository.findByCategoryName(blogCategoryRequestDTO.getCategoryName());
+        if (categoryWithSameName != null && !categoryWithSameName.getCategoryID().equals(categoryId) && !categoryWithSameName.getIsDeleted()) {
             throw new Exception("Đã tồn tại danh mục khác với tên này");
         }
 
-        existingCategory.setCategoryName(blogCategoryRequestDTO.getName());
+        // Xử lý slug
+        String slug = blogCategoryRequestDTO.getSlug();
+        if (slug == null || slug.trim().isEmpty()) {
+            slug = generateSlug(blogCategoryRequestDTO.getCategoryName());
+        }
+
+        // Kiểm tra slug đã tồn tại (trừ chính nó)
+        blogCategoryRepository.findBySlug(slug).ifPresent(category -> {
+            if (!category.getCategoryID().equals(categoryId)) {
+                throw new RuntimeException("Đã tồn tại danh mục với slug này");
+            }
+        });
+
+        existingCategory.setCategoryName(blogCategoryRequestDTO.getCategoryName());
+        existingCategory.setSlug(slug);
         existingCategory.setDescription(blogCategoryRequestDTO.getDescription());
+        existingCategory.setThumbnailUrl(blogCategoryRequestDTO.getThumbnailUrl());
         existingCategory.setUpdatedAt(LocalDateTime.now());
 
         return blogCategoryRepository.save(existingCategory);
@@ -71,20 +102,25 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
 
     @Override
     public boolean deleteCategory(Integer categoryId) throws Exception {
-        BlogCategory category = blogCategoryRepository.findById(categoryId)
+        BlogCategory category = blogCategoryRepository.findByIdAndIsDeletedFalse(categoryId)
                 .orElseThrow(() -> new Exception("Không tìm thấy danh mục với ID: " + categoryId));
 
-        if (category.getBlogPosts() != null && !category.getBlogPosts().isEmpty()) {
+        // Kiểm tra có bài viết liên quan không (chỉ kiểm tra bài viết chưa bị xóa)
+        if (category.getBlogPosts() != null &&
+            category.getBlogPosts().stream().anyMatch(post -> !post.getIsDeleted())) {
             throw new Exception("Không thể xóa danh mục vì có bài viết liên quan");
         }
 
-        blogCategoryRepository.delete(category);
+        // Soft delete
+        category.setIsDeleted(true);
+        category.setUpdatedAt(LocalDateTime.now());
+        blogCategoryRepository.save(category);
         return true;
     }
 
     @Override
     public BlogCategoryWithPostsDTO getCategoryWithPosts(Integer categoryId) throws Exception {
-        BlogCategory category = blogCategoryRepository.findById(categoryId)
+        BlogCategory category = blogCategoryRepository.findByIdAndIsDeletedFalse(categoryId)
                 .orElseThrow(() -> new Exception("Không tìm thấy danh mục với ID: " + categoryId));
 
         return mapCategoryToWithPostsDTO(category);
@@ -92,7 +128,7 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
 
     @Override
     public List<BlogCategoryWithPostsDTO> getAllCategoriesWithPosts() {
-        List<BlogCategory> categories = blogCategoryRepository.findAll();
+        List<BlogCategory> categories = blogCategoryRepository.findAllActive();
         return categories.stream()
                 .map(this::mapCategoryToWithPostsDTO)
                 .collect(Collectors.toList());
@@ -107,6 +143,7 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
         List<BlogPostMinimalDTO> postDTOs = new ArrayList<>();
         if (category.getBlogPosts() != null) {
             postDTOs = category.getBlogPosts().stream()
+                    .filter(post -> !post.getIsDeleted() && post.getIsPublished())
                     .map(post -> mapToMinimalPostDTO(post))
                     .collect(Collectors.toList());
         }
@@ -121,5 +158,28 @@ public class BlogCategoryServiceImpl implements BlogCategoryService {
                 post.getTitle(),
                 post.getCreatedAt()
         );
+    }
+
+    /**
+     * Tạo slug từ tên danh mục
+     */
+    private String generateSlug(String categoryName) {
+        if (categoryName == null || categoryName.trim().isEmpty()) {
+            return "";
+        }
+
+        return categoryName.toLowerCase()
+                .trim()
+                .replaceAll("[àáạảãâầấậẩẫăằắặẳẵ]", "a")
+                .replaceAll("[èéẹẻẽêềếệểễ]", "e")
+                .replaceAll("[ìíịỉĩ]", "i")
+                .replaceAll("[òóọỏõôồốộổỗơờớợởỡ]", "o")
+                .replaceAll("[ùúụủũưừứựửữ]", "u")
+                .replaceAll("[ỳýỵỷỹ]", "y")
+                .replaceAll("[đ]", "d")
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 }

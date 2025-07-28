@@ -1,6 +1,7 @@
 package com.example.gender_healthcare_service.config;
 
 import com.example.gender_healthcare_service.entity.*;
+import com.example.gender_healthcare_service.entity.enumpackage.QuestionStatus;
 import com.example.gender_healthcare_service.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,9 @@ public class DataInitializer implements CommandLineRunner {
     private final ConsultantScheduleRepository consultantScheduleRepository;
     private final ReminderRepository reminderRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final FeedbackRepository feedbackRepository;
+    private final QuestionRepository questionRepository;
+    private final AnswerRepository answerRepository;
 
     @Override
     @Transactional
@@ -101,6 +105,20 @@ public class DataInitializer implements CommandLineRunner {
                 createReminders();
             } else {
                 log.info("✅ Reminders đã tồn tại, bỏ qua tạo reminders");
+            }
+            
+            // 9. Tạo Feedback (nếu chưa có)
+            if (feedbackRepository.count() == 0) {
+                createFeedbacks();
+            } else {
+                log.info("✅ Feedbacks đã tồn tại, bỏ qua tạo feedbacks");
+            }
+            
+            // 10. Tạo Questions và Answers (nếu chưa có)
+            if (questionRepository.count() == 0) {
+                createQuestionsAndAnswers();
+            } else {
+                log.info("✅ Questions và Answers đã tồn tại, bỏ qua tạo questions");
             }
             
             log.info("✅ Khởi tạo dữ liệu mẫu thành công!");
@@ -181,6 +199,41 @@ public class DataInitializer implements CommandLineRunner {
         customer.setUpdatedAt(LocalDateTime.now());
         customer.setIsDeleted(false);
         
+        // Customer User
+        User customer2 = new User();
+        customer2.setUsername("customer2");
+        customer2.setPasswordHash(passwordEncoder.encode("1"));
+        customer2.setEmail("customer2@example.com");
+        customer2.setFullName("Nggọc Anh");
+        customer2.setPhoneNumber("0123456122");
+        customer2.setRoleName("ROLE_CUSTOMER");
+        customer2.setDescription("Regular Customer");
+        customer2.setDateOfBirth(LocalDate.of(1995, 11, 25));
+        customer2.setAddress("HCM, Việt Nam");
+        customer2.setGender("Female");
+        customer2.setMedicalHistory("Không có");
+        customer2.setCreatedAt(LocalDateTime.now());
+        customer2.setUpdatedAt(LocalDateTime.now());
+        customer2.setIsDeleted(false);
+        
+         // Customer User
+         User customer3 = new User();
+         customer3.setUsername("customer3");
+         customer3.setPasswordHash(passwordEncoder.encode("1"));
+         customer3.setEmail("customer3@example.com");
+         customer3.setFullName("Mina Anh");
+         customer3.setPhoneNumber("0123456169");
+         customer3.setRoleName("ROLE_CUSTOMER");
+         customer3.setDescription("Regular Customer");
+         customer3.setDateOfBirth(LocalDate.of(1995, 11, 24));
+         customer3.setAddress("Tây Ninh, Việt Nam");
+         customer3.setGender("Female");
+         customer3.setMedicalHistory("Không có");
+         customer3.setCreatedAt(LocalDateTime.now());
+         customer3.setUpdatedAt(LocalDateTime.now());
+         customer3.setIsDeleted(false);
+    
+
         userRepository.saveAll(Arrays.asList(admin, manager, staff, customer));
         log.info("✅ Đã tạo {} users", userRepository.count());
     }
@@ -593,6 +646,208 @@ public class DataInitializer implements CommandLineRunner {
         
         reminderRepository.saveAll(reminders);
         log.info("✅ Đã tạo {} reminders", reminderRepository.count());
+    }
+
+    private void createFeedbacks() {
+        log.info("💬 Tạo Feedbacks...");
+        
+        // Lấy customers
+        User customer1 = userRepository.findUserByUsername("customer");
+        User customer2 = userRepository.findUserByUsername("customer2");
+        User customer3 = userRepository.findUserByUsername("customer3");
+        
+        // Lấy consultants
+        List<Consultant> consultants = consultantRepository.findAll();
+        
+        if (customer1 == null || customer2 == null || customer3 == null) {
+            log.warn("⚠️ Không có đủ customers để tạo feedbacks");
+            return;
+        }
+        
+        if (consultants.isEmpty()) {
+            log.warn("⚠️ Không có consultants để tạo feedbacks");
+            return;
+        }
+        
+        List<Feedback> feedbacks = new ArrayList<>();
+        
+        // Feedback từ customer1 cho consultant1
+        Feedback feedback1 = new Feedback();
+        feedback1.setCustomer(customer1);
+        feedback1.setConsultant(consultants.get(0).getUser());
+        feedback1.setRating(5);
+        feedback1.setComment("Bác sĩ rất tận tâm và chuyên nghiệp. Tôi rất hài lòng với dịch vụ tư vấn!");
+        feedback1.setCreatedAt(LocalDateTime.now().minusDays(5));
+        feedback1.setIsDeleted(false);
+        feedbacks.add(feedback1);
+        
+        // Feedback từ customer2 cho consultant2
+        Feedback feedback2 = new Feedback();
+        feedback2.setCustomer(customer2);
+        feedback2.setConsultant(consultants.get(1).getUser());
+        feedback2.setRating(4);
+        feedback2.setComment("Bác sĩ giải thích rất rõ ràng và dễ hiểu. Cảm ơn bác sĩ đã tư vấn!");
+        feedback2.setCreatedAt(LocalDateTime.now().minusDays(3));
+        feedback2.setIsDeleted(false);
+        feedbacks.add(feedback2);
+        
+        // Feedback từ customer3 cho consultant3
+        Feedback feedback3 = new Feedback();
+        feedback3.setCustomer(customer3);
+        feedback3.setConsultant(consultants.get(2).getUser());
+        feedback3.setRating(5);
+        feedback3.setComment("Dịch vụ rất tốt, bác sĩ rất kiên nhẫn và tận tâm. Tôi sẽ giới thiệu cho bạn bè!");
+        feedback3.setCreatedAt(LocalDateTime.now().minusDays(1));
+        feedback3.setIsDeleted(false);
+        feedbacks.add(feedback3);
+        
+        // Feedback từ customer1 cho consultant2
+        Feedback feedback4 = new Feedback();
+        feedback4.setCustomer(customer1);
+        feedback4.setConsultant(consultants.get(1).getUser());
+        feedback4.setRating(4);
+        feedback4.setComment("Bác sĩ rất giỏi và có kinh nghiệm. Tôi rất tin tưởng!");
+        feedback4.setCreatedAt(LocalDateTime.now().minusDays(2));
+        feedback4.setIsDeleted(false);
+        feedbacks.add(feedback4);
+        
+        // Feedback từ customer2 cho consultant3
+        Feedback feedback5 = new Feedback();
+        feedback5.setCustomer(customer2);
+        feedback5.setConsultant(consultants.get(2).getUser());
+        feedback5.setRating(5);
+        feedback5.setComment("Bác sĩ rất tận tâm và chuyên nghiệp. Tôi rất hài lòng!");
+        feedback5.setCreatedAt(LocalDateTime.now().minusDays(4));
+        feedback5.setIsDeleted(false);
+        feedbacks.add(feedback5);
+        
+        feedbackRepository.saveAll(feedbacks);
+        log.info("✅ Đã tạo {} feedbacks", feedbackRepository.count());
+    }
+
+    private void createQuestionsAndAnswers() {
+        log.info("❓ Tạo Questions và Answers...");
+        
+        // Lấy customers
+        User customer1 = userRepository.findUserByUsername("customer");
+        User customer2 = userRepository.findUserByUsername("customer2");
+        User customer3 = userRepository.findUserByUsername("customer3");
+        
+        // Lấy consultants
+        List<Consultant> consultants = consultantRepository.findAll();
+        
+        if (customer1 == null || customer2 == null || customer3 == null) {
+            log.warn("⚠️ Không có đủ customers để tạo questions");
+            return;
+        }
+        
+        if (consultants.isEmpty()) {
+            log.warn("⚠️ Không có consultants để tạo answers");
+            return;
+        }
+        
+        List<Question> questions = new ArrayList<>();
+        List<Answer> answers = new ArrayList<>();
+        
+        // Question 1 từ customer1
+        Question question1 = new Question();
+        question1.setUser(customer1);
+        question1.setCategory("general");
+        question1.setContent("Tôi muốn hỏi về chu kỳ kinh nguyệt không đều. Có cách nào để điều hòa không?");
+        question1.setStatus(QuestionStatus.ANSWERED);
+        question1.setPublic(true);
+        question1.setAnswered(true);
+        question1.setCreatedAt(LocalDateTime.now().minusDays(10));
+        question1.setUpdatedAt(LocalDateTime.now().minusDays(8));
+        question1.setDeleted(false);
+        questions.add(question1);
+        
+        // Answer 1 từ consultant1
+        Answer answer1 = new Answer();
+        answer1.setQuestion(question1);
+        answer1.setConsultant(consultants.get(0));
+        answer1.setContent("Chào bạn! Chu kỳ kinh nguyệt không đều có thể do nhiều nguyên nhân như stress, thay đổi chế độ ăn, hoặc các vấn đề về hormone. Bạn nên: 1) Duy trì lối sống lành mạnh, 2) Tập thể dục đều đặn, 3) Ăn uống đầy đủ dinh dưỡng, 4) Khám phụ khoa định kỳ. Nếu tình trạng kéo dài, bạn nên đến gặp bác sĩ để được tư vấn cụ thể hơn.");
+        answer1.setCreatedAt(LocalDateTime.now().minusDays(8));
+        answer1.setUpdatedAt(LocalDateTime.now().minusDays(8));
+        answer1.setDeleted(false);
+        answers.add(answer1);
+        
+        // Question 2 từ customer2
+        Question question2 = new Question();
+        question2.setUser(customer2);
+        question2.setCategory("contraception");
+        question2.setContent("Tôi đang tìm hiểu về các phương pháp tránh thai. Bác sĩ có thể tư vấn giúp tôi không?");
+        question2.setStatus(QuestionStatus.ANSWERED);
+        question2.setPublic(true);
+        question2.setAnswered(true);
+        question2.setCreatedAt(LocalDateTime.now().minusDays(7));
+        question2.setUpdatedAt(LocalDateTime.now().minusDays(6));
+        question2.setDeleted(false);
+        questions.add(question2);
+        
+        // Answer 2 từ consultant2
+        Answer answer2 = new Answer();
+        answer2.setQuestion(question2);
+        answer2.setConsultant(consultants.get(1));
+        answer2.setContent("Có nhiều phương pháp tránh thai hiệu quả như: 1) Thuốc tránh thai đường uống, 2) Vòng tránh thai, 3) Bao cao su, 4) Thuốc tiêm tránh thai, 5) Cấy que tránh thai. Mỗi phương pháp có ưu nhược điểm riêng. Bạn nên đến gặp bác sĩ để được tư vấn chọn phương pháp phù hợp nhất với tình trạng sức khỏe và nhu cầu của mình.");
+        answer2.setCreatedAt(LocalDateTime.now().minusDays(6));
+        answer2.setUpdatedAt(LocalDateTime.now().minusDays(6));
+        answer2.setDeleted(false);
+        answers.add(answer2);
+        
+        // Question 3 từ customer3
+        Question question3 = new Question();
+        question3.setUser(customer3);
+        question3.setCategory("menstruation");
+        question3.setContent("Tôi thường bị đau bụng kinh rất nhiều. Có cách nào giảm đau hiệu quả không?");
+        question3.setStatus(QuestionStatus.ANSWERED);
+        question3.setPublic(true);
+        question3.setAnswered(true);
+        question3.setCreatedAt(LocalDateTime.now().minusDays(5));
+        question3.setUpdatedAt(LocalDateTime.now().minusDays(4));
+        question3.setDeleted(false);
+        questions.add(question3);
+        
+        // Answer 3 từ consultant3
+        Answer answer3 = new Answer();
+        answer3.setQuestion(question3);
+        answer3.setConsultant(consultants.get(2));
+        answer3.setContent("Đau bụng kinh có thể được giảm thiểu bằng các cách sau: 1) Chườm ấm vùng bụng dưới, 2) Massage nhẹ nhàng, 3) Tập thể dục nhẹ như yoga, đi bộ, 4) Uống đủ nước, 5) Ăn thực phẩm giàu omega-3, 6) Dùng thuốc giảm đau theo chỉ định của bác sĩ. Nếu đau quá mức, bạn nên khám để kiểm tra có bệnh lý gì không.");
+        answer3.setCreatedAt(LocalDateTime.now().minusDays(4));
+        answer3.setUpdatedAt(LocalDateTime.now().minusDays(4));
+        answer3.setDeleted(false);
+        answers.add(answer3);
+        
+        // Question 4 từ customer1 (chưa trả lời)
+        Question question4 = new Question();
+        question4.setUser(customer1);
+        question4.setCategory("pregnancy");
+        question4.setContent("Tôi đang mang thai tháng thứ 3. Cần lưu ý gì về dinh dưỡng không?");
+        question4.setStatus(QuestionStatus.PENDING);
+        question4.setPublic(true);
+        question4.setAnswered(false);
+        question4.setCreatedAt(LocalDateTime.now().minusDays(2));
+        question4.setUpdatedAt(LocalDateTime.now().minusDays(2));
+        question4.setDeleted(false);
+        questions.add(question4);
+        
+        // Question 5 từ customer2 (chưa trả lời)
+        Question question5 = new Question();
+        question5.setUser(customer2);
+        question5.setCategory("sti");
+        question5.setContent("Tôi muốn tìm hiểu về các bệnh lây truyền qua đường tình dục. Cách phòng ngừa hiệu quả là gì?");
+        question5.setStatus(QuestionStatus.PENDING);
+        question5.setPublic(true);
+        question5.setAnswered(false);
+        question5.setCreatedAt(LocalDateTime.now().minusDays(1));
+        question5.setUpdatedAt(LocalDateTime.now().minusDays(1));
+        question5.setDeleted(false);
+        questions.add(question5);
+        
+        questionRepository.saveAll(questions);
+        answerRepository.saveAll(answers);
+        
+        log.info("✅ Đã tạo {} questions và {} answers", questionRepository.count(), answerRepository.count());
     }
 
     private void createBlogPosts() {

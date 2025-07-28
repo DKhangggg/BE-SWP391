@@ -102,44 +102,6 @@ public class UserController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(ApiResponse.error("Bạn chưa đăng nhập"));
             }
-
-            // Tạo các notification mẫu
-            notificationService.createNotification(
-                currentUser,
-                "Kết quả xét nghiệm",
-                "Kết quả xét nghiệm của bạn đã sẵn sàng. Vui lòng kiểm tra trong hồ sơ.",
-                "/user/profile",
-                "TEST_RESULT",
-                "Kết quả xét nghiệm đã có sẵn"
-            );
-
-            notificationService.createNotification(
-                currentUser,
-                "Lịch tư vấn",
-                "Bạn có lịch tư vấn vào ngày mai lúc 14:00. Vui lòng chuẩn bị sẵn sàng.",
-                "/user/consultations",
-                "CONSULTATION",
-                "Nhắc nhở lịch tư vấn"
-            );
-
-            notificationService.createNotification(
-                currentUser,
-                "Nhắc nhở chu kỳ",
-                "Theo dự đoán, kỳ kinh của bạn sẽ bắt đầu trong 3 ngày nữa.",
-                "/user/cycle-tracking",
-                "CYCLE_REMINDER",
-                "Nhắc nhở chu kỳ kinh nguyệt"
-            );
-
-            notificationService.createNotification(
-                currentUser,
-                "Câu hỏi được trả lời",
-                "Câu hỏi của bạn về sức khỏe đã được tư vấn viên trả lời.",
-                "/user/qa",
-                "QUESTION_ANSWERED",
-                "Câu hỏi đã được trả lời"
-            );
-
             return ResponseEntity.ok(ApiResponse.success("Tạo notification mẫu thành công", null));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -74,6 +74,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             "/api/services/testing-services/*",   // Xem chi tiết dịch vụ
             "/api/test/**",             // Test endpoints
             
+            // ========== Public Feedback APIs ==========
+            "/api/feedback/consultant/**",        // Xem feedback của consultant
+            "/api/feedback/consultation/*",       // Xem feedback của consultation
+            "/api/feedback/booking/*",            // Xem feedback của booking
+            
             // ========== WebSocket ==========
             "/ws/**",
             "/topic/**",
@@ -96,6 +101,17 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         
         // Đặc biệt xử lý cho blog categories - chỉ GET là public
         if (pathMatcher.match("/api/blog/categories/**", uri)) {
+            return "GET".equals(method);
+        }
+        
+        // Đặc biệt xử lý cho feedback APIs - chỉ GET là public
+        if (pathMatcher.match("/api/feedback/consultant/**", uri)) {
+            return "GET".equals(method);
+        }
+        if (pathMatcher.match("/api/feedback/consultation/*", uri)) {
+            return "GET".equals(method);
+        }
+        if (pathMatcher.match("/api/feedback/booking/*", uri)) {
             return "GET".equals(method);
         }
         

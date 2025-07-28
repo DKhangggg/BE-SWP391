@@ -3,6 +3,7 @@ package com.example.gender_healthcare_service.entity;
 import com.example.gender_healthcare_service.entity.enumpackage.QuestionStatus;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Nationalized;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,9 +25,11 @@ public class Question {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Nationalized
     @Column(name = "category", nullable = false)
     private String category;
 
+    @Nationalized
     @Column(name = "content", nullable = false)
     private String content;
 
@@ -39,6 +42,9 @@ public class Question {
 
     @Column(name = "is_public", nullable = false)
     private boolean isPublic;
+
+    @Column(name = "is_answered", nullable = false)
+    private boolean isAnswered = false;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

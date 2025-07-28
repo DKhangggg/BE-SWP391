@@ -8,9 +8,9 @@ import lombok.Data;
 public class ConsultationConfirmationDTO {
 
     @NotNull(message = "Consultation status is required")
-    private String status; // CONFIRMED, REJECTED
+    private String status; // CONFIRMED, REJECTED, CANCELLED
 
-    @NotBlank(message = "Meeting link is required for confirmed consultations")
+    // meetingLink chỉ bắt buộc khi status là CONFIRMED
     private String meetingLink;
 
     private String notes;

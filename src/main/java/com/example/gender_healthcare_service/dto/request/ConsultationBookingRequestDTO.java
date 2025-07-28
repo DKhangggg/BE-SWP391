@@ -9,9 +9,6 @@ import java.time.LocalDateTime;
 @Data
 public class ConsultationBookingRequestDTO {
 
-    @NotNull(message = "User ID is required")
-    private Integer userId;
-
     @NotNull(message = "Consultant ID is required")
     private Integer consultantId;
 
@@ -23,7 +20,6 @@ public class ConsultationBookingRequestDTO {
     @FutureOrPresent(message = "Consultation end time must be in the future or present")
     private LocalDateTime endTime;
 
-    private String consultationType; // e.g., "ONLINE", "IN_PERSON"
-
     private String notes;
+    private String consultationType;
 }

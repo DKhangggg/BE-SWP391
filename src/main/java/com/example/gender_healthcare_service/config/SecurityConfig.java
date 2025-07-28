@@ -92,6 +92,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/user/avatar/delete").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/user/avatar/check").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
                 
+                // ========== PUBLIC FEEDBACK APIs ==========
+                .requestMatchers(HttpMethod.GET, "/api/feedback/consultant/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/feedback/consultation/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/feedback/booking/*").permitAll()
+                
                 // ========== CUSTOMER/PATIENT APIs ==========
                 .requestMatchers(HttpMethod.POST, "/api/booking").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/booking/my-bookings").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
@@ -102,7 +107,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/qa/user/questions").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
                 .requestMatchers("/api/consultation/book").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
                 .requestMatchers("/api/consultation/user-bookings").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
-                .requestMatchers("/api/feedback/consultation").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/feedback/consultation").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/feedback/*").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/feedback/*").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
                 
                 // ========== DASHBOARD APIs ==========
                 .requestMatchers(HttpMethod.GET, "/api/homepage/stats").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_ADMIN")
@@ -127,7 +134,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/qa/consultant/questions").hasAnyAuthority("ROLE_CONSULTANT", "ROLE_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/blog/posts").hasAnyAuthority("ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/blog/posts/*").hasAnyAuthority("ROLE_CONSULTANT", "ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/feedback/consultant/*").hasAnyAuthority("ROLE_CONSULTANT", "ROLE_MANAGER", "ROLE_ADMIN")
                 
                 // ========== STAFF APIs ==========
                 .requestMatchers(HttpMethod.PATCH, "/api/booking/*/status").hasAnyAuthority("ROLE_STAFF", "ROLE_MANAGER", "ROLE_ADMIN")

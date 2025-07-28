@@ -9,14 +9,16 @@ import com.example.gender_healthcare_service.dto.response.LocationResponseDTO;
 import com.example.gender_healthcare_service.entity.Consultation;
 import com.example.gender_healthcare_service.entity.enumpackage.ConsultationStatus;
 import com.example.gender_healthcare_service.entity.User;
+import com.example.gender_healthcare_service.entity.Feedback;
 import com.example.gender_healthcare_service.service.ConsultationService;
 import com.example.gender_healthcare_service.repository.ConsultationRepository;
 import com.example.gender_healthcare_service.repository.UserRepository;
+import com.example.gender_healthcare_service.repository.FeedbackRepository;
 import com.example.gender_healthcare_service.dto.request.RescheduleBookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateConsultationStatusRequestDTO;
 import com.example.gender_healthcare_service.dto.request.ReminderRequestDTO;
 import com.example.gender_healthcare_service.service.ReminderService;
-import org.modelmapper.ModelMapper;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -44,7 +46,7 @@ public class ConsultationServiceImpl implements ConsultationService {
     private TimeSlotRepository timeSlotRepository;
 
     @Autowired
-    private ModelMapper modelMapper;
+    private FeedbackRepository feedBackRepo;
 
     @Autowired
     private ReminderService reminderService;
@@ -56,7 +58,7 @@ public class ConsultationServiceImpl implements ConsultationService {
          ConsultationStatus consultationStatus = status != null ? ConsultationStatus.valueOf(status.toUpperCase()) : null;
          List<Consultation> consultations = consultationRepository.findWithFilters(date, consultationStatus, userId, consultantId);
          List<ConsultationBookingResponseDTO> responseDTOs = consultations.stream()
-                .map(consultation -> modelMapper.map(consultation, ConsultationBookingResponseDTO.class))
+                .map(this::mapToConsultationBookingResponseDTO)
                 .toList();
          return responseDTOs;
     }
@@ -66,7 +68,7 @@ public class ConsultationServiceImpl implements ConsultationService {
             LocalDate date, String status, Integer userId, Integer consultantId, org.springframework.data.domain.Pageable pageable) {
          ConsultationStatus consultationStatus = status != null ? ConsultationStatus.valueOf(status.toUpperCase()) : null;
          org.springframework.data.domain.Page<Consultation> consultations = consultationRepository.findWithFiltersPaginated(date, consultationStatus, userId, consultantId, pageable);
-         return consultations.map(consultation -> modelMapper.map(consultation, ConsultationBookingResponseDTO.class));
+         return consultations.map(this::mapToConsultationBookingResponseDTO);
     }
 
 
@@ -105,7 +107,7 @@ public class ConsultationServiceImpl implements ConsultationService {
         if (consultation == null) {
                 throw  new RuntimeException("Consultation booking not found: " + bookingId);
         }
-        return modelMapper.map(consultation, ConsultationBookingResponseDTO.class);
+        return mapToConsultationBookingResponseDTO(consultation);
     }
 
     @Override
@@ -123,7 +125,6 @@ public class ConsultationServiceImpl implements ConsultationService {
         ConsultationBookingResponseDTO dto = new ConsultationBookingResponseDTO();
         dto.setId(consultation.getId());
         
-        // Consultant info
         if (consultation.getConsultant() != null) {
             dto.setConsultantId(consultation.getConsultant().getId());
             dto.setConsultantName(consultation.getConsultant().getFullName());
@@ -143,7 +144,20 @@ public class ConsultationServiceImpl implements ConsultationService {
         
         dto.setStatus(consultation.getStatus() != null ? consultation.getStatus().name() : null);
         dto.setNotes(consultation.getNotes());
+        dto.setMeetingLink(consultation.getMeetingLink());
         dto.setCreatedAt(consultation.getCreatedAt());
+        
+        // Feedback info
+        List<Feedback> feedbacks = feedBackRepo.findByConsultation(consultation);
+        if (!feedbacks.isEmpty()) {
+            Feedback feedback = feedbacks.get(0); // Lấy feedback đầu tiên
+            dto.setHasFeedback(true);
+            dto.setFeedbackRating(feedback.getRating());
+            dto.setFeedbackComment(feedback.getComment());
+            dto.setFeedbackCreatedAt(feedback.getCreatedAt());
+        } else {
+            dto.setHasFeedback(false);
+        }
         
         return dto;
     }
@@ -172,7 +186,7 @@ public class ConsultationServiceImpl implements ConsultationService {
         
         List<Consultation> consultations = consultationRepository.findConsultationsByConsultantAndStatus(currentUser, ConsultationStatus.COMPLETED);
         return consultations.stream()
-                .map(consultation -> modelMapper.map(consultation, ConsultationHistoryDTO.class))
+                .map(this::mapToConsultationHistoryDTO)
                 .toList();
     }
 
@@ -181,7 +195,7 @@ public class ConsultationServiceImpl implements ConsultationService {
     Consultation consultation = consultationRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Consultation booking not found: " + id));
     User patient = consultation.getCustomer();
-        return modelMapper.map(patient, UserResponseDTO.class);
+        return mapToUserResponseDTO(patient);
     }
 
     @Override
@@ -476,35 +490,21 @@ public class ConsultationServiceImpl implements ConsultationService {
         Consultation consultation = consultationRepository.findById(consultationId)
                 .orElseThrow(() -> new RuntimeException("Consultation not found: " + consultationId));
         
-        // Update status
-        consultation.setStatus(ConsultationStatus.valueOf(confirmationDTO.getStatus().toUpperCase()));
-        
-        // Update meeting information if confirmed
-        if ("CONFIRMED".equalsIgnoreCase(confirmationDTO.getStatus())) {
-            consultation.setMeetingLink(confirmationDTO.getMeetingLink());
-            
-            // Build meeting info string
-            StringBuilder meetingInfo = new StringBuilder();
-            if (confirmationDTO.getMeetingPlatform() != null) {
-                meetingInfo.append("Platform: ").append(confirmationDTO.getMeetingPlatform());
-            }
-            if (confirmationDTO.getMeetingPassword() != null && !confirmationDTO.getMeetingPassword().isEmpty()) {
-                meetingInfo.append("\nPassword: ").append(confirmationDTO.getMeetingPassword());
-            }
-            
-            // Add meeting info to notes
-            String currentNotes = consultation.getNotes() != null ? consultation.getNotes() : "";
-            if (meetingInfo.length() > 0) {
-                currentNotes += "\nMeeting Info:\n" + meetingInfo.toString();
-            }
-            consultation.setNotes(currentNotes);
+        String status = confirmationDTO.getStatus().toUpperCase();
+        try {
+            ConsultationStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid consultation status: " + confirmationDTO.getStatus());
         }
         
-        // Update consultant notes
-        if (confirmationDTO.getNotes() != null && !confirmationDTO.getNotes().isEmpty()) {
-            String currentNotes = consultation.getNotes() != null ? consultation.getNotes() : "";
-            consultation.setNotes(currentNotes + "\nConsultant Notes: " + confirmationDTO.getNotes());
+        if ("CONFIRMED".equalsIgnoreCase(status)) {
+            if (confirmationDTO.getMeetingLink() == null || confirmationDTO.getMeetingLink().trim().isEmpty()) {
+                String autoGeneratedLink = generateMeetingLink(consultation);
+                consultation.setMeetingLink(autoGeneratedLink);
+            }
         }
+        consultation.setStatus(ConsultationStatus.valueOf(status));
+
         
         Consultation savedConsultation = consultationRepository.save(consultation);
         
@@ -513,7 +513,7 @@ public class ConsultationServiceImpl implements ConsultationService {
             createConsultationReminder(savedConsultation);
         }
         
-        return modelMapper.map(consultation, ConsultationBookingResponseDTO.class);
+        return mapToConsultationBookingResponseDTO(savedConsultation);
     }
 
     @Override
@@ -608,17 +608,7 @@ public class ConsultationServiceImpl implements ConsultationService {
             dto.setUserName(consultation.getCustomer().getFullName());
             dto.setUserEmail(consultation.getCustomer().getEmail());
         }
-        // Mapping location
-        if (consultation.getLocation() != null) {
-            LocationResponseDTO locationDTO = new LocationResponseDTO();
-            locationDTO.setId(consultation.getLocation().getId());
-            locationDTO.setName(consultation.getLocation().getName());
-            locationDTO.setAddress(consultation.getLocation().getAddress());
-            locationDTO.setPhone(consultation.getLocation().getPhone());
-            locationDTO.setHours(consultation.getLocation().getHours());
-            locationDTO.setStatus(consultation.getLocation().getStatus());
-            dto.setLocation(locationDTO);
-        } else {
+        else {
             dto.setLocation(null);
         }
         // Mapping timeslot
@@ -832,5 +822,43 @@ public class ConsultationServiceImpl implements ConsultationService {
                 consultation.getId(), e.getMessage(), e);
             // Không throw exception để không ảnh hưởng đến việc xác nhận lịch hẹn
         }
+    }
+    
+    // Manual mapping methods
+    private ConsultationHistoryDTO mapToConsultationHistoryDTO(Consultation consultation) {
+        ConsultationHistoryDTO dto = new ConsultationHistoryDTO();
+        dto.setId(consultation.getId());
+        
+        if (consultation.getTimeSlot() != null) {
+            dto.setConsultationDate(consultation.getTimeSlot().getSlotDate().atTime(consultation.getTimeSlot().getStartTime()).toInstant(java.time.ZoneOffset.UTC));
+        }
+        
+        dto.setStatus(consultation.getStatus() != null ? consultation.getStatus().name() : null);
+        dto.setNotes(consultation.getNotes());
+        
+        if (consultation.getCustomer() != null) {
+            dto.setPatient(mapToUserResponseDTO(consultation.getCustomer()));
+        }
+        
+        return dto;
+    }
+    
+    private UserResponseDTO mapToUserResponseDTO(User user) {
+        UserResponseDTO dto = new UserResponseDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setFullName(user.getFullName());
+        dto.setRoleName(user.getRoleName());
+        dto.setPhoneNumber(user.getPhoneNumber());
+        dto.setAddress(user.getAddress());
+        dto.setDateOfBirth(user.getDateOfBirth());
+        dto.setMedicalHistory(user.getMedicalHistory());
+        dto.setGender(user.getGender());
+        dto.setDescription(user.getDescription());
+        dto.setAvatarUrl(user.getAvatarUrl());
+        dto.setAvatarPublicId(user.getAvatarPublicId());
+        
+        return dto;
     }
 }

@@ -37,9 +37,7 @@ public class Consultation {
     @JoinColumn(name = "TimeSlotID", nullable = false)
     private TimeSlot timeSlot;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "LocationID")
-    private Location location;
+
 
     @Enumerated(EnumType.STRING)
     @NotNull
@@ -77,23 +75,26 @@ public class Consultation {
 
     // Helper methods
     public boolean isScheduled() {
-        return "SCHEDULED".equals(status);
+        return ConsultationStatus.SCHEDULED.equals(status);
     }
 
     public boolean isInProgress() {
-        return "IN_PROGRESS".equals(status);
+        return ConsultationStatus.IN_PROGRESS.equals(status);
     }
 
     public boolean isCompleted() {
-        return "COMPLETED".equals(status);
+        return ConsultationStatus.COMPLETED.equals(status);
     }
 
     public boolean isCancelled() {
-        return "CANCELLED".equals(status);
+        return ConsultationStatus.CANCELLED.equals(status);
     }
 
-    public boolean isNoShow() {
-        return "NO_SHOW".equals(status);
+    public boolean isConfirmed() {
+        return ConsultationStatus.CONFIRMED.equals(status);
+    }
+    public boolean isPending() {
+        return ConsultationStatus.PENDING.equals(status);
     }
 
     public boolean canBeCancelled() {
@@ -101,6 +102,6 @@ public class Consultation {
     }
 
     public boolean canBeUpdated() {
-        return !isCompleted() && !isCancelled() && !isNoShow();
+        return !isCompleted() && !isCancelled() && !isConfirmed();
     }
 }

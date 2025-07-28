@@ -2,13 +2,15 @@ package com.example.gender_healthcare_service.dto.response;
 
 import lombok.Data;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Data
 public class AnswerResponseDTO {
     private Integer id;
     private Integer questionId;
     private String content;
     private Integer consultantId;
-    private LocalDate createdAt;
-    private LocalDate updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private ConsultantDTO consultant;
 }

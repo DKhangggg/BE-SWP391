@@ -18,32 +18,25 @@ public class ModelMapperConfig {
     @Bean
     public ModelMapper modelMapper() {
         ModelMapper modelMapper = new ModelMapper();
+        // Bật ignore ambiguity và skip null để tránh lỗi mapping
+        modelMapper.getConfiguration()
+            .setAmbiguityIgnored(true)
+            .setSkipNullEnabled(true)
+            .setPropertyCondition(context -> {
+                // Chỉ map các property có giá trị
+                return context.getSource() != null;
+            });
         configureUserMapping(modelMapper);
         configureConsultantMapping(modelMapper);
         configureServiceMapping(modelMapper);
-        configureQuestionMapping(modelMapper);
+        // Bỏ qua configureQuestionMapping và configureAnswerMapping vì đã chuyển sang manual mapping
         configureBlogCategoryMapping(modelMapper);
+        // Bỏ qua configureConsultationMapping vì sử dụng manual mapping trong service
         // Bỏ qua configureBookingMapping vì sử dụng manual mapping trong service
         return modelMapper;
     }
 
-    private void configureQuestionMapping(ModelMapper modelMapper) {
-        TypeMap<Question, QuestionResponseDTO> typeMap = modelMapper.createTypeMap(Question.class, QuestionResponseDTO.class);
-        typeMap.addMappings(mapper -> {
-            try {
-                mapper.map(Question::getQuestionId, QuestionResponseDTO::setQuestionId);
-                mapper.map(src->src.getUser().getId(), QuestionResponseDTO::setUserId);
-                mapper.map(Question::getCategory, QuestionResponseDTO::setCategory);
-                mapper.map(Question::getContent, QuestionResponseDTO::setContent);
-                mapper.map(Question::getStatus, QuestionResponseDTO::setStatus);
-                mapper.map(Question::isPublic, QuestionResponseDTO::setPublic);
-                mapper.map(Question::getCreatedAt, QuestionResponseDTO::setCreatedAt);
-                mapper.map(Question::getUpdatedAt, QuestionResponseDTO::setUpdatedAt);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
+
 
     private void configureConsultantMapping(ModelMapper modelMapper) {
         TypeMap<Consultant, ConsultantDTO> typeMap = modelMapper.createTypeMap(Consultant.class, ConsultantDTO.class);
@@ -116,16 +109,21 @@ public class ModelMapperConfig {
     private void configureBlogCategoryMapping(ModelMapper modelMapper) {
         TypeMap<BlogCategory, BlogCategoryDTO> typeMap = modelMapper.createTypeMap(BlogCategory.class, BlogCategoryDTO.class);
         typeMap.addMappings(mapper -> {
-            mapper.map(BlogCategory::getCategoryID, BlogCategoryDTO::setId);
-            mapper.map(BlogCategory::getCategoryName, BlogCategoryDTO::setName);
+            mapper.map(BlogCategory::getCategoryID, BlogCategoryDTO::setCategoryID);
+            mapper.map(BlogCategory::getCategoryName, BlogCategoryDTO::setCategoryName);
             mapper.map(BlogCategory::getSlug, BlogCategoryDTO::setSlug);
             mapper.map(BlogCategory::getDescription, BlogCategoryDTO::setDescription);
+            mapper.map(BlogCategory::getThumbnailUrl, BlogCategoryDTO::setThumbnailUrl);
+            mapper.map(BlogCategory::getCreatedAt, BlogCategoryDTO::setCreatedAt);
+            mapper.map(BlogCategory::getUpdatedAt, BlogCategoryDTO::setUpdatedAt);
         });
 
         modelMapper.typeMap(com.example.gender_healthcare_service.dto.request.BlogCategoryRequestDTO.class, BlogCategory.class)
                 .addMappings(mapper -> {
-                    mapper.map(src -> src.getName(), BlogCategory::setCategoryName);
+                    mapper.map(src -> src.getCategoryName(), BlogCategory::setCategoryName);
+                    mapper.map(src -> src.getSlug(), BlogCategory::setSlug);
                     mapper.map(src -> src.getDescription(), BlogCategory::setDescription);
+                    mapper.map(src -> src.getThumbnailUrl(), BlogCategory::setThumbnailUrl);
                 });
     }
 
@@ -194,15 +192,5 @@ public class ModelMapperConfig {
         });
     }
 
-    // Thêm mapping cho Consultation → ConsultationBookingResponseDTO
-    private void configureConsultationMapping(ModelMapper modelMapper) {
-        modelMapper.typeMap(Consultation.class, ConsultationBookingResponseDTO.class)
-            .addMapping(src -> src.getConsultant().getId(), ConsultationBookingResponseDTO::setConsultantId)
-            .addMapping(src -> src.getConsultant().getFullName(), ConsultationBookingResponseDTO::setConsultantName)
-            .addMapping(src -> src.getCustomer().getId(), ConsultationBookingResponseDTO::setUserId)
-            .addMapping(src -> src.getCustomer().getFullName(), ConsultationBookingResponseDTO::setUserName)
-            .addMapping(Consultation::getStatus, ConsultationBookingResponseDTO::setStatus)
-            .addMapping(Consultation::getNotes, ConsultationBookingResponseDTO::setNotes)
-            .addMapping(Consultation::getCreatedAt, ConsultationBookingResponseDTO::setCreatedAt);
-    }
+
 }

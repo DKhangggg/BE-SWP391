@@ -34,6 +34,16 @@ public class Feedback {
     @JoinColumn(name = "ServiceID")
     private TestingService service;
 
+    // Thêm relationship với Consultation
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ConsultationID")
+    private Consultation consultation;
+
+    // Thêm relationship với Booking
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "BookingID")
+    private Booking booking;
+
     @Column(name = "Rating")
     private Integer rating;
 

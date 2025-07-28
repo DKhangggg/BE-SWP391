@@ -2,6 +2,7 @@ package com.example.gender_healthcare_service.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Nationalized;
 
 import java.time.LocalDateTime;
 
@@ -21,6 +22,7 @@ public class Answer {
     @JoinColumn(name = "consultant_id")
     private Consultant consultant;
 
+    @Nationalized
     @Column(name = "content", nullable = false)
     private String content;
 

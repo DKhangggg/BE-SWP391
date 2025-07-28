@@ -12,7 +12,7 @@ import com.example.gender_healthcare_service.entity.User;
 import com.example.gender_healthcare_service.repository.ConsultantRepository;
 import com.example.gender_healthcare_service.repository.ConsultantUnavailabilityRepository;
 import com.example.gender_healthcare_service.repository.UserRepository;
-import com.example.gender_healthcare_service.repository.ChatRepository;
+import com.example.gender_healthcare_service.repository.ConversationRepository;
 import com.example.gender_healthcare_service.repository.PaymentRepository;
 import com.example.gender_healthcare_service.entity.Payment;
 import com.example.gender_healthcare_service.service.ConsultantScheduleService;
@@ -40,7 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
-import com.example.gender_healthcare_service.entity.Chat;
+import com.example.gender_healthcare_service.entity.Conversation;
 import com.example.gender_healthcare_service.service.CloudinaryService;
 
 @Service
@@ -65,7 +65,7 @@ public class ConsultantServiceImpl implements ConsultantService {
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Autowired
-    private ChatRepository chatRepository;
+    private ConversationRepository conversationRepository;
 
     @Autowired
     private PaymentRepository paymentRepository;
@@ -376,6 +376,8 @@ public class ConsultantServiceImpl implements ConsultantService {
     }
 
     // Dashboard APIs
+    // ✅ TẠMTHỜI DISABLE CHAT API
+    /*
     @Override
     public long getUnreadMessagesCount() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -383,11 +385,12 @@ public class ConsultantServiceImpl implements ConsultantService {
         if (currentUser == null) {
             return 0;
         }
-        List<Chat> chats = chatRepository.findByConsultant(currentUser);
-        return chats.stream()
-                .filter(chat -> "PENDING".equalsIgnoreCase(chat.getStatus()))
+        List<Conversation> conversations = conversationRepository.findByConsultant(currentUser);
+        return conversations.stream()
+                .filter(conversation -> "ACTIVE".equalsIgnoreCase(conversation.getStatus()))
                 .count();
     }
+    */
 
     @Override
     public Map<String, Object> getRevenue(String date, String month) {

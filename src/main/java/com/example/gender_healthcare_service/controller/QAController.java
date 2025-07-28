@@ -206,4 +206,27 @@ public class QAController {
                     .body(ApiResponse.error("Lỗi khi tìm kiếm câu hỏi: " + e.getMessage()));
         }
     }
+
+    @GetMapping("/public/questions")
+    public ResponseEntity<ApiResponse<PageResponse<QuestionResponseDTO>>> getPublicQuestions(
+            @RequestParam(required = false) String category,
+            @RequestParam(defaultValue = "1") int pageNumber,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        try {
+            Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
+            Page<QuestionResponseDTO> questions = qaService.getConsultantQuestions(category, pageable);
+            PageResponse<QuestionResponseDTO> response = new PageResponse<>();
+            response.setContent(questions.getContent());
+            response.setPageNumber(questions.getNumber() + 1);
+            response.setPageSize(questions.getSize());
+            response.setTotalElements(questions.getTotalElements());
+            response.setTotalPages(questions.getTotalPages());
+            response.setHasNext(questions.hasNext());
+            response.setHasPrevious(questions.hasPrevious());
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách câu hỏi công khai thành công", response));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách câu hỏi: " + e.getMessage()));
+        }
+    }
 }

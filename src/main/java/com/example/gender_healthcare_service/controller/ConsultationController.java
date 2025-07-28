@@ -110,7 +110,7 @@ public class ConsultationController {
     }
 
     @PutMapping("/{consultationId}/confirm")
-    @PreAuthorize("hasAnyAuthority('ROLE_CONSULTANT', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_CONSULTANT', 'ROLE_CUSTOMER')")
     public ResponseEntity<ApiResponse<ConsultationBookingResponseDTO>> confirmConsultation(
             @PathVariable Integer consultationId,
             @Valid @RequestBody ConsultationConfirmationDTO confirmationDTO) {
@@ -190,9 +190,8 @@ public class ConsultationController {
         }
     }
 
-    // API xác nhận lịch hẹn và tạo link meeting
     @PostMapping("/consultant/{consultationId}/confirm-with-meeting")
-    @PreAuthorize("hasAnyAuthority('ROLE_CONSULTANT', 'ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_CONSULTANT', 'ROLE_CUSTOMER')")
     public ResponseEntity<ApiResponse<ConsultationBookingResponseDTO>> confirmWithMeetingLink(
             @PathVariable Integer consultationId) {
         try {

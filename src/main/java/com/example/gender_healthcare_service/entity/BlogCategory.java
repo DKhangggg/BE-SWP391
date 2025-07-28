@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.Nationalized;
 
 @Getter
 @Setter
@@ -25,12 +26,14 @@ public class BlogCategory {
     @Column(name = "CategoryID")
     private Integer categoryID;
 
+    @Nationalized
     @Column(name = "CategoryName", nullable = false, length = 100)
     private String categoryName;
 
     @Column(name = "Slug", unique = true, length = 100)
     private String slug;
 
+    @Nationalized
     @Column(name = "Description", length = 500)
     private String description;
 

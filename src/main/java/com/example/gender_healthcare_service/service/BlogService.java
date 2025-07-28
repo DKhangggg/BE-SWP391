@@ -30,19 +30,10 @@ public interface BlogService {
     PageResponse<BlogPostResponseDTO> getBlogPostsByAuthor(Integer authorId, int pageNumber, int pageSize);
     
     PageResponse<BlogPostResponseDTO> getPublishedBlogPosts(int pageNumber, int pageSize);
-    
-    // Homepage APIs
     List<BlogPostResponseDTO> getLatestBlogPosts(int limit);
-    
-    // Image Management
     String uploadCoverImage(MultipartFile file, Integer postId);
-    
     boolean deleteCoverImage(Integer postId);
-    
-    // Analytics
     void incrementViews(Integer postId);
-    
     void toggleLike(Integer postId, Integer userId);
-    
     boolean isLikedByUser(Integer postId, Integer userId);
 }

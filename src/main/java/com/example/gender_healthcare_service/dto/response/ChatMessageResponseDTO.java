@@ -6,14 +6,22 @@ import java.time.LocalDateTime;
 @Data
 public class ChatMessageResponseDTO {
     private Integer id;
+    private Integer conversationId;
+    
     private Integer senderId;
     private String senderName;
-    private String senderRole;
-    private Integer receiverId;
-    private String receiverName;
+    private String senderAvatar;
+    private String senderRole; // CUSTOMER, CONSULTANT
+    
     private String content;
-    private String messageType;
-    private Boolean isRead;
+    private String messageType; // TEXT, IMAGE, FILE
+    
+    private String status; // SENT, DELIVERED, READ
     private LocalDateTime createdAt;
     private LocalDateTime readAt;
-} 
+    
+    // Thông tin bổ sung
+    private Boolean isEdited;
+    private LocalDateTime editedAt;
+    private Boolean isDeleted;
+}

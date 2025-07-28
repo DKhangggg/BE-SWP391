@@ -26,13 +26,8 @@ public interface ConsultantService {
     void updateConsultant(ConsultantUpdateDTO consultantUpdateDTO);
     void deleteConsultant(Integer id);
 
-    Consultant findConsultantByUserId(Integer userId); // Changed return type to Consultant entity
-
-    // Get customers for consultant
+    Consultant findConsultantByUserId(Integer userId);
     List<UserResponseDTO> getCustomers();
-
-    // Dashboard APIs
-    long getUnreadMessagesCount();
     Map<String, Object> getRevenue(String date, String month);
     Map<String, Object> getTotalRevenue();
     String uploadProfileImage(org.springframework.web.multipart.MultipartFile file, Integer consultantId);

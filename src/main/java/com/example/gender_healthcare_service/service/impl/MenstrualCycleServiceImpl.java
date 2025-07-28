@@ -616,34 +616,61 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
         LocalDate cycleStart = currentCycle.getStartDate();
         int cycleLength = currentCycle.getCycleLength() != null ? currentCycle.getCycleLength() : 28;
         int periodDuration = currentCycle.getPeriodDuration() != null ? currentCycle.getPeriodDuration() : 5;
-        
-        List<LocalDate> predictedPeriodStarts = calculatePredictedPeriodStarts(cycleStart, cycleLength);
-        List<LocalDate> ovulationDates = calculateOvulationDates(cycleStart, cycleLength);
-        List<LocalDate> fertilityWindows = calculateFertilityWindows(ovulationDates);
-        
-        boolean isPredictedPeriod = isDateInPredictedPeriod(date, predictedPeriodStarts, periodDuration);
-        
-        boolean isOvulation = ovulationDates.contains(date);
-        
-        boolean isFertile = fertilityWindows.contains(date);
-        
-        if (isPredictedPeriod) {
-            if (hasUserLogged) {
-                return "PERIOD";
-            } else {
-                return "PREDICTED";
-            }
-        } else if (isOvulation) {
-            return "OVULATION";
-        } else if (isFertile) {
-            return "FERTILE";
-        } else {
-            if (hasUserLogged) {
-                return "NORMAL";
-            } else {
-                return "NORMAL";
-            }
+
+        // Tính toán cho chu kỳ hiện tại
+        LocalDate currentPeriodEnd = cycleStart.plusDays(periodDuration - 1);
+        LocalDate currentOvulation = cycleStart.plusDays(cycleLength - 14);
+        LocalDate currentFertileStart = currentOvulation.minusDays(5);
+        LocalDate currentFertileEnd = currentOvulation.plusDays(1);
+
+        // Tính toán cho chu kỳ tiếp theo
+        LocalDate nextCycleStart = cycleStart.plusDays(cycleLength);
+        LocalDate nextPeriodEnd = nextCycleStart.plusDays(periodDuration - 1);
+        LocalDate nextOvulation = nextCycleStart.plusDays(cycleLength - 14);
+        LocalDate nextFertileStart = nextOvulation.minusDays(5);
+        LocalDate nextFertileEnd = nextOvulation.plusDays(1);
+
+        // Tính toán cho chu kỳ trước đó (nếu cần)
+        LocalDate prevCycleStart = cycleStart.minusDays(cycleLength);
+        LocalDate prevPeriodEnd = prevCycleStart.plusDays(periodDuration - 1);
+        LocalDate prevOvulation = prevCycleStart.plusDays(cycleLength - 14);
+        LocalDate prevFertileStart = prevOvulation.minusDays(5);
+        LocalDate prevFertileEnd = prevOvulation.plusDays(1);
+
+        // Kiểm tra chu kỳ hiện tại
+        if (!date.isBefore(cycleStart) && !date.isAfter(currentPeriodEnd)) {
+            return hasUserLogged ? "PERIOD" : "PREDICTED";
         }
+        if (date.equals(currentOvulation)) {
+            return "OVULATION";
+        }
+        if (!date.isBefore(currentFertileStart) && !date.isAfter(currentFertileEnd)) {
+            return "FERTILE";
+        }
+
+        // Kiểm tra chu kỳ tiếp theo
+        if (!date.isBefore(nextCycleStart) && !date.isAfter(nextPeriodEnd)) {
+            return "PREDICTED";
+        }
+        if (date.equals(nextOvulation)) {
+            return "OVULATION";
+        }
+        if (!date.isBefore(nextFertileStart) && !date.isAfter(nextFertileEnd)) {
+            return "FERTILE";
+        }
+
+        // Kiểm tra chu kỳ trước đó
+        if (!date.isBefore(prevCycleStart) && !date.isAfter(prevPeriodEnd)) {
+            return hasUserLogged ? "PERIOD" : "PREDICTED";
+        }
+        if (date.equals(prevOvulation)) {
+            return "OVULATION";
+        }
+        if (!date.isBefore(prevFertileStart) && !date.isAfter(prevFertileEnd)) {
+            return "FERTILE";
+        }
+
+        return "NORMAL";
     }
 
     private List<LocalDate> calculatePredictedPeriodStarts(LocalDate lastPeriodStart, int cycleLength) {

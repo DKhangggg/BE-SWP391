@@ -123,10 +123,10 @@ public class User implements UserDetails {
     private List<Booking> bookings;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Chat> chatsAsCustomer;
+    private List<Conversation> conversationsAsCustomer;
 
     @OneToMany(mappedBy = "consultant", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Chat> chatsAsConsultant; // If a consultant can also be a User in Chat
+    private List<Conversation> conversationsAsConsultant;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Consultation> consultationsAsCustomer;

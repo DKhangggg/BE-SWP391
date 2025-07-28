@@ -11,5 +11,8 @@ public class FeedbackResponseDTO {
     private Integer rating;
     private Integer userId;
     private Integer consultantId;
+    private Integer consultationId; // Thêm consultationId
+    private Integer bookingId; // Thêm bookingId
     private String createdAt;
+    private Boolean hasFeedback; // Thêm trường đánh dấu có feedback hay không
 }

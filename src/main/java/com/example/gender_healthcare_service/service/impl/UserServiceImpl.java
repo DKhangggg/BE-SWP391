@@ -102,11 +102,10 @@ public class UserServiceImpl implements UserService {
             }
             
             UserResponseDTO userResponse = modelMapper.map(userValid, UserResponseDTO.class);
-            
-            // Validate và cập nhật avatar URL
+
             if (userValid.getAvatarPublicId() != null && !userValid.getAvatarPublicId().trim().isEmpty()) {
                 String validatedUrl = cloudinaryService.getImageUrlWithFallback(
-                    userValid.getAvatarPublicId(), 
+                    userValid.getAvatarPublicId(),
                     getDefaultAvatarUrl()
                 );
                 userResponse.setAvatarUrl(validatedUrl);
@@ -373,10 +372,9 @@ public class UserServiceImpl implements UserService {
         return customers.stream()
                 .map(user -> {
                     UserResponseDTO dto = modelMapper.map(user, UserResponseDTO.class);
-                    // Validate và cập nhật avatar URL
                     if (user.getAvatarPublicId() != null && !user.getAvatarPublicId().trim().isEmpty()) {
                         String validatedUrl = cloudinaryService.getImageUrlWithFallback(
-                            user.getAvatarPublicId(), 
+                            user.getAvatarPublicId(),
                             getDefaultAvatarUrl()
                         );
                         dto.setAvatarUrl(validatedUrl);

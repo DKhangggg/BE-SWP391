@@ -111,7 +111,7 @@ public class DashboardServiceImpl implements DashboardService {
                 consultation.getConsultant().getFullName(),
                 "Tư vấn trực tuyến",
                 consultation.getMeetingLink(),
-                consultation.getLocation() != null ? consultation.getLocation().getAddress() : null
+                null
         );
     }
 
