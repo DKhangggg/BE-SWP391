@@ -9,6 +9,7 @@ public class TestingServiceUpdateDTO {
     private String description;
     private BigDecimal price;
     private String status;
-    private Integer duration;
+    private Integer durationMinutes;
+    private String preparationInstructions;
 }
 

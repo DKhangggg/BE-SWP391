@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Nationalized;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -48,6 +49,7 @@ public class MenstrualLog {
     @OneToMany(mappedBy = "menstrualLog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<SymptomLog> symptoms;
 
+    @Nationalized
     @Column(name = "Notes", length = 500)
     private String notes;
 

@@ -104,8 +104,8 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.isDeleted = false AND b.service.id = :serviceId")
     long countByServiceIdActive(@Param("serviceId") Integer serviceId);
 
-    // Find bookings by customer
-    List<Booking> findByCustomerIDAndIsDeletedFalseOrderByCreatedAtDesc(User customer);
+    // Find bookings by customer - sorted by latest update first
+    List<Booking> findByCustomerIDAndIsDeletedFalseOrderByUpdatedAtDesc(User customer);
     
     // Find bookings by status
     List<Booking> findByStatusAndIsDeletedFalse(String status);
@@ -202,4 +202,14 @@ public interface BookingRepository extends JpaRepository<Booking, Integer> {
     // Get booking statistics by date range
     @Query("SELECT b.status, COUNT(b) FROM Booking b WHERE b.timeSlot.slotDate BETWEEN :startDate AND :endDate AND b.isDeleted = false GROUP BY b.status")
     List<Object[]> getBookingStatisticsByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    // Methods with sample collection profile fetch
+    @Query("SELECT b FROM Booking b LEFT JOIN FETCH b.sampleCollectionProfile WHERE b.status = :status AND b.isDeleted = false ORDER BY b.updatedAt DESC")
+    Page<Booking> findByStatusWithSampleProfile(@Param("status") String status, Pageable pageable);
+
+    @Query("SELECT b FROM Booking b LEFT JOIN FETCH b.sampleCollectionProfile WHERE b.isDeleted = false ORDER BY b.updatedAt DESC")
+    Page<Booking> findAllWithSampleProfile(Pageable pageable);
+
+    @Query("SELECT b FROM Booking b LEFT JOIN FETCH b.sampleCollectionProfile WHERE b.status = :status AND b.isDeleted = false ORDER BY b.updatedAt DESC")
+    List<Booking> findByStatusWithSampleProfileList(@Param("status") String status);
 }

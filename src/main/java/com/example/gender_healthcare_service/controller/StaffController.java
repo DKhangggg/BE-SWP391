@@ -2,9 +2,13 @@ package com.example.gender_healthcare_service.controller;
 
 import com.example.gender_healthcare_service.dto.request.StaffRequestDTO;
 import com.example.gender_healthcare_service.dto.request.StaffUpdateUserRequestDTO;
+import com.example.gender_healthcare_service.dto.request.TestingServiceUpdateDTO;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
+import com.example.gender_healthcare_service.dto.response.TestingServiceResponseDTO;
+import com.example.gender_healthcare_service.entity.TestingService;
 import com.example.gender_healthcare_service.entity.User;
 import com.example.gender_healthcare_service.service.StaffService;
+import com.example.gender_healthcare_service.service.TestingServiceService;
 import com.example.gender_healthcare_service.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +18,7 @@ import org.springframework.security.access.prepost.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,6 +27,7 @@ import java.util.Map;
 public class StaffController {
 
     private final StaffService staffService;
+    private final TestingServiceService testingServiceService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getAllStaff() {
@@ -111,23 +117,83 @@ public class StaffController {
     }
 
     // ========== STAFF DASHBOARD APIs ==========
-    
+
     @GetMapping("/dashboard/stats")
     @PreAuthorize("hasAuthority('ROLE_STAFF')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getDashboardStats() {
         try {
             Map<String, Object> stats = new HashMap<>();
-            
+
             // Mock data cho staff dashboard - có thể implement sau
             stats.put("totalBookings", 150);
             stats.put("pendingBookings", 25);
             stats.put("completedBookings", 120);
             stats.put("todayBookings", 8);
-            
+
             return ResponseEntity.ok(ApiResponse.success("Lấy thống kê dashboard thành công", stats));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Lỗi khi lấy thống kê dashboard: " + e.getMessage()));
+        }
+    }
+
+    // ========== STAFF TESTING SERVICES MANAGEMENT APIs ==========
+
+    @GetMapping("/testing-services")
+    @PreAuthorize("hasAuthority('ROLE_STAFF')")
+    public ResponseEntity<ApiResponse<?>> getAllTestingServices() {
+        try {
+            List<TestingServiceResponseDTO> services = testingServiceService.getAllService();
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách dịch vụ thành công", services));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách dịch vụ: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/testing-services")
+    @PreAuthorize("hasAuthority('ROLE_STAFF')")
+    public ResponseEntity<ApiResponse<?>> createTestingService(@RequestBody TestingService request) {
+        try {
+            boolean created = testingServiceService.createService(request);
+            if (!created) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error("Tạo dịch vụ mới thất bại - Tên dịch vụ đã tồn tại"));
+            }
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success("Tạo dịch vụ mới thành công", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi tạo dịch vụ: " + e.getMessage()));
+        }
+    }
+
+    @PatchMapping("/testing-services/{serviceId}")
+    @PreAuthorize("hasAuthority('ROLE_STAFF')")
+    public ResponseEntity<ApiResponse<?>> updateTestingService(@PathVariable Integer serviceId, @RequestBody TestingServiceUpdateDTO updateDTO) {
+        try {
+            TestingServiceResponseDTO updated = testingServiceService.updateService(serviceId, updateDTO);
+            if (updated != null) {
+                return ResponseEntity.ok(ApiResponse.success("Cập nhật dịch vụ thành công", updated));
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.error("Cập nhật dịch vụ thất bại"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi cập nhật dịch vụ: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/testing-services/{serviceId}")
+    @PreAuthorize("hasAuthority('ROLE_STAFF')")
+    public ResponseEntity<ApiResponse<TestingServiceResponseDTO>> deleteTestingService(@PathVariable Integer serviceId) {
+        try {
+            TestingServiceResponseDTO response = testingServiceService.deleteService(serviceId, true);
+            return ResponseEntity.ok(ApiResponse.success("Xóa dịch vụ thành công", response));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi xóa dịch vụ: " + e.getMessage()));
         }
     }
 }

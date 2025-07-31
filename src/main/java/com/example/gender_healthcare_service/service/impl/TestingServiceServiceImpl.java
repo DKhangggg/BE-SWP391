@@ -86,7 +86,8 @@ public class TestingServiceServiceImpl implements TestingServiceService {
         existingService.setServiceName(serviceDetails.getServiceName());
         existingService.setDescription(serviceDetails.getDescription());
         existingService.setPrice(serviceDetails.getPrice());
-        existingService.setDurationMinutes(serviceDetails.getDuration());
+        existingService.setDurationMinutes(serviceDetails.getDurationMinutes());
+        existingService.setPreparationInstructions(serviceDetails.getPreparationInstructions());
         existingService.setUpdatedAt(LocalDateTime.now());
         existingService.setStatus(serviceDetails.getStatus());
         testingServiceRepository.save(existingService);

@@ -234,7 +234,7 @@ public class DataInitializer implements CommandLineRunner {
          customer3.setIsDeleted(false);
     
 
-        userRepository.saveAll(Arrays.asList(admin, manager, staff, customer));
+        userRepository.saveAll(Arrays.asList(admin, manager, staff, customer,customer2,customer3));
         log.info("✅ Đã tạo {} users", userRepository.count());
     }
 
@@ -766,7 +766,7 @@ public class DataInitializer implements CommandLineRunner {
         Answer answer1 = new Answer();
         answer1.setQuestion(question1);
         answer1.setConsultant(consultants.get(0));
-        answer1.setContent("Chào bạn! Chu kỳ kinh nguyệt không đều có thể do nhiều nguyên nhân như stress, thay đổi chế độ ăn, hoặc các vấn đề về hormone. Bạn nên: 1) Duy trì lối sống lành mạnh, 2) Tập thể dục đều đặn, 3) Ăn uống đầy đủ dinh dưỡng, 4) Khám phụ khoa định kỳ. Nếu tình trạng kéo dài, bạn nên đến gặp bác sĩ để được tư vấn cụ thể hơn.");
+        answer1.setContent("Chu kỳ kinh nguyệt không đều có thể do stress, ăn uống, hoặc hormone. Bạn nên duy trì lối sống lành mạnh và khám bác sĩ nếu kéo dài.");
         answer1.setCreatedAt(LocalDateTime.now().minusDays(8));
         answer1.setUpdatedAt(LocalDateTime.now().minusDays(8));
         answer1.setDeleted(false);
@@ -789,7 +789,7 @@ public class DataInitializer implements CommandLineRunner {
         Answer answer2 = new Answer();
         answer2.setQuestion(question2);
         answer2.setConsultant(consultants.get(1));
-        answer2.setContent("Có nhiều phương pháp tránh thai hiệu quả như: 1) Thuốc tránh thai đường uống, 2) Vòng tránh thai, 3) Bao cao su, 4) Thuốc tiêm tránh thai, 5) Cấy que tránh thai. Mỗi phương pháp có ưu nhược điểm riêng. Bạn nên đến gặp bác sĩ để được tư vấn chọn phương pháp phù hợp nhất với tình trạng sức khỏe và nhu cầu của mình.");
+        answer2.setContent("Có nhiều phương pháp tránh thai như thuốc, vòng, bao cao su. Bạn nên gặp bác sĩ để chọn phương pháp phù hợp.");
         answer2.setCreatedAt(LocalDateTime.now().minusDays(6));
         answer2.setUpdatedAt(LocalDateTime.now().minusDays(6));
         answer2.setDeleted(false);
@@ -812,7 +812,7 @@ public class DataInitializer implements CommandLineRunner {
         Answer answer3 = new Answer();
         answer3.setQuestion(question3);
         answer3.setConsultant(consultants.get(2));
-        answer3.setContent("Đau bụng kinh có thể được giảm thiểu bằng các cách sau: 1) Chườm ấm vùng bụng dưới, 2) Massage nhẹ nhàng, 3) Tập thể dục nhẹ như yoga, đi bộ, 4) Uống đủ nước, 5) Ăn thực phẩm giàu omega-3, 6) Dùng thuốc giảm đau theo chỉ định của bác sĩ. Nếu đau quá mức, bạn nên khám để kiểm tra có bệnh lý gì không.");
+        answer3.setContent("Đau bụng kinh có thể giảm bằng chườm ấm, tập thể dục nhẹ, ăn uống đủ chất. Nếu đau nhiều, nên đi khám bác sĩ.");
         answer3.setCreatedAt(LocalDateTime.now().minusDays(4));
         answer3.setUpdatedAt(LocalDateTime.now().minusDays(4));
         answer3.setDeleted(false);
@@ -983,4 +983,5 @@ public class DataInitializer implements CommandLineRunner {
         blogPostRepository.saveAll(posts);
         log.info("✅ Đã tạo {} blog posts", blogPostRepository.count());
     }
-} 
+}
+

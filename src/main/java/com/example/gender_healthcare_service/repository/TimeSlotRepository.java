@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Repository
@@ -21,12 +22,20 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Integer> {
     List<TimeSlot> findAvailableTimeSlotsByDateAndConsultant(@Param("date") LocalDate date, @Param("consultantId") Integer consultantId);
     
     // Find facility time slots (consultant is null) for a specific date
-    @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotDate = :date AND ts.consultant IS NULL AND ts.isAvailable = true AND ts.bookedCount < ts.capacity")
+    @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotDate >= :date AND ts.consultant IS NULL AND ts.isAvailable = true AND ts.bookedCount < ts.capacity")
     List<TimeSlot> findAvailableFacilityTimeSlotsByDate(@Param("date") LocalDate date);
     
     // Find facility time slots from today onwards
     @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotDate >= :date AND ts.consultant IS NULL AND ts.isAvailable = true AND ts.bookedCount < ts.capacity ORDER BY ts.slotDate, ts.startTime")
     List<TimeSlot> findAvailableFacilityTimeSlotsFromDate(@Param("date") LocalDate date);
+    
+    // Check if time slot exists for a specific date, time and type
+    @Query("SELECT COUNT(ts) > 0 FROM TimeSlot ts WHERE ts.slotDate = :slotDate AND ts.startTime = :startTime AND ts.slotType = :slotType AND ts.isDeleted = false")
+    boolean existsBySlotDateAndStartTimeAndSlotTypeAndIsDeletedFalse(@Param("slotDate") LocalDate slotDate, @Param("startTime") LocalTime startTime, @Param("slotType") String slotType);
+    
+    // Alternative method to check if time slot exists (avoiding data type comparison issues)
+    @Query("SELECT COUNT(ts) > 0 FROM TimeSlot ts WHERE ts.slotDate = :slotDate AND ts.slotType = :slotType AND ts.isDeleted = false AND ts.startTime = :startTime")
+    boolean checkTimeSlotExists(@Param("slotDate") LocalDate slotDate, @Param("startTime") LocalTime startTime, @Param("slotType") String slotType);
     
     // Find time slots by slot type
     @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotType = :slotType AND ts.isAvailable = true")

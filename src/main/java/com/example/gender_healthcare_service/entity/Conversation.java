@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Nationalized;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ public class Conversation {
     @JoinColumn(name = "ConsultantID", nullable = false)
     private User consultant;
 
+    @Nationalized
     @Column(name = "LastMessage", length = 1000)
     private String lastMessage;
 
@@ -44,6 +46,7 @@ public class Conversation {
     @ColumnDefault("0")
     private Integer consultantUnreadCount = 0;
 
+    @Nationalized
     @Column(name = "Status", length = 50)
     @ColumnDefault("'ACTIVE'")
     private String status = "ACTIVE"; // ACTIVE, ARCHIVED, BLOCKED

@@ -9,12 +9,8 @@ import com.example.gender_healthcare_service.entity.TestingService;
 import com.example.gender_healthcare_service.service.*;
 import com.example.gender_healthcare_service.entity.Consultant;
 import com.example.gender_healthcare_service.dto.request.AutoCreateTimeSlotsRequestDTO;
-import com.example.gender_healthcare_service.entity.TimeSlot;
-import com.example.gender_healthcare_service.repository.TimeSlotRepository;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.List;
-import java.util.ArrayList;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -68,8 +63,9 @@ public class AdminController {
     private ReportService reportService;
     @Autowired
     private ModelMapper modelMapper;
+    
     @Autowired
-    private TimeSlotRepository timeSlotRepository;
+    private TimeSlotService timeSlotService;
 
     @PostMapping("/testing-services")
     public ResponseEntity<?> createTestingService(@RequestBody TestingService request) {
@@ -478,39 +474,128 @@ public class AdminController {
 
     @PostMapping("/timeslots/auto-create")
     public ResponseEntity<?> autoCreateCommonSlots(@RequestBody AutoCreateTimeSlotsRequestDTO req) {
-        LocalDate today = req.getStartDate() != null && !req.getStartDate().isEmpty()
-            ? LocalDate.parse(req.getStartDate())
-            : LocalDate.now();
-        int days = req.getDays() != null ? req.getDays() : 7;
-        List<TimeSlot> slots = new ArrayList<>();
-        for (int d = 0; d < days; d++) {
-            LocalDate slotDate = today.plusDays(d);
-            // 4 khung giờ mẫu
-            LocalTime[][] slotTimes = {
-                {LocalTime.of(8,0), LocalTime.of(10,0)},
-                {LocalTime.of(10,0), LocalTime.of(12,0)},
-                {LocalTime.of(13,0), LocalTime.of(15,0)},
-                {LocalTime.of(15,0), LocalTime.of(17,0)}
-            };
-            for (LocalTime[] times : slotTimes) {
-                TimeSlot slot = new TimeSlot();
-                slot.setSlotDate(slotDate);
-                slot.setStartTime(times[0]);
-                slot.setEndTime(times[1]);
-                slot.setConsultant(null); // Không gán consultant
-                slot.setSlotType(req.getSlotType() != null ? req.getSlotType() : "CONSULTATION");
-                slot.setCapacity(req.getCapacity() != null ? req.getCapacity() : 1);
-                slot.setBookedCount(0);
-                slot.setIsAvailable(true);
-                slot.setIsDeleted(false);
-                slot.setDescription(req.getDescription());
-                slot.setDuration(req.getDuration() != null ? req.getDuration() : (int) java.time.Duration.between(times[0], times[1]).toMinutes());
-                slot.setCreatedAt(LocalDateTime.now());
-                slots.add(slot);
-            }
+        try {
+            // Parse start date, default to today if not provided
+            LocalDate startDate = req.getStartDate() != null && !req.getStartDate().isEmpty()
+                ? LocalDate.parse(req.getStartDate())
+                : LocalDate.now();
+            
+            // Number of days to create slots for, default to 7
+            int days = req.getDays() != null ? req.getDays() : 7;
+            
+            // Slot type, default to CONSULTATION
+            String slotType = req.getSlotType() != null ? req.getSlotType() : "CONSULTATION";
+            
+            // Capacity, default to 1
+            Integer capacity = req.getCapacity() != null ? req.getCapacity() : 1;
+            
+            // Description
+            String description = req.getDescription() != null ? req.getDescription() : "Auto-created slot";
+            
+            // Call service to create time slots
+            timeSlotService.autoCreateTimeSlots(startDate, days, slotType, capacity, description, req.getDuration());
+            
+            return ResponseEntity.ok("Đã tạo time slots cho " + days + " ngày từ " + startDate + "!");
+            
+        } catch (Exception e) {
+            logger.error("Error creating time slots: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Lỗi khi tạo time slots: " + e.getMessage());
         }
-        timeSlotRepository.saveAll(slots);
-        return ResponseEntity.ok("Đã tạo " + slots.size() + " slot chung cho hệ thống trong " + days + " ngày!");
+    }
+
+    @PostMapping("/timeslots/auto-create-test")
+    public ResponseEntity<?> autoCreateTest() {
+        try {
+            AutoCreateTimeSlotsRequestDTO req = new AutoCreateTimeSlotsRequestDTO();
+            req.setStartDate(LocalDate.now().toString());
+            req.setDays(30); // Tạo cho 30 ngày thay vì 14
+            req.setSlotType("CONSULTATION");
+            req.setCapacity(1);
+            req.setDescription("Lịch chung tự động 30 ngày");
+            
+            return autoCreateCommonSlots(req);
+        } catch (Exception e) {
+            logger.error("Error in test auto-create: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Lỗi trong test auto-create: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/timeslots/auto-create-extended")
+    public ResponseEntity<?> autoCreateExtendedSlots(@RequestBody AutoCreateTimeSlotsRequestDTO req) {
+        try {
+            // Validate input
+            if (req.getDays() == null || req.getDays() <= 0) {
+                return ResponseEntity.badRequest().body("Số ngày phải lớn hơn 0");
+            }
+            
+            if (req.getDays() > 180) { // Cho phép tạo nhiều hơn
+                return ResponseEntity.badRequest().body("Số ngày không được vượt quá 180");
+            }
+            
+            // Parse start date, default to today if not provided
+            LocalDate startDate = req.getStartDate() != null && !req.getStartDate().isEmpty()
+                ? LocalDate.parse(req.getStartDate())
+                : LocalDate.now();
+            
+            // Slot type, default to CONSULTATION
+            String slotType = req.getSlotType() != null ? req.getSlotType() : "CONSULTATION";
+            
+            // Capacity, default to 1
+            Integer capacity = req.getCapacity() != null ? req.getCapacity() : 1;
+            
+            // Description
+            String description = req.getDescription() != null ? req.getDescription() : "Lịch chung tự động " + req.getDays() + " ngày";
+            
+            // Call service to create time slots
+            timeSlotService.autoCreateTimeSlots(startDate, req.getDays(), slotType, capacity, description, req.getDuration());
+            
+            return ResponseEntity.ok("Đã tạo time slots cho " + req.getDays() + " ngày từ " + startDate + "!");
+            
+        } catch (Exception e) {
+            logger.error("Error creating extended time slots: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Lỗi khi tạo time slots: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/timeslots/auto-create-custom")
+    public ResponseEntity<?> autoCreateCustomSlots(@RequestBody AutoCreateTimeSlotsRequestDTO req) {
+        try {
+            // Validate input
+            if (req.getDays() == null || req.getDays() <= 0) {
+                return ResponseEntity.badRequest().body("Số ngày phải lớn hơn 0");
+            }
+            
+            if (req.getDays() > 90) {
+                return ResponseEntity.badRequest().body("Số ngày không được vượt quá 90");
+            }
+            
+            // Parse start date, default to tomorrow if not provided
+            LocalDate startDate = req.getStartDate() != null && !req.getStartDate().isEmpty()
+                ? LocalDate.parse(req.getStartDate())
+                : LocalDate.now().plusDays(1); // Bắt đầu từ ngày mai
+            
+            // Slot type, default to CONSULTATION
+            String slotType = req.getSlotType() != null ? req.getSlotType() : "CONSULTATION";
+            
+            // Capacity, default to 1
+            Integer capacity = req.getCapacity() != null ? req.getCapacity() : 1;
+            
+            // Description
+            String description = req.getDescription() != null ? req.getDescription() : "Lịch chung tự động " + req.getDays() + " ngày";
+            
+            // Call service to create time slots
+            timeSlotService.autoCreateTimeSlots(startDate, req.getDays(), slotType, capacity, description, req.getDuration());
+            
+            return ResponseEntity.ok("Đã tạo time slots cho " + req.getDays() + " ngày từ " + startDate + "!");
+            
+        } catch (Exception e) {
+            logger.error("Error creating custom time slots: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Lỗi khi tạo time slots: " + e.getMessage());
+        }
     }
 
     @GetMapping("/orders")

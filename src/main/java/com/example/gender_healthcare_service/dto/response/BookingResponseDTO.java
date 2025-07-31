@@ -38,16 +38,39 @@ public class BookingResponseDTO {
     private String description;
     private String notes;
     private String displayInfo;
+
+    // Sample collection information
+    private SampleCollectionResponseDTO sampleCollectionProfile;
     
     // Helper method để tạo display info
     public String getDisplayInfo() {
         if (displayInfo == null) {
-            displayInfo = String.format("%s - %s (%s)", 
-                customerFullName, 
-                serviceName, 
+            displayInfo = String.format("%s - %s (%s)",
+                customerFullName,
+                serviceName,
                 status);
         }
         return displayInfo;
+    }
+
+    // Helper methods for sample collection
+    public boolean hasSampleCollectionProfile() {
+        return sampleCollectionProfile != null;
+    }
+
+    public boolean isSampleCollectedBySelf() {
+        return hasSampleCollectionProfile() && sampleCollectionProfile.isSelf();
+    }
+
+    public String getSampleCollectorName() {
+        if (hasSampleCollectionProfile()) {
+            return sampleCollectionProfile.getCollectorDisplayName();
+        }
+        return null;
+    }
+
+    public boolean isSampleCollected() {
+        return hasSampleCollectionProfile() && sampleCollectionProfile.isCollected();
     }
 }
 

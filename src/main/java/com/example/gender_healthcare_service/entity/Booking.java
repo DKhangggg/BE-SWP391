@@ -74,6 +74,9 @@ public class Booking {
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Payment> payments;
+
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
+    private SampleCollectionProfile sampleCollectionProfile;
     
     @PrePersist
     protected void onCreate() {
@@ -105,9 +108,25 @@ public class Booking {
     public boolean isCompleted() {
         return "COMPLETED".equals(status);
     }
-    
+
     public boolean isCancelled() {
         return "CANCELLED".equals(status);
+    }
+
+    // Helper methods for sample collection
+    public boolean hasSampleCollectionProfile() {
+        return sampleCollectionProfile != null;
+    }
+
+    public boolean isSampleCollectedBySelf() {
+        return hasSampleCollectionProfile() && sampleCollectionProfile.isSelf();
+    }
+
+    public String getSampleCollectorName() {
+        if (hasSampleCollectionProfile()) {
+            return sampleCollectionProfile.getCollectorDisplayName();
+        }
+        return null;
     }
     
     public boolean canBeCancelled() {

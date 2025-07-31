@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Nationalized;
 import java.time.LocalDateTime;
 
 @Getter
@@ -16,18 +17,23 @@ public class Location {
     @Column(name = "id")
     private Integer id;
 
+    @Nationalized
     @Column(name = "name", nullable = false)
     private String name;
 
+    @Nationalized
     @Column(name = "address", nullable = false)
     private String address;
 
+    @Nationalized
     @Column(name = "phone", nullable = false)
     private String phone;
 
+    @Nationalized
     @Column(name = "hours")
     private String hours;
 
+    @Nationalized
     @Column(name = "status")
     private String status;
 

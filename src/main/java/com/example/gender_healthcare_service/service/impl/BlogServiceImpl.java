@@ -224,10 +224,15 @@ public class BlogServiceImpl implements BlogService {
     @Override
     @Transactional(readOnly = true)
     public List<BlogPostResponseDTO> getLatestBlogPosts(int limit) {
-        List<BlogPost> latestPosts = blogPostRepository.findLatestPublishedPosts(limit);
+        Pageable pageable = PageRequest.of(0, limit);
+        Page<BlogPost> latestPostsPage = blogPostRepository.findLatestPublishedPosts(pageable);
         List<BlogPostResponseDTO> responseDTOs = new ArrayList<>();
         
-        for (BlogPost post : latestPosts) {
+        for (BlogPost post : latestPostsPage.getContent()) {
+            // Force load author để tránh lazy loading issues
+            if (post.getAuthor() != null) {
+                post.getAuthor().getFullName(); // Force load
+            }
             responseDTOs.add(blogMapper.toResponseDTO(post));
         }
         

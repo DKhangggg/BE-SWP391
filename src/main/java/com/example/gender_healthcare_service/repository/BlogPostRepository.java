@@ -22,7 +22,7 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Integer> {
     @Query("SELECT b FROM BlogPost b WHERE b.isDeleted = false")
     Page<BlogPost> findAllByIsDeletedFalse(Pageable pageable);
     
-    @Query("SELECT b FROM BlogPost b WHERE b.id = :id AND b.isDeleted = false")
+    @Query("SELECT b FROM BlogPost b WHERE b.postID = :id AND b.isDeleted = false")
     Optional<BlogPost> findByIdAndIsDeletedFalse(@Param("id") Integer id);
     
     // ==================== SLUG VALIDATION ====================
@@ -47,8 +47,8 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Integer> {
     @Query("SELECT b FROM BlogPost b WHERE b.isPublished = true AND b.isDeleted = false ORDER BY b.createdAt DESC")
     Page<BlogPost> findByIsPublishedTrueAndIsDeletedFalse(Pageable pageable);
     
-    @Query(value = "SELECT TOP(:limit) * FROM BlogPosts b WHERE b.IsPublished = 1 AND b.IsDeleted = 0 ORDER BY b.CreatedAt DESC", nativeQuery = true)
-    List<BlogPost> findLatestPublishedPosts(@Param("limit") int limit);
+    @Query("SELECT b FROM BlogPost b WHERE b.isPublished = true AND b.isDeleted = false ORDER BY b.createdAt DESC")
+    Page<BlogPost> findLatestPublishedPosts(Pageable pageable);
     
     // ==================== EXISTING METHODS (KEEP FOR COMPATIBILITY) ====================
     
@@ -66,14 +66,14 @@ public interface BlogPostRepository extends JpaRepository<BlogPost, Integer> {
     // ==================== ANALYTICS ====================
     
     @Modifying
-    @Query("UPDATE BlogPost b SET b.views = b.views + 1 WHERE b.id = :postId")
+    @Query("UPDATE BlogPost b SET b.views = b.views + 1 WHERE b.postID = :postId")
     void incrementViews(@Param("postId") Integer postId);
     
     @Modifying
-    @Query("UPDATE BlogPost b SET b.likes = b.likes + 1 WHERE b.id = :postId")
+    @Query("UPDATE BlogPost b SET b.likes = b.likes + 1 WHERE b.postID = :postId")
     void incrementLikes(@Param("postId") Integer postId);
     
     @Modifying
-    @Query("UPDATE BlogPost b SET b.likes = b.likes - 1 WHERE b.id = :postId AND b.likes > 0")
+    @Query("UPDATE BlogPost b SET b.likes = b.likes - 1 WHERE b.postID = :postId AND b.likes > 0")
     void decrementLikes(@Param("postId") Integer postId);
 }

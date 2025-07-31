@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Nationalized;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -29,6 +30,7 @@ public class TimeSlot {
     @Column(name = "SlotDate", nullable = false)
     private LocalDate slotDate;
 
+    @Nationalized
     @Column(name = "SlotType", nullable = false)
     private String slotType; // "FACILITY" for testing, "CONSULTATION" for consultation
 
@@ -41,6 +43,7 @@ public class TimeSlot {
     @Column(name = "Duration", nullable = false)
     private Integer duration; // Duration in minutesS
 
+    @Nationalized
     @Column(name = "Description", length = 100)
     private String description;
     

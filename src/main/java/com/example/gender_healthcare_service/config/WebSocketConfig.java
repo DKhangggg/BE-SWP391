@@ -12,14 +12,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Enable a simple memory-based message broker to carry the messages back to the client
-        config.enableSimpleBroker("/topic", "/queue");
-        
-        // Designates the "/app" prefix for messages that are bound for @MessageMapping-annotated methods
+        // Enable simple broker for booking-specific topics only
+        config.enableSimpleBroker("/topic");
+
+        // Set application destination prefix
         config.setApplicationDestinationPrefixes("/app");
-        
-        // Set user destination prefix for private messages
-        config.setUserDestinationPrefix("/user");
     }
 
     @Override
@@ -27,6 +24,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Register the "/ws" endpoint for WebSocket connections
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*") // Allow all origins for development
-                .withSockJS(); // Enable SockJS fallback options
+                .setAllowedOrigins("http://localhost:3000", "http://127.0.0.1:3000") // Specific origins
+                .withSockJS() // Enable SockJS fallback options
+                .setHeartbeatTime(25000); // Set heartbeat interval
     }
+
+
 }

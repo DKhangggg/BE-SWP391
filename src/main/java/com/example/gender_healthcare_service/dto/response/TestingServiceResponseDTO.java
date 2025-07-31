@@ -12,6 +12,7 @@ public class TestingServiceResponseDTO {
     private BigDecimal price;
     private String status;
     private Integer durationMinutes;
+    private String preparationInstructions;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private Boolean isDeleted;

@@ -4,9 +4,12 @@ import com.example.gender_healthcare_service.dto.request.ConsultantFeedbackDTO;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.dto.response.FeedbackResponseDTO;
 import com.example.gender_healthcare_service.service.FeedbackService;
+import com.example.gender_healthcare_service.service.UserService;
+import com.example.gender_healthcare_service.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,15 +20,18 @@ public class FeedbackController {
 
     @Autowired
     private FeedbackService feedbackService;
+    
+    @Autowired
+    private UserService userService;
 
     @PostMapping("/consultation")
     public ResponseEntity<ApiResponse<FeedbackResponseDTO>> submitConsultationFeedback(@RequestBody ConsultantFeedbackDTO feedbackDTO) {
         try {
-            FeedbackResponseDTO response = feedbackService.submitConsultationFeedback(feedbackDTO);
+            User currentUser = userService.getCurrentUser();
+            FeedbackResponseDTO response = feedbackService.submitConsultationFeedback(feedbackDTO, currentUser);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("Gửi phản hồi tư vấn thành công", response));
         } catch (RuntimeException e) {
-            // Kiểm tra nếu là lỗi đã đánh giá rồi thì trả về 400
             if (e.getMessage().contains("đã đánh giá")) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(ApiResponse.error("Lỗi khi gửi phản hồi tư vấn: " + e.getMessage()));
@@ -76,7 +82,9 @@ public class FeedbackController {
             @PathVariable Integer feedbackId,
             @RequestBody ConsultantFeedbackDTO feedbackDTO) {
         try {
-            FeedbackResponseDTO updatedFeedback = feedbackService.updateFeedback(feedbackId, feedbackDTO);
+            // Tự động lấy user hiện tại thay vì yêu cầu customerId từ frontend
+            User currentUser = userService.getCurrentUser();
+            FeedbackResponseDTO updatedFeedback = feedbackService.updateFeedback(feedbackId, feedbackDTO, currentUser);
             return ResponseEntity.ok(ApiResponse.success("Cập nhật phản hồi thành công", updatedFeedback));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -87,7 +95,9 @@ public class FeedbackController {
     @DeleteMapping("/{feedbackId}")
     public ResponseEntity<ApiResponse<String>> deleteFeedback(@PathVariable Integer feedbackId) {
         try {
-            feedbackService.deleteFeedback(feedbackId);
+            // Tự động lấy user hiện tại thay vì yêu cầu customerId từ frontend
+            User currentUser = userService.getCurrentUser();
+            feedbackService.deleteFeedback(feedbackId, currentUser);
             return ResponseEntity.ok(ApiResponse.success("Xóa phản hồi thành công", "Phản hồi đã được xóa"));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

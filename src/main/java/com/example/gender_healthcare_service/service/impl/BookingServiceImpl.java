@@ -5,15 +5,17 @@ import com.example.gender_healthcare_service.dto.request.BookingFilterRequestDTO
 import com.example.gender_healthcare_service.dto.request.ConsultantCreateBookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateBookingStatusRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateTestResultRequestDTO;
+import com.example.gender_healthcare_service.dto.request.SampleCollectionRequestDTO;
 import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
 import com.example.gender_healthcare_service.dto.response.BookingPageResponseDTO;
+import com.example.gender_healthcare_service.dto.response.SampleCollectionResponseDTO;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.entity.*;
 import com.example.gender_healthcare_service.repository.*;
 import com.example.gender_healthcare_service.exception.ServiceNotFoundException;
 import com.example.gender_healthcare_service.exception.BookingConflictException;
 import com.example.gender_healthcare_service.service.BookingService;
-import com.example.gender_healthcare_service.service.BookingTrackingService;
+import com.example.gender_healthcare_service.service.BookingNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -40,7 +42,8 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final TestingServiceRepository testingServiceRepository;
     private final TimeSlotRepository timeSlotRepository;
-    private final BookingTrackingService bookingTrackingService;
+    private final SampleCollectionProfileRepository sampleCollectionProfileRepository;
+    private final BookingNotificationService bookingNotificationService;
     private final ModelMapper modelMapper;
 
     @Override
@@ -86,7 +89,7 @@ public class BookingServiceImpl implements BookingService {
         Booking savedBooking = bookingRepository.save(booking);
         
         // Send real-time notification for new booking
-        bookingTrackingService.notifyNewBooking(savedBooking);
+        bookingNotificationService.notifyBookingStatusChange(savedBooking, "PENDING", null, "System");
         
         return convertToDto(savedBooking);
     }
@@ -99,7 +102,7 @@ public class BookingServiceImpl implements BookingService {
         if(currentUser == null) {
             throw new ServiceNotFoundException("User not found: " + userName);
         }
-        return bookingRepository.findByCustomerID(currentUser).stream()
+        return bookingRepository.findByCustomerIDAndIsDeletedFalseOrderByUpdatedAtDesc(currentUser).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -163,7 +166,7 @@ public class BookingServiceImpl implements BookingService {
         Booking savedBooking = bookingRepository.save(booking);
         
         // Send real-time notification for new booking
-        bookingTrackingService.notifyNewBooking(savedBooking);
+        bookingNotificationService.notifyBookingStatusChange(savedBooking, "PENDING", null, "System");
         
         return convertToDto(savedBooking);
     }
@@ -200,12 +203,15 @@ public class BookingServiceImpl implements BookingService {
         booking.setUpdatedAt(LocalDateTime.now());
         booking.setStatus(newStatus);
 
-        // Update description
+        // Update description - cho phép null hoặc empty string
         if (statusRequestDTO.getDescription() != null) {
-            booking.setDescription(statusRequestDTO.getDescription());
+            // Nếu description là empty string, set thành null
+            String description = statusRequestDTO.getDescription().trim().isEmpty() ?
+                null : statusRequestDTO.getDescription();
+            booking.setDescription(description);
         }
 
-        // Update result date
+        // Update result date - cho phép null
         if (statusRequestDTO.getResultDate() != null) {
             booking.setResultDate(statusRequestDTO.getResultDate());
         }
@@ -215,7 +221,7 @@ public class BookingServiceImpl implements BookingService {
         // Send real-time notification for status change
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String updatedBy = authentication != null ? authentication.getName() : "System";
-        bookingTrackingService.notifyBookingStatusChange(updatedBooking, newStatus, previousStatus, updatedBy);
+        bookingNotificationService.notifyBookingStatusChange(updatedBooking, newStatus, previousStatus, updatedBy);
 
         return convertToDto(updatedBooking);
     }
@@ -252,10 +258,7 @@ public class BookingServiceImpl implements BookingService {
         String updatedBy = authentication != null ? authentication.getName() : "Lab System";
 
         // Notify about status change to COMPLETED
-        bookingTrackingService.notifyBookingStatusChange(updatedBooking, "COMPLETED", previousStatus, updatedBy);
-
-        // Also notify specifically about test result being ready
-        bookingTrackingService.notifyTestResultReady(bookingId, resultRequest.getResult());
+        bookingNotificationService.notifyBookingStatusChange(updatedBooking, "COMPLETED", previousStatus, updatedBy);
 
         return convertToDto(updatedBooking);
     }
@@ -295,7 +298,7 @@ public class BookingServiceImpl implements BookingService {
         Booking cancelledBooking = bookingRepository.save(booking);
         
         // Send real-time notification for cancellation
-        bookingTrackingService.notifyBookingStatusChange(cancelledBooking, "CANCELLED", previousStatus, currentPrincipalName);
+        bookingNotificationService.notifyBookingStatusChange(cancelledBooking, "CANCELLED", previousStatus, currentPrincipalName);
         
         return convertToDto(cancelledBooking);
     }
@@ -324,7 +327,7 @@ public class BookingServiceImpl implements BookingService {
         Booking confirmedBooking = bookingRepository.save(booking);
         
         // Send real-time notification for confirmation
-        bookingTrackingService.notifyBookingStatusChange(confirmedBooking, "CONFIRMED", previousStatus, currentPrincipalName);
+        bookingNotificationService.notifyBookingStatusChange(confirmedBooking, "CONFIRMED", previousStatus, currentPrincipalName);
         
         return convertToDto(confirmedBooking);
     }
@@ -361,7 +364,7 @@ public class BookingServiceImpl implements BookingService {
         timeSlotRepository.save(timeSlot);
         
         // Send real-time notification for cancellation
-        bookingTrackingService.notifyBookingStatusChange(booking, "CANCELLED", previousStatus, currentPrincipalName);
+        bookingNotificationService.notifyBookingStatusChange(booking, "CANCELLED", previousStatus, currentPrincipalName);
         
         return new ResponseEntity<>("hủy đặt lịch thành công", HttpStatus.OK);
     }
@@ -369,7 +372,7 @@ public class BookingServiceImpl implements BookingService {
     // New pagination methods
     @Override
     public BookingPageResponseDTO getAllBookingsForStaff(Pageable pageable) {
-        Page<Booking> bookingsPage = bookingRepository.findAllActive(pageable);
+        Page<Booking> bookingsPage = bookingRepository.findAllWithSampleProfile(pageable);
         return createBookingPageResponse(bookingsPage);
     }
 
@@ -395,7 +398,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public BookingPageResponseDTO getBookingsByStatus(String status, Pageable pageable) {
-        Page<Booking> bookingsPage = bookingRepository.findByStatus(status, pageable);
+        Page<Booking> bookingsPage = bookingRepository.findByStatusWithSampleProfile(status, pageable);
         return createBookingPageResponse(bookingsPage);
     }
 
@@ -446,7 +449,7 @@ public class BookingServiceImpl implements BookingService {
     // Legacy method for backward compatibility
     @Override
     public Page<BookingResponseDTO> getAllBookingsForStaffLegacy(Pageable pageable) {
-        Page<Booking> bookingsPage = bookingRepository.findAll(pageable);
+        Page<Booking> bookingsPage = bookingRepository.findAllWithSampleProfile(pageable);
         return bookingsPage.map(this::convertToDto);
     }
 
@@ -536,9 +539,142 @@ public class BookingServiceImpl implements BookingService {
             dto.setEndTime(booking.getTimeSlot().getEndTime());
             dto.setSlotType(booking.getTimeSlot().getSlotType());
         }
-        
+
+        // Sample collection profile mapping
+        if (booking.getSampleCollectionProfile() != null) {
+            dto.setSampleCollectionProfile(convertSampleCollectionToDto(booking.getSampleCollectionProfile()));
+        }
+
         return dto;
     }
 
+    // Sample Collection Methods Implementation
+    @Override
+    @Transactional
+    public BookingResponseDTO collectSample(Integer bookingId, SampleCollectionRequestDTO sampleCollectionRequest) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentStaffName = authentication != null ? authentication.getName() : "System";
 
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ServiceNotFoundException("Booking not found with ID: " + bookingId));
+
+        // Validate booking status
+        if (!booking.getStatus().equals("CONFIRMED")) {
+            throw new IllegalStateException("Chỉ có thể lấy mẫu khi booking đã được xác nhận");
+        }
+
+        // Check if sample collection profile already exists
+        if (booking.getSampleCollectionProfile() != null) {
+            throw new IllegalStateException("Mẫu đã được lấy cho booking này");
+        }
+
+        // Create sample collection profile
+        SampleCollectionProfile profile = new SampleCollectionProfile();
+        profile.setBooking(booking);
+        profile.setCollectorFullName(sampleCollectionRequest.getCollectorFullName());
+        profile.setCollectorIdCard(sampleCollectionRequest.getCollectorIdCard());
+        profile.setCollectorPhoneNumber(sampleCollectionRequest.getCollectorPhoneNumber());
+        profile.setCollectorDateOfBirth(sampleCollectionRequest.getCollectorDateOfBirth());
+        profile.setCollectorGender(sampleCollectionRequest.getCollectorGender());
+        profile.setRelationshipToBooker(sampleCollectionRequest.getRelationshipToBooker());
+        profile.setSampleCollectionDate(sampleCollectionRequest.getSampleCollectionDate());
+        profile.setCollectedBy(currentStaffName);
+        profile.setNotes(sampleCollectionRequest.getNotes());
+        profile.setIsDeleted(false);
+
+        // Save profile
+        SampleCollectionProfile savedProfile = sampleCollectionProfileRepository.save(profile);
+
+        // Update booking status to SAMPLE_COLLECTED
+        String previousStatus = booking.getStatus();
+        booking.setStatus("SAMPLE_COLLECTED");
+        booking.setUpdatedAt(LocalDateTime.now());
+        booking.setSampleCollectionProfile(savedProfile);
+
+        Booking updatedBooking = bookingRepository.save(booking);
+
+        // Send notification
+        bookingNotificationService.notifyBookingStatusChange(updatedBooking, "SAMPLE_COLLECTED", previousStatus, currentStaffName);
+
+        return convertToDto(updatedBooking);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SampleCollectionResponseDTO getSampleCollectionProfile(Integer bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ServiceNotFoundException("Booking not found with ID: " + bookingId));
+
+        if (booking.getSampleCollectionProfile() == null) {
+            throw new ServiceNotFoundException("Sample collection profile not found for booking ID: " + bookingId);
+        }
+
+        return convertSampleCollectionToDto(booking.getSampleCollectionProfile());
+    }
+
+    @Override
+    @Transactional
+    public BookingResponseDTO updateSampleCollectionProfile(Integer bookingId, SampleCollectionRequestDTO sampleCollectionRequest) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentStaffName = authentication != null ? authentication.getName() : "System";
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ServiceNotFoundException("Booking not found with ID: " + bookingId));
+
+        SampleCollectionProfile profile = booking.getSampleCollectionProfile();
+        if (profile == null) {
+            throw new ServiceNotFoundException("Sample collection profile not found for booking ID: " + bookingId);
+        }
+
+        // Update profile information
+        profile.setCollectorFullName(sampleCollectionRequest.getCollectorFullName());
+        profile.setCollectorIdCard(sampleCollectionRequest.getCollectorIdCard());
+        profile.setCollectorPhoneNumber(sampleCollectionRequest.getCollectorPhoneNumber());
+        profile.setCollectorDateOfBirth(sampleCollectionRequest.getCollectorDateOfBirth());
+        profile.setCollectorGender(sampleCollectionRequest.getCollectorGender());
+        profile.setRelationshipToBooker(sampleCollectionRequest.getRelationshipToBooker());
+        profile.setSampleCollectionDate(sampleCollectionRequest.getSampleCollectionDate());
+        profile.setNotes(sampleCollectionRequest.getNotes());
+        profile.setUpdatedAt(LocalDateTime.now());
+
+        sampleCollectionProfileRepository.save(profile);
+
+        // Update booking timestamp
+        booking.setUpdatedAt(LocalDateTime.now());
+        Booking updatedBooking = bookingRepository.save(booking);
+
+        return convertToDto(updatedBooking);
+    }
+
+    // Helper method to convert SampleCollectionProfile to DTO
+    private SampleCollectionResponseDTO convertSampleCollectionToDto(SampleCollectionProfile profile) {
+        if (profile == null) {
+            return null;
+        }
+
+        SampleCollectionResponseDTO dto = new SampleCollectionResponseDTO();
+        dto.setProfileId(profile.getId());
+        dto.setBookingId(profile.getBooking().getId());
+        dto.setCollectorFullName(profile.getCollectorFullName());
+        dto.setCollectorIdCard(profile.getCollectorIdCard());
+        dto.setCollectorPhoneNumber(profile.getCollectorPhoneNumber());
+        dto.setCollectorDateOfBirth(profile.getCollectorDateOfBirth());
+        dto.setCollectorGender(profile.getCollectorGender());
+        dto.setGenderDisplayName(profile.getGenderDisplayName());
+        dto.setRelationshipToBooker(profile.getRelationshipToBooker());
+        dto.setRelationshipDisplayName(profile.getRelationshipDisplayName());
+        dto.setSampleCollectionDate(profile.getSampleCollectionDate());
+        dto.setCollectedBy(profile.getCollectedBy());
+        dto.setNotes(profile.getNotes());
+        dto.setCreatedAt(profile.getCreatedAt());
+        dto.setUpdatedAt(profile.getUpdatedAt());
+
+        // Add booking information
+        Booking booking = profile.getBooking();
+        dto.setCustomerFullName(booking.getCustomerID().getFullName());
+        dto.setServiceName(booking.getService().getServiceName());
+        dto.setBookingStatus(booking.getStatus());
+
+        return dto;
+    }
 }

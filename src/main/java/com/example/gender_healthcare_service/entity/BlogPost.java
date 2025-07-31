@@ -37,14 +37,15 @@ public class BlogPost {
     @Column(name = "Summary", length = 500)
     private String summary;
 
-    @Lob
     @Nationalized
+    @Lob
     @Column(name = "Content", nullable = false)
     private String content;
 
     @Column(name = "CoverImageUrl", length = 500)
     private String coverImageUrl;
 
+    @Nationalized
     @Column(name = "Tags", length = 1000)
     private String tags; // JSON string of tags
 

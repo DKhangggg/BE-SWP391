@@ -38,11 +38,17 @@ public class TestingService {
     @Column(name = "Price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 
+    @Nationalized
     @Column(name ="Status", nullable = false)
     private String status;
 
     @Column(name = "DurationMinutes")
     private Integer durationMinutes;
+
+    @Size(max = 1000)
+    @Nationalized
+    @Column(name = "PreparationInstructions", length = 1000)
+    private String preparationInstructions;
 
     @Size(max = 500)
     @Column(name = "ImageUrl", length = 500)

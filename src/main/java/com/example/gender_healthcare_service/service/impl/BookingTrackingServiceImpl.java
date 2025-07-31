@@ -21,27 +21,38 @@ public class BookingTrackingServiceImpl implements BookingTrackingService {
 
     @Override
     public void sendBookingStatusUpdate(BookingStatusUpdateDTO statusUpdate) {
-        log.info("Sending booking status update for booking ID: {}, status: {}", 
+        log.info("📢 Sending booking status update for booking ID: {}, status: {}",
                 statusUpdate.getBookingId(), statusUpdate.getStatus());
-        
-        // Gửi tới topic chung cho tất cả
-        messagingTemplate.convertAndSend("/topic/booking-updates", statusUpdate);
-        
-        // Gửi tới topic specific cho booking này
-        messagingTemplate.convertAndSend("/topic/booking-updates/" + statusUpdate.getBookingId(), statusUpdate);
+
+        try {
+            // Gửi tới topic chung cho tất cả
+            messagingTemplate.convertAndSend("/topic/booking-updates", statusUpdate);
+            log.info("✅ Sent to general topic: /topic/booking-updates");
+
+            // Gửi tới topic specific cho booking này
+            messagingTemplate.convertAndSend("/topic/booking-updates/" + statusUpdate.getBookingId(), statusUpdate);
+            log.info("✅ Sent to specific topic: /topic/booking-updates/{}", statusUpdate.getBookingId());
+        } catch (Exception e) {
+            log.error("❌ Failed to send booking status update: {}", e.getMessage());
+        }
     }
 
     @Override
     public void sendBookingStatusUpdateToCustomer(Integer customerId, BookingStatusUpdateDTO statusUpdate) {
-        log.info("Sending booking status update to customer ID: {}, booking ID: {}", 
-                customerId, statusUpdate.getBookingId());
-        
-        // Gửi private message tới customer cụ thể
-        messagingTemplate.convertAndSendToUser(
-                customerId.toString(), 
-                "/queue/booking-updates", 
-                statusUpdate
-        );
+        log.info("🔔 Sending booking status update to customer ID: {}, booking ID: {}, status: {}",
+                customerId, statusUpdate.getBookingId(), statusUpdate.getStatus());
+
+        try {
+            // Gửi private message tới customer cụ thể
+            messagingTemplate.convertAndSendToUser(
+                    customerId.toString(),
+                    "/queue/booking-updates",
+                    statusUpdate
+            );
+            log.info("✅ Successfully sent private message to customer {}", customerId);
+        } catch (Exception e) {
+            log.error("❌ Failed to send private message to customer {}: {}", customerId, e.getMessage());
+        }
     }
 
     @Override
@@ -54,6 +65,9 @@ public class BookingTrackingServiceImpl implements BookingTrackingService {
 
     @Override
     public void notifyBookingStatusChange(Booking booking, String newStatus, String previousStatus, String updatedBy) {
+        log.info("🚨 Notifying booking status change - Booking ID: {}, Customer ID: {}, Status: {} -> {}",
+                booking.getId(), booking.getCustomerID().getId(), previousStatus, newStatus);
+
         BookingStatusUpdateDTO statusUpdate = new BookingStatusUpdateDTO(
                 booking.getId(),
                 booking.getCustomerID().getFullName(),
@@ -63,11 +77,15 @@ public class BookingTrackingServiceImpl implements BookingTrackingService {
                 updatedBy
         );
         statusUpdate.setPreviousStatus(previousStatus);
-        
+
+        log.info("📋 Status update DTO created: {}", statusUpdate);
+
         // Gửi update tới tất cả channels
         sendBookingStatusUpdate(statusUpdate);
         sendBookingStatusUpdateToCustomer(booking.getCustomerID().getId(), statusUpdate);
         sendBookingStatusUpdateToStaff(statusUpdate);
+
+        log.info("✅ All notifications sent for booking {}", booking.getId());
     }
 
     @Override

@@ -8,6 +8,8 @@ import com.example.gender_healthcare_service.dto.response.BookingPageResponseDTO
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.dto.request.UpdateBookingStatusRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateTestResultRequestDTO;
+import com.example.gender_healthcare_service.dto.request.SampleCollectionRequestDTO;
+import com.example.gender_healthcare_service.dto.response.SampleCollectionResponseDTO;
 import com.example.gender_healthcare_service.entity.Booking;
 
 import java.util.List;
@@ -25,6 +27,11 @@ public interface BookingService {
     BookingResponseDTO updateTestResult(Integer bookingId, UpdateTestResultRequestDTO resultRequest);
     BookingResponseDTO cancelBooking(Integer bookingId);
     BookingResponseDTO confirmBooking(Integer bookingId);
+
+    // Sample collection methods
+    BookingResponseDTO collectSample(Integer bookingId, SampleCollectionRequestDTO sampleCollectionRequest);
+    SampleCollectionResponseDTO getSampleCollectionProfile(Integer bookingId);
+    BookingResponseDTO updateSampleCollectionProfile(Integer bookingId, SampleCollectionRequestDTO sampleCollectionRequest);
     ResponseEntity<?> cancelBookingWithResponse(Integer bookingId);
     
     // Pagination methods

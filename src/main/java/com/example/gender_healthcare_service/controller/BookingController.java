@@ -5,12 +5,16 @@ import com.example.gender_healthcare_service.dto.request.BookingFilterRequestDTO
 import com.example.gender_healthcare_service.dto.request.ConsultantCreateBookingRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateBookingStatusRequestDTO;
 import com.example.gender_healthcare_service.dto.request.UpdateTestResultRequestDTO;
+import com.example.gender_healthcare_service.dto.request.SampleCollectionRequestDTO;
 import com.example.gender_healthcare_service.dto.response.BookingResponseDTO;
 import com.example.gender_healthcare_service.dto.response.BookingPageResponseDTO;
+import com.example.gender_healthcare_service.dto.response.SampleCollectionResponseDTO;
 import com.example.gender_healthcare_service.dto.response.PageResponse;
 import com.example.gender_healthcare_service.dto.response.ApiResponse;
 import com.example.gender_healthcare_service.service.BookingService;
+import com.example.gender_healthcare_service.exception.ServiceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -154,6 +158,56 @@ public class BookingController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Lỗi khi cập nhật kết quả xét nghiệm: " + e.getMessage()));
+        }
+    }
+
+    // Sample Collection Endpoints
+    @PostMapping("/{bookingId}/sample-collection")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF', 'ROLE_MANAGER')")
+    public ResponseEntity<ApiResponse<BookingResponseDTO>> collectSample(
+            @PathVariable Integer bookingId,
+            @RequestBody @Valid SampleCollectionRequestDTO sampleCollectionRequest) {
+        try {
+            BookingResponseDTO updatedBooking = bookingService.collectSample(bookingId, sampleCollectionRequest);
+            return ResponseEntity.ok(ApiResponse.success("Lấy mẫu xét nghiệm thành công", updatedBooking));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy mẫu xét nghiệm: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{bookingId}/sample-collection")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_CUSTOMER')")
+    public ResponseEntity<ApiResponse<SampleCollectionResponseDTO>> getSampleCollectionProfile(@PathVariable Integer bookingId) {
+        try {
+            SampleCollectionResponseDTO profile = bookingService.getSampleCollectionProfile(bookingId);
+            return ResponseEntity.ok(ApiResponse.success("Lấy thông tin mẫu xét nghiệm thành công", profile));
+        } catch (ServiceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi lấy thông tin mẫu xét nghiệm: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{bookingId}/sample-collection")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF', 'ROLE_MANAGER')")
+    public ResponseEntity<ApiResponse<BookingResponseDTO>> updateSampleCollectionProfile(
+            @PathVariable Integer bookingId,
+            @RequestBody @Valid SampleCollectionRequestDTO sampleCollectionRequest) {
+        try {
+            BookingResponseDTO updatedBooking = bookingService.updateSampleCollectionProfile(bookingId, sampleCollectionRequest);
+            return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin mẫu xét nghiệm thành công", updatedBooking));
+        } catch (ServiceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi cập nhật thông tin mẫu xét nghiệm: " + e.getMessage()));
         }
     }
 

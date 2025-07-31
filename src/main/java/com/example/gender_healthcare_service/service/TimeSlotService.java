@@ -28,6 +28,9 @@ public interface TimeSlotService {
     void createRecurringTimeSlots(LocalDate startDate, LocalDate endDate, String slotType, 
                                  Integer consultantId, Integer capacity, String daysOfWeek);
     
+    // Auto create time slots for multiple days (admin function)
+    void autoCreateTimeSlots(LocalDate startDate, int days, String slotType, Integer capacity, String description, Integer duration);
+    
     // Update time slot capacity
     void updateTimeSlotCapacity(Integer timeSlotId, Integer newCapacity);
     
@@ -41,4 +44,5 @@ public interface TimeSlotService {
     List<TimeSlotResponseDTO> getTimeSlotsByConsultant(Integer consultantId, LocalDate date);
 
     List<TimeSlotResponseDTO> getAvailableTimeSlotsByConsultant(Integer consultantId, LocalDate fromDate, LocalDate toDate);
-} 
+    public boolean checkTimeSlotExists(LocalDate slotDate, String startTime, String slotType);
+}

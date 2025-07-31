@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Nationalized;
 
 import java.time.LocalDateTime;
 
@@ -24,6 +25,7 @@ public class Notification {
     @JoinColumn(name = "UserID", nullable = false)
     private User user;
 
+    @Nationalized
     @Column(nullable = false)
     private String message;
 
@@ -35,12 +37,15 @@ public class Notification {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Nationalized
     @Column(name = "Type")
     private String type; // CONSULTATION, TEST_RESULT, CYCLE_REMINDER, QUESTION_ANSWERED
 
+    @Nationalized
     @Column(name = "Title")
     private String title;
 
+    @Nationalized
     @Column(name = "Description")
     private String description;
 
