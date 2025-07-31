@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Nationalized;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -26,19 +25,16 @@ public class BlogPost {
     @Column(name = "PostID")
     private Integer postID;
 
-    @Nationalized
     @Column(name = "Title", nullable = false, length = 200)
     private String title;
 
     @Column(name = "Slug", unique = true, length = 255)
     private String slug;
 
-    @Nationalized
     @Column(name = "Summary", length = 500)
     private String summary;
 
     @Lob
-    @Nationalized
     @Column(name = "Content", nullable = false)
     private String content;
 

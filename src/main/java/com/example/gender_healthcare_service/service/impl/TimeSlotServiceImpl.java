@@ -15,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
+import java.time.DayOfWeek;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -148,6 +151,71 @@ public class TimeSlotServiceImpl implements TimeSlotService {
         return slots.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void autoCreateTimeSlots(LocalDate startDate, int days, String slotType, Integer capacity, String description, Integer duration) {
+        List<TimeSlot> slots = new ArrayList<>();
+        
+        // Create slots for each day
+        for (int d = 0; d < days; d++) {
+            LocalDate slotDate = startDate.plusDays(d);
+            
+            // Skip weekends (Saturday and Sunday)
+            if (slotDate.getDayOfWeek() == DayOfWeek.SATURDAY || slotDate.getDayOfWeek() == DayOfWeek.SUNDAY) {
+                continue;
+            }
+            
+            // 4 time slots per day
+            LocalTime[][] slotTimes = {
+                {LocalTime.of(8, 0), LocalTime.of(10, 0)},
+                {LocalTime.of(10, 0), LocalTime.of(12, 0)},
+                {LocalTime.of(13, 0), LocalTime.of(15, 0)},
+                {LocalTime.of(15, 0), LocalTime.of(17, 0)}
+            };
+            
+            for (LocalTime[] times : slotTimes) {
+                // Temporarily skip duplicate check to avoid errors
+                // boolean slotExists = checkTimeSlotExists(slotDate, times[0].toString(), slotType);
+                
+                // if (!slotExists) {
+                    TimeSlot slot = new TimeSlot();
+                    slot.setSlotDate(slotDate);
+                    slot.setStartTime(times[0]);
+                    slot.setEndTime(times[1]);
+                    slot.setConsultant(null); // No consultant assigned
+                    slot.setSlotType(slotType);
+                    slot.setCapacity(capacity != null ? capacity : 1);
+                    slot.setBookedCount(0);
+                    slot.setIsAvailable(true);
+                    slot.setIsDeleted(false);
+                    slot.setDescription(description != null ? description : "Auto-created slot");
+                    
+                    // Calculate duration in minutes
+                    int durationMinutes = duration != null ? duration : 
+                        (int) java.time.Duration.between(times[0], times[1]).toMinutes();
+                    slot.setDuration(durationMinutes);
+                    
+                    slot.setCreatedAt(LocalDateTime.now());
+                    slots.add(slot);
+                // }
+            }
+        }
+        
+        if (!slots.isEmpty()) {
+            timeSlotRepository.saveAll(slots);
+        }
+    }
+@Override
+    public boolean checkTimeSlotExists(LocalDate slotDate, String startTime, String slotType) {
+        try {
+            LocalTime time = LocalTime.parse(startTime);
+            return timeSlotRepository.checkTimeSlotExists(slotDate, time, slotType);
+        } catch (Exception e) {
+            // If there's any error checking, assume it doesn't exist
+            return false;
+        }
     }
 
     private TimeSlotResponseDTO convertToDto(TimeSlot timeSlot) {

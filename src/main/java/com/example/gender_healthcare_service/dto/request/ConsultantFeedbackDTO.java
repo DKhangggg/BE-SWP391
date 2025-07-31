@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 @Data
 public class ConsultantFeedbackDTO {
-    private Integer customerId;
+    // customerId đã được xóa - sẽ tự động lấy từ user hiện tại
     private Integer consultantId;
     private Integer consultationId; // Thêm consultationId
     private Integer bookingId; // Thêm bookingId

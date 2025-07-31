@@ -58,18 +58,23 @@ public class FeedbackServiceImpl implements FeedbackService {
 
     @Override
     public FeedbackResponseDTO updateFeedback(Integer id, ConsultantFeedbackDTO feedbackDTO) {
+        // Method cũ - giữ lại để backward compatibility
+        throw new RuntimeException("Method này đã deprecated. Vui lòng sử dụng method mới với user authentication.");
+    }
+
+    @Override
+    public FeedbackResponseDTO updateFeedback(Integer id, ConsultantFeedbackDTO feedbackDTO, User currentUser) {
         Feedback existing = getFeedbackById(id);
         
-        // Validate customer
-        User customer = userRepository.findById(feedbackDTO.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
-        
         // Validate consultant
-        User consultant = userRepository.findById(feedbackDTO.getConsultantId())
-                .orElseThrow(() -> new RuntimeException("Consultant not found"));
+        User consultant = null;
+        if (feedbackDTO.getConsultantId() != null) {
+            consultant = userRepository.findById(feedbackDTO.getConsultantId())
+                    .orElseThrow(() -> new RuntimeException("Consultant not found"));
+        }
 
-        // Kiểm tra xem feedback có thuộc về customer này không
-        if (!existing.getCustomer().getId().equals(customer.getId())) {
+        // Kiểm tra xem feedback có thuộc về user hiện tại không
+        if (!existing.getCustomer().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Bạn chỉ có thể cập nhật feedback của mình");
         }
 
@@ -94,22 +99,46 @@ public class FeedbackServiceImpl implements FeedbackService {
 
     @Override
     public void deleteFeedback(Integer id) {
+        // Method cũ - giữ lại để backward compatibility
+        throw new RuntimeException("Method này đã deprecated. Vui lòng sử dụng method mới với user authentication.");
+    }
+
+    @Override
+    public void deleteFeedback(Integer id, User currentUser) {
         Feedback feedback = getFeedbackById(id);
+        
+        // Kiểm tra xem feedback có thuộc về user hiện tại không
+        if (!feedback.getCustomer().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Bạn chỉ có thể xóa feedback của mình");
+        }
+        
         feedback.setIsDeleted(true);
         feedBackRepo.save(feedback);
     }
 
     @Override
     public FeedbackResponseDTO submitConsultationFeedback(ConsultantFeedbackDTO feedbackDTO) {
-        // Validate customer
-        User customer = userRepository.findById(feedbackDTO.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
-        
-        // Validate consultant
-        User consultant = userRepository.findById(feedbackDTO.getConsultantId())
-                .orElseThrow(() -> new RuntimeException("Consultant not found"));
+        // Method cũ - giữ lại để backward compatibility
+        throw new RuntimeException("Method này đã deprecated. Vui lòng sử dụng method mới với user authentication.");
+    }
 
-        // Validate consultation if provided
+    @Override
+    public FeedbackResponseDTO submitConsultationFeedback(ConsultantFeedbackDTO feedbackDTO, User currentUser) {
+        // Validate required fields
+        if (feedbackDTO.getRating() == null) {
+            throw new RuntimeException("Rating không được để trống");
+        }
+        
+        if (feedbackDTO.getComment() == null || feedbackDTO.getComment().trim().isEmpty()) {
+            throw new RuntimeException("Comment không được để trống");
+        }
+        
+        User consultant = null;
+        if (feedbackDTO.getConsultantId() != null) {
+            consultant = userRepository.findById(feedbackDTO.getConsultantId())
+                    .orElseThrow(() -> new RuntimeException("Consultant not found"));
+        }
+
         Consultation consultation = null;
         if (feedbackDTO.getConsultationId() != null) {
             consultation = consultationRepository.findById(feedbackDTO.getConsultationId())
@@ -121,7 +150,7 @@ public class FeedbackServiceImpl implements FeedbackService {
             }
             
             // Kiểm tra xem customer có phải là customer của consultation này không
-            if (!consultation.getCustomer().getId().equals(customer.getId())) {
+            if (!consultation.getCustomer().getId().equals(currentUser.getId())) {
                 throw new RuntimeException("Bạn chỉ có thể đánh giá consultation của mình");
             }
         }
@@ -138,28 +167,33 @@ public class FeedbackServiceImpl implements FeedbackService {
             }
             
             // Kiểm tra xem customer có phải là customer của booking này không
-            if (!booking.getCustomerID().getId().equals(customer.getId())) {
+            if (!booking.getCustomerID().getId().equals(currentUser.getId())) {
                 throw new RuntimeException("Bạn chỉ có thể đánh giá booking của mình");
             }
         }
 
+        // Đảm bảo có ít nhất một trong hai: consultation hoặc booking
+        if (consultation == null && booking == null) {
+            throw new RuntimeException("Phải cung cấp Consultation ID hoặc Booking ID");
+        }
+
         // Kiểm tra xem đã có feedback cho consultation/booking này chưa
         if (consultation != null) {
-            boolean existingFeedback = feedBackRepo.existsByConsultationAndCustomer(consultation, customer);
+            boolean existingFeedback = feedBackRepo.existsByConsultationAndCustomer(consultation, currentUser);
             if (existingFeedback) {
                 throw new RuntimeException("Bạn đã đánh giá consultation này rồi");
             }
         }
         
         if (booking != null) {
-            boolean existingFeedback = feedBackRepo.existsByBookingAndCustomer(booking, customer);
+            boolean existingFeedback = feedBackRepo.existsByBookingAndCustomer(booking, currentUser);
             if (existingFeedback) {
                 throw new RuntimeException("Bạn đã đánh giá booking này rồi");
             }
         }
 
         Feedback feedback = new Feedback();
-        feedback.setCustomer(customer);
+        feedback.setCustomer(currentUser);
         feedback.setConsultant(consultant);
         feedback.setConsultation(consultation);
         feedback.setBooking(booking);
@@ -179,7 +213,7 @@ public class FeedbackServiceImpl implements FeedbackService {
         response.setComment(saved.getComment());
         response.setRating(saved.getRating());
         response.setCreatedAt(saved.getCreatedAt() != null ? saved.getCreatedAt().toString() : null);
-        response.setHasFeedback(true); // Đánh dấu có feedback
+        response.setHasFeedback(true);
         return response;
     }
 
