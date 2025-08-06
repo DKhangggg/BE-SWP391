@@ -41,6 +41,10 @@ public class BookingResponseDTO {
 
     // Sample collection information
     private SampleCollectionResponseDTO sampleCollectionProfile;
+    private LocalDateTime sampleCollectionDate; // Direct field for easier access
+    // WORKFLOW: Field để trả về tên bác sĩ cho frontend dễ access
+    // Được map từ SampleCollectionProfile.doctorName trong convertToDto()
+    private String doctorName; // Direct field for easier access
     
     // Helper method để tạo display info
     public String getDisplayInfo() {

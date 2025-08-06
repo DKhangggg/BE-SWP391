@@ -153,6 +153,19 @@ public class AdminController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * WORKFLOW STEP 4: Admin cập nhật kết quả xét nghiệm (Admin version)
+     * 
+     * Frontend: SWP391_FE/src/pages/admin/AdminOrderDetails.jsx
+     * - Admin có thể cập nhật kết quả xét nghiệm cho bất kỳ booking nào
+     * - Tương tự như staff updateTestResult nhưng với quyền admin
+     * - Có thể override kết quả đã có hoặc cập nhật mới
+     * - Trigger WebSocket notification đến customer
+     * 
+     * @param bookingId ID của booking cần cập nhật kết quả
+     * @param Status UpdateBookingStatusRequestDTO chứa thông tin cập nhật
+     * @return ResponseEntity với thông báo thành công hoặc lỗi
+     */
     @PutMapping("/testing-services/bookings/{bookingId}/results")
     public ResponseEntity<?> manageTestResults(@PathVariable Integer bookingId, @RequestBody UpdateBookingStatusRequestDTO Status) {
         BookingResponseDTO updated = bookingService.updateBookingStatus(bookingId, Status);

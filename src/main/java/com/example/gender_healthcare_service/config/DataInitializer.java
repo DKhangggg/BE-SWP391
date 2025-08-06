@@ -3,6 +3,7 @@ package com.example.gender_healthcare_service.config;
 import com.example.gender_healthcare_service.entity.*;
 import com.example.gender_healthcare_service.entity.enumpackage.QuestionStatus;
 import com.example.gender_healthcare_service.repository.*;
+import com.example.gender_healthcare_service.service.TimeSlotService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -37,6 +39,8 @@ public class DataInitializer implements CommandLineRunner {
     private final FeedbackRepository feedbackRepository;
     private final QuestionRepository questionRepository;
     private final AnswerRepository answerRepository;
+    private final TimeSlotService timeSlotService;
+    private final TimeSlotRepository timeSlotRepository;
 
     @Override
     @Transactional
@@ -120,7 +124,14 @@ public class DataInitializer implements CommandLineRunner {
             } else {
                 log.info("✅ Questions và Answers đã tồn tại, bỏ qua tạo questions");
             }
-            
+
+            // 11. Tạo TimeSlots (tùy chọn - chỉ tạo nếu chưa có)
+            try {
+                createTimeSlots();
+            } catch (Exception e) {
+                log.error("❌ Lỗi khi tạo timeslots, bỏ qua: {}", e.getMessage());
+            }
+
             log.info("✅ Khởi tạo dữ liệu mẫu thành công!");
             
         } catch (Exception e) {
@@ -438,6 +449,7 @@ public class DataInitializer implements CommandLineRunner {
         consultant1.setBiography("Bác sĩ chuyên khoa Sản Phụ khoa với hơn 10 năm kinh nghiệm trong việc chăm sóc sức khỏe phụ nữ. Chuyên về các vấn đề sinh sản, thai kỳ và các bệnh phụ khoa.");
         consultant1.setQualifications("Đại học Y khoa TP.HCM, Chuyên khoa cấp 1 Sản Phụ khoa, Chứng chỉ siêu âm sản phụ khoa");
         consultant1.setExperienceYears(10);
+        consultant1.setProfileImageUrl("https://res.cloudinary.com/ddigxv6m7/image/upload/v1753620439/gender-healthcare/n1b04anacbpj2bbdrhri.jpg");
         consultant1.setSpecialization("Sản Phụ khoa");
         consultant1.setIsDeleted(false);
         
@@ -447,6 +459,7 @@ public class DataInitializer implements CommandLineRunner {
         consultant2.setQualifications("Đại học Y Dược TP.HCM, Thạc sĩ Y học, Chứng chỉ chuyên khoa Nội tiết");
         consultant2.setExperienceYears(8);
         consultant2.setSpecialization("Nội tiết - Sinh sản");
+        consultant2.setProfileImageUrl("https://res.cloudinary.com/ddigxv6m7/image/upload/v1753620476/gender-healthcare/oezh6t5qhap9vumlkegt.jpg");
         consultant2.setIsDeleted(false);
         
         Consultant consultant3 = new Consultant();
@@ -454,6 +467,7 @@ public class DataInitializer implements CommandLineRunner {
         consultant3.setBiography("Bác sĩ chuyên về tâm lý và sức khỏe tinh thần phụ nữ. Có kinh nghiệm trong việc tư vấn tâm lý cho phụ nữ trong các giai đoạn khác nhau của cuộc sống.");
         consultant3.setQualifications("Đại học Y khoa Hà Nội, Chứng chỉ tâm lý lâm sàng. Chuyên về tâm lý phụ nữ và gia đình.");
         consultant3.setExperienceYears(6);
+        consultant3.setProfileImageUrl("https://res.cloudinary.com/ddigxv6m7/image/upload/v1753620527/gender-healthcare/e9xsp4udvjacroaddx03.jpg");
         consultant3.setSpecialization("Tâm lý sức khỏe phụ nữ");
         consultant3.setIsDeleted(false);
         
@@ -880,6 +894,7 @@ public class DataInitializer implements CommandLineRunner {
         post1.setContent("<h2>Sức khỏe sinh sản là gì?</h2><p>Sức khỏe sinh sản là một phần quan trọng trong cuộc sống của phụ nữ. Bài viết này sẽ cung cấp những thông tin cơ bản về sức khỏe sinh sản và cách chăm sóc...</p><h3>1. Khám phụ khoa định kỳ</h3><p>Việc khám phụ khoa định kỳ rất quan trọng để phát hiện sớm các vấn đề về sức khỏe sinh sản...</p><h3>2. Vệ sinh cá nhân</h3><p>Vệ sinh cá nhân đúng cách giúp phòng ngừa các bệnh nhiễm trùng...</p>");
         post1.setTags("sức khỏe sinh sản, phụ khoa, chăm sóc");
         post1.setViews(1250);
+        post1.setCoverImageUrl("https://res.cloudinary.com/ddigxv6m7/image/upload/v1753621847/gender-healthcare/bwuwgqzybhinmz9ctwhq.jpg");
         post1.setLikes(89);
         post1.setCommentsCount(12);
         post1.setAuthor(authors.get(0));
@@ -897,6 +912,7 @@ public class DataInitializer implements CommandLineRunner {
         post2.setSummary("Hiểu rõ về chu kỳ kinh nguyệt sẽ giúp bạn chăm sóc sức khỏe tốt hơn.");
         post2.setContent("<h2>Chu kỳ kinh nguyệt là gì?</h2><p>Chu kỳ kinh nguyệt là một hiện tượng sinh lý bình thường của cơ thể phụ nữ. Hiểu rõ về chu kỳ kinh nguyệt sẽ giúp bạn chăm sóc sức khỏe tốt hơn...</p><h3>1. Các giai đoạn của chu kỳ</h3><p>Chu kỳ kinh nguyệt thường kéo dài 28-35 ngày và được chia thành 4 giai đoạn chính...</p><h3>2. Dấu hiệu bất thường</h3><p>Một số dấu hiệu bất thường cần lưu ý như đau bụng dữ dội, rong kinh...</p>");
         post2.setTags("chu kỳ kinh nguyệt, theo dõi, sức khỏe");
+        post2.setCoverImageUrl("https://res.cloudinary.com/ddigxv6m7/image/upload/v1754307585/chu-ky-kinh-nguyet_j3snrj.jpg");
         post2.setViews(890);
         post2.setLikes(67);
         post2.setCommentsCount(8);
@@ -916,6 +932,7 @@ public class DataInitializer implements CommandLineRunner {
         post3.setContent("<h2>STIs là gì?</h2><p>Các bệnh lây truyền qua đường tình dục (STIs) là những bệnh nhiễm trùng có thể lây truyền qua quan hệ tình dục. Bài viết này sẽ cung cấp thông tin về cách phòng ngừa và điều trị...</p><h3>1. Các bệnh STIs phổ biến</h3><p>Chlamydia, Gonorrhea, HPV, HIV là những bệnh STIs phổ biến nhất...</p><h3>2. Cách phòng ngừa</h3><p>Sử dụng bao cao su, khám định kỳ, tiêm vắc-xin là những cách phòng ngừa hiệu quả...</p>");
         post3.setTags("STIs, bệnh lây truyền, phòng ngừa");
         post3.setViews(1560);
+        post3.setCoverImageUrl("https://res.cloudinary.com/ddigxv6m7/image/upload/v1753621778/gender-healthcare/f1wdzhoc2vsoeu2d2hx2.jpg");
         post3.setLikes(123);
         post3.setCommentsCount(15);
         post3.setAuthor(authors.get(0));
@@ -933,6 +950,7 @@ public class DataInitializer implements CommandLineRunner {
         post4.setSummary("Hướng dẫn dinh dưỡng chi tiết cho phụ nữ mang thai theo từng tháng.");
         post4.setContent("<h2>Tầm quan trọng của dinh dưỡng khi mang thai</h2><p>Dinh dưỡng đúng cách trong thai kỳ rất quan trọng cho sự phát triển của thai nhi và sức khỏe của mẹ bầu...</p><h3>1. Tam cá nguyệt đầu tiên</h3><p>Trong 3 tháng đầu, mẹ bầu cần bổ sung axit folic, sắt và canxi...</p><h3>2. Tam cá nguyệt thứ hai</h3><p>Giai đoạn này cần tăng cường protein và omega-3...</p>");
         post4.setTags("dinh dưỡng, mang thai, mẹ bầu");
+        post4.setCoverImageUrl("https://res.cloudinary.com/ddigxv6m7/image/upload/v1754307585/dinh-duong-mang-thai_1_j3snrj.jpg");
         post4.setViews(980);
         post4.setLikes(76);
         post4.setCommentsCount(9);
@@ -951,6 +969,7 @@ public class DataInitializer implements CommandLineRunner {
         post5.setSummary("Nhận biết các dấu hiệu bất thường của chu kỳ kinh nguyệt để kịp thời điều trị.");
         post5.setContent("<h2>Chu kỳ kinh nguyệt bình thường</h2><p>Chu kỳ kinh nguyệt là quá trình sinh lý tự nhiên của cơ thể phụ nữ. Tuy nhiên, có một số dấu hiệu bất thường cần lưu ý...</p><h3>1. Rong kinh kéo dài</h3><p>Khi kinh nguyệt kéo dài hơn 7 ngày, đây có thể là dấu hiệu của bệnh lý...</p><h3>2. Đau bụng dữ dội</h3><p>Đau bụng kinh quá mức có thể là dấu hiệu của lạc nội mạc tử cung...</p>");
         post5.setTags("chu kỳ bất thường, dấu hiệu, cảnh báo");
+        post5.setCoverImageUrl("https://res.cloudinary.com/ddigxv6m7/image/upload/v1754307711/thap-dinh-duong-ba-bau_lmf4dy.jpg");
         post5.setViews(1340);
         post5.setLikes(98);
         post5.setCommentsCount(11);
@@ -978,10 +997,80 @@ public class DataInitializer implements CommandLineRunner {
         post6.setCreatedAt(LocalDateTime.now());
         post6.setUpdatedAt(LocalDateTime.now());
         post6.setIsDeleted(false);
+        post6.setCoverImageUrl("https://res.cloudinary.com/ddigxv6m7/image/upload/v1754307862/1738076666_539_hieu-ve-tram-cam-chu-sinh-perinatal-depression-tam-ly-viet-phap_1604100239_s31tea.jpg");
         posts.add(post6);
         
         blogPostRepository.saveAll(posts);
         log.info("✅ Đã tạo {} blog posts", blogPostRepository.count());
+    }
+
+    @Transactional
+    protected void createTimeSlots() {
+        log.info("⏰ Tạo TimeSlots...");
+
+        try {
+            // Kiểm tra xem đã có timeslots chưa
+            long existingCount = timeSlotRepository.count();
+            if (existingCount > 0) {
+                log.info("✅ Đã có {} timeslots, bỏ qua tạo mới", existingCount);
+                return;
+            }
+
+            LocalDate startDate = LocalDate.now();
+
+            // 1. Tạo facility time slots cho 30 ngày tới
+            log.info("📅 Tạo facility time slots cho 30 ngày...");
+            try {
+                int facilityDays = 30;
+                String facilitySlotType = "FACILITY";
+                Integer facilityCapacity = 5; // Mỗi slot có thể phục vụ 5 khách hàng
+                String facilityDescription = "Slot lấy mẫu xét nghiệm tại cơ sở";
+                Integer facilityDuration = 120; // 2 tiếng
+
+                timeSlotService.autoCreateTimeSlots(startDate, facilityDays, facilitySlotType, facilityCapacity, facilityDescription, facilityDuration);
+                log.info("✅ Đã tạo facility time slots");
+            } catch (Exception e) {
+                log.error("❌ Lỗi khi tạo facility time slots: {}", e.getMessage());
+            }
+
+            // 2. Tạo facility time slots cho consultants
+            List<Consultant> consultants = consultantRepository.findAll();
+            if (!consultants.isEmpty()) {
+                log.info("👨‍⚕️ Tạo facility time slots cho {} consultants...", consultants.size());
+
+                for (Consultant consultant : consultants) {
+                    try {
+                        log.info("📝 Tạo slots cho consultant: {}", consultant.getUser().getFullName());
+
+                        // Tạo facility slots cho 14 ngày tới
+                        for (int d = 0; d < 14; d++) {
+                            LocalDate slotDate = startDate.plusDays(d);
+
+                            // Bỏ qua cuối tuần
+                            if (slotDate.getDayOfWeek().getValue() == 6 || slotDate.getDayOfWeek().getValue() == 7) {
+                                continue;
+                            }
+
+                            timeSlotService.createTimeSlotsForDate(slotDate, "FACILITY", consultant.getId(), 1);
+                        }
+
+                        log.info("✅ Đã tạo facility slots cho consultant: {}", consultant.getUser().getFullName());
+
+                    } catch (Exception e) {
+                        log.error("❌ Lỗi khi tạo slots cho consultant {}: {}", consultant.getUser().getFullName(), e.getMessage());
+                    }
+                }
+            } else {
+                log.warn("⚠️ Không có consultants để tạo facility slots");
+            }
+
+            long totalSlots = timeSlotRepository.count();
+            log.info("✅ Đã tạo tổng cộng {} timeslots", totalSlots);
+
+        } catch (Exception e) {
+            log.error("❌ Lỗi khi tạo timeslots: {}", e.getMessage(), e);
+            // Không throw exception để không làm crash ứng dụng
+        }
     }
 }
 

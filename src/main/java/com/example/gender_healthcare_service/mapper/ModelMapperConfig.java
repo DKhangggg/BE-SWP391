@@ -177,6 +177,16 @@ public class ModelMapperConfig {
                     return null;
                 }
             }, BookingResponseDTO::setEndTime);
+
+            // Sample collection date mapping
+            mapper.map(src -> {
+                try {
+                    return src.getSampleCollectionProfile() != null ?
+                           src.getSampleCollectionProfile().getSampleCollectionDate() : null;
+                } catch (Exception e) {
+                    return null;
+                }
+            }, BookingResponseDTO::setSampleCollectionDate);
             
             mapper.map(src -> {
                 try {

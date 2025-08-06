@@ -26,7 +26,7 @@ public class SampleCollectionRequestDTO {
     private String collectorIdCard;
     
     @Size(max = 20, message = "Số điện thoại không được vượt quá 20 ký tự")
-    @Pattern(regexp = "^[0-9+\\-\\s()]*$", message = "Số điện thoại không hợp lệ")
+    @Pattern(regexp = "^$|^[0-9]{10}$", message = "Số điện thoại phải có đúng 10 chữ số hoặc để trống")
     private String collectorPhoneNumber;
     
     @NotBlank(message = "Mối quan hệ với người đặt lịch không được để trống")
@@ -43,9 +43,14 @@ public class SampleCollectionRequestDTO {
 
     @NotNull(message = "Thời gian lấy mẫu không được để trống")
     private LocalDateTime sampleCollectionDate;
-    
+
     @Size(max = 1000, message = "Ghi chú không được vượt quá 1000 ký tự")
     private String notes;
+
+    // WORKFLOW: Field để nhận tên bác sĩ từ frontend
+    // Được gửi từ SampleCollectionForm hoặc TestResultForm
+    @Size(max = 100, message = "Tên bác sĩ không được vượt quá 100 ký tự")
+    private String doctorName;
     
     // Helper methods for validation
     public boolean isSelf() {

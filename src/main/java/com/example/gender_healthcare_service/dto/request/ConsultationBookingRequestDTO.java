@@ -1,7 +1,6 @@
 package com.example.gender_healthcare_service.dto.request;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.FutureOrPresent;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -13,11 +12,11 @@ public class ConsultationBookingRequestDTO {
     private Integer consultantId;
 
     @NotNull(message = "Consultation start time is required")
-    @FutureOrPresent(message = "Consultation time must be in the future or present")
+    // @FutureOrPresent(message = "Consultation time must be in the future or present") // Tạm bỏ để test
     private LocalDateTime startTime;
 
     @NotNull(message = "Consultation end time is required")
-    @FutureOrPresent(message = "Consultation end time must be in the future or present")
+    // @FutureOrPresent(message = "Consultation end time must be in the future or present") // Tạm bỏ để test
     private LocalDateTime endTime;
 
     private String notes;

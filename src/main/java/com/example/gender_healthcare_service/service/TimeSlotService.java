@@ -44,5 +44,9 @@ public interface TimeSlotService {
     List<TimeSlotResponseDTO> getTimeSlotsByConsultant(Integer consultantId, LocalDate date);
 
     List<TimeSlotResponseDTO> getAvailableTimeSlotsByConsultant(Integer consultantId, LocalDate fromDate, LocalDate toDate);
+
+    // Get available facility time slots by date range
+    List<TimeSlotResponseDTO> getAvailableFacilityTimeSlotsByDateRange(LocalDate fromDate, LocalDate toDate);
+
     public boolean checkTimeSlotExists(LocalDate slotDate, String startTime, String slotType);
 }

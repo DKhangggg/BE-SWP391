@@ -25,6 +25,7 @@ public class SampleCollectionResponseDTO {
     private LocalDateTime sampleCollectionDate;
     private String collectedBy;
     private String notes;
+    private String doctorName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     

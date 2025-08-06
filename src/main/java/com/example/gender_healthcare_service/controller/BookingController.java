@@ -26,7 +26,21 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.domain.Page;
 
+/**
+ * WORKFLOW BOOKING SYSTEM CONTROLLER
+ * 
+ * This controller handles the complete booking workflow for testing services:
+ * 1. Customer creates booking (PENDING)
+ * 2. Customer confirms booking (CONFIRMED) 
+ * 3. Staff collects sample (SAMPLE_COLLECTED)
+ * 4. Staff uploads test results (COMPLETED)
+ * 5. Customer views results
+ * 
+ * Real-time updates are sent via WebSocket to keep customers informed
+ * of their booking status changes.
+ */
 @RestController
 @RequestMapping("/api/bookings")
 @RequiredArgsConstructor
@@ -34,6 +48,19 @@ public class BookingController {
     @Autowired
     private BookingService bookingService;
 
+    /**
+     * WORKFLOW STEP 1: Customer đặt lịch xét nghiệm
+     * 
+     * Frontend: SWP391_FE/src/pages/User/STITesting/index.jsx
+     * - Customer chọn service và timeslot
+     * - Gọi API này để tạo booking với status PENDING
+     * - Sau khi tạo thành công, customer được redirect đến BookingConfirmation
+     * 
+     * WebSocket: Tự động trigger notification PENDING → customer tracking page
+     * 
+     * @param bookingRequestDTO Chứa serviceId, timeSlotId, customerNotes
+     * @return BookingResponseDTO với bookingId và status PENDING
+     */
     @PostMapping
     @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> createBooking(@RequestBody BookingRequestDTO bookingRequestDTO) {
@@ -47,6 +74,13 @@ public class BookingController {
         }
     }
 
+    /**
+     * Consultant tạo booking cho customer
+     * 
+     * Frontend: SWP391_FE/src/pages/Consultant/CreateAppointment.jsx
+     * - Consultant có thể tạo booking thay cho customer
+     * - Tương tự createBooking nhưng với quyền consultant
+     */
     @PostMapping("/consultant-create")
     @PreAuthorize("hasAuthority('ROLE_CONSULTANT')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> createBookingForUser(@RequestBody ConsultantCreateBookingRequestDTO bookingRequestDTO) {
@@ -60,6 +94,15 @@ public class BookingController {
         }
     }
 
+    /**
+     * Lấy danh sách booking của customer hiện tại
+     * 
+     * Frontend: SWP391_FE/src/pages/User/Dashboard/index.jsx
+     * - Hiển thị tất cả booking của customer (PENDING, CONFIRMED, SAMPLE_COLLECTED, COMPLETED)
+     * - Customer có thể click vào từng booking để xem chi tiết hoặc tracking
+     * 
+     * @return List<BookingResponseDTO> với đầy đủ thông tin booking
+     */
     @GetMapping("/my-bookings")
     @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<List<BookingResponseDTO>>> getCurrentUserBookings() {
@@ -72,6 +115,17 @@ public class BookingController {
         }
     }
 
+    /**
+     * WORKFLOW STEP 5: Customer xem chi tiết booking và kết quả xét nghiệm
+     * 
+     * Frontend: SWP391_FE/src/components/TestResultModal.jsx
+     * - Customer click "Xem kết quả" từ notification hoặc booking list
+     * - Hiển thị modal với đầy đủ thông tin: kết quả, tên bác sĩ, ngày lấy mẫu
+     * - Priority hiển thị doctorName: result.doctorName > sampleCollectionProfile.doctorName > fallback
+     * 
+     * @param bookingId ID của booking cần xem
+     * @return BookingResponseDTO với đầy đủ thông tin kết quả và doctorName
+     */
     @GetMapping("/{bookingId}/my-booking")
     @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> getBookingByIdForCurrentUser(@PathVariable Integer bookingId) {
@@ -84,6 +138,13 @@ public class BookingController {
         }
     }
 
+    /**
+     * Admin xem chi tiết booking (có quyền xem tất cả booking)
+     * 
+     * Frontend: SWP391_FE/src/pages/admin/AdminOrderDetails.jsx
+     * - Admin có thể xem chi tiết bất kỳ booking nào
+     * - Hiển thị thông tin đầy đủ cho admin quản lý
+     */
     @GetMapping("/{bookingId}/admin")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> getBookingByIdForAdmin(@PathVariable Integer bookingId) {
@@ -96,6 +157,17 @@ public class BookingController {
         }
     }
 
+    /**
+     * Staff/Admin cập nhật trạng thái booking
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffAppointments.jsx
+     * - Staff có thể cập nhật trạng thái booking (CONFIRMED, SAMPLE_COLLECTED, COMPLETED)
+     * - Trigger WebSocket notification đến customer tracking page
+     * 
+     * @param bookingId ID của booking cần cập nhật
+     * @param statusRequestDTO Chứa status mới và notes
+     * @return BookingResponseDTO với status đã cập nhật
+     */
     @PatchMapping("/{bookingId}/status")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF', 'ROLE_MANAGER')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> updateBookingStatus(@PathVariable Integer bookingId, @RequestBody UpdateBookingStatusRequestDTO statusRequestDTO) {
@@ -108,6 +180,16 @@ public class BookingController {
         }
     }
 
+    /**
+     * Customer/Admin hủy booking
+     * 
+     * Frontend: SWP391_FE/src/pages/User/Dashboard/index.jsx
+     * - Customer có thể hủy booking nếu chưa được xác nhận
+     * - Trigger WebSocket notification về việc hủy booking
+     * 
+     * @param bookingId ID của booking cần hủy
+     * @return BookingResponseDTO với status CANCELLED
+     */
     @PatchMapping("/{bookingId}/cancel")
     @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> cancelBooking(@PathVariable Integer bookingId) {
@@ -120,6 +202,17 @@ public class BookingController {
         }
     }
 
+    /**
+     * WORKFLOW STEP 2: Customer xác nhận booking
+     * 
+     * Frontend: SWP391_FE/src/pages/User/BookingConfirmation.jsx
+     * - Customer xác nhận booking sau khi đặt lịch
+     * - Chuyển status từ PENDING → CONFIRMED
+     * - Trigger WebSocket notification
+     * 
+     * @param bookingId ID của booking cần xác nhận
+     * @return BookingResponseDTO với status CONFIRMED
+     */
     @PatchMapping("/{bookingId}/confirm")
     @PreAuthorize("hasAuthority('ROLE_CUSTOMER')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> confirmBooking(@PathVariable Integer bookingId) {
@@ -132,6 +225,12 @@ public class BookingController {
         }
     }
 
+    /**
+     * Customer/Admin hủy booking với response
+     * 
+     * Frontend: SWP391_FE/src/pages/User/Dashboard/index.jsx
+     * - Tương tự cancelBooking nhưng trả về response khác
+     */
     @PatchMapping("/{bookingId}/cancel-with-response")
     @PreAuthorize("hasAnyAuthority('ROLE_CUSTOMER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> cancelBookingWithResponse(@PathVariable Integer bookingId) {
@@ -148,11 +247,25 @@ public class BookingController {
         }
     }
 
+    /**
+     * WORKFLOW STEP 4: Staff cập nhật kết quả xét nghiệm
+     * 
+     * Frontend: SWP391_FE/src/components/staff/TestResultForm.jsx
+     * - Staff nhập kết quả xét nghiệm chi tiết
+     * - Tự động chuyển status từ SAMPLE_COLLECTED → COMPLETED
+     * - Trigger WebSocket notification đến customer tracking page
+     * - Customer nhận được real-time update và có thể xem kết quả ngay
+     * 
+     * @param bookingId ID của booking cần cập nhật kết quả
+     * @param resultRequest Chứa result, resultType, notes, resultDate
+     * @return BookingResponseDTO với status COMPLETED và kết quả
+     */
     @PatchMapping("/{bookingId}/test-result")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> updateTestResult(@PathVariable Integer bookingId,
                                                               @RequestBody UpdateTestResultRequestDTO resultRequest) {
         try {
+            // Cập nhật kết quả xét nghiệm trong database
             BookingResponseDTO updatedBooking = bookingService.updateTestResult(bookingId, resultRequest);
             return ResponseEntity.ok(ApiResponse.success("Cập nhật kết quả xét nghiệm thành công", updatedBooking));
         } catch (Exception e) {
@@ -161,7 +274,20 @@ public class BookingController {
         }
     }
 
-    // Sample Collection Endpoints
+    /**
+     * WORKFLOW STEP 3: Staff lấy mẫu xét nghiệm và nhập tên bác sĩ phụ trách
+     * 
+     * Frontend: SWP391_FE/src/components/staff/SampleCollectionForm.jsx
+     * - Staff điền thông tin người lấy mẫu và tên bác sĩ phụ trách
+     * - Tạo SampleCollectionProfile với doctorName field
+     * - Chuyển status từ CONFIRMED → SAMPLE_COLLECTED
+     * - Trigger WebSocket notification: PENDING → SAMPLE_COLLECTED
+     * - Customer nhận được real-time update về việc đã lấy mẫu
+     * 
+     * @param bookingId ID của booking cần lấy mẫu
+     * @param sampleCollectionRequest Chứa thông tin người lấy mẫu và doctorName
+     * @return BookingResponseDTO với status SAMPLE_COLLECTED và SampleCollectionProfile
+     */
     @PostMapping("/{bookingId}/sample-collection")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF', 'ROLE_MANAGER')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> collectSample(
@@ -179,6 +305,16 @@ public class BookingController {
         }
     }
 
+    /**
+     * Lấy thông tin SampleCollectionProfile của booking
+     * 
+     * Frontend: SWP391_FE/src/components/staff/SampleCollectionForm.jsx
+     * - Staff có thể xem và chỉnh sửa thông tin mẫu đã lấy
+     * - Customer có thể xem thông tin mẫu trong TestResultModal
+     * 
+     * @param bookingId ID của booking cần xem thông tin mẫu
+     * @return SampleCollectionResponseDTO với thông tin chi tiết mẫu
+     */
     @GetMapping("/{bookingId}/sample-collection")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_CUSTOMER')")
     public ResponseEntity<ApiResponse<SampleCollectionResponseDTO>> getSampleCollectionProfile(@PathVariable Integer bookingId) {
@@ -194,6 +330,17 @@ public class BookingController {
         }
     }
 
+    /**
+     * Cập nhật thông tin SampleCollectionProfile
+     * 
+     * Frontend: SWP391_FE/src/components/staff/SampleCollectionForm.jsx
+     * - Staff có thể chỉnh sửa thông tin mẫu đã lấy
+     * - Cập nhật doctorName và các thông tin khác
+     * 
+     * @param bookingId ID của booking cần cập nhật thông tin mẫu
+     * @param sampleCollectionRequest Thông tin mẫu mới
+     * @return BookingResponseDTO với SampleCollectionProfile đã cập nhật
+     */
     @PutMapping("/{bookingId}/sample-collection")
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_STAFF', 'ROLE_MANAGER')")
     public ResponseEntity<ApiResponse<BookingResponseDTO>> updateSampleCollectionProfile(
@@ -211,7 +358,18 @@ public class BookingController {
         }
     }
 
-    // New pagination endpoints
+    /**
+     * Staff/Admin xem tất cả booking với phân trang
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffAppointments.jsx
+     * - Staff xem danh sách tất cả booking để quản lý
+     * - Có thể filter theo status, customer, service, date range
+     * - Hiển thị booking theo từng status: PENDING, CONFIRMED, SAMPLE_COLLECTED, COMPLETED
+     * 
+     * @param pageNumber Số trang (default: 1)
+     * @param pageSize Số booking mỗi trang (default: 10)
+     * @return BookingPageResponseDTO với danh sách booking và thông tin phân trang
+     */
     @GetMapping("/all")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingPageResponseDTO>> getAllBookingsForStaffOrManager(
@@ -220,14 +378,36 @@ public class BookingController {
     ) {
         try {
             Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            BookingPageResponseDTO response = bookingService.getAllBookingsForStaff(pageable);
-            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn thành công", response));
+            BookingPageResponseDTO bookings = bookingService.getAllBookingsForStaff(pageable);
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn thành công", bookings));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Lỗi khi lấy danh sách lịch hẹn: " + e.getMessage()));
         }
     }
 
+    /**
+     * Staff/Admin filter booking theo nhiều tiêu chí
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffAppointments.jsx
+     * - Staff có thể filter booking theo: status, customer, service, date range
+     * - Tìm kiếm theo tên customer hoặc tên service
+     * - Sắp xếp theo field và direction
+     * - Hỗ trợ pagination
+     * 
+     * @param pageNumber Số trang
+     * @param pageSize Số booking mỗi trang
+     * @param status Filter theo status (PENDING, CONFIRMED, SAMPLE_COLLECTED, COMPLETED)
+     * @param customerId Filter theo customer ID
+     * @param serviceId Filter theo service ID
+     * @param fromDate Filter từ ngày
+     * @param toDate Filter đến ngày
+     * @param customerName Tìm kiếm theo tên customer
+     * @param serviceName Tìm kiếm theo tên service
+     * @param sortBy Field để sắp xếp (default: createdAt)
+     * @param sortDirection Hướng sắp xếp (ASC/DESC, default: DESC)
+     * @return BookingPageResponseDTO với danh sách booking đã filter
+     */
     @GetMapping("/filter")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingPageResponseDTO>> getBookingsWithFilters(
@@ -245,7 +425,6 @@ public class BookingController {
     ) {
         try {
             Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            
             BookingFilterRequestDTO filter = new BookingFilterRequestDTO();
             filter.setStatus(status);
             filter.setCustomerId(customerId);
@@ -256,15 +435,28 @@ public class BookingController {
             filter.setServiceName(serviceName);
             filter.setSortBy(sortBy);
             filter.setSortDirection(sortDirection);
-            
-            BookingPageResponseDTO response = bookingService.getBookingsWithFilters(filter, pageable);
-            return ResponseEntity.ok(ApiResponse.success("Lọc danh sách lịch hẹn thành công", response));
+
+            BookingPageResponseDTO bookings = bookingService.getBookingsWithFilters(filter, pageable);
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn thành công", bookings));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi khi lọc danh sách lịch hẹn: " + e.getMessage()));
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách lịch hẹn: " + e.getMessage()));
         }
     }
 
+    /**
+     * Staff/Admin xem booking theo status cụ thể
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffAppointments.jsx
+     * - Staff có thể xem booking theo từng status riêng biệt
+     * - Ví dụ: xem tất cả booking PENDING để xác nhận
+     * - Xem tất cả booking SAMPLE_COLLECTED để upload kết quả
+     * 
+     * @param status Status cần filter (PENDING, CONFIRMED, SAMPLE_COLLECTED, COMPLETED)
+     * @param pageNumber Số trang
+     * @param pageSize Số booking mỗi trang
+     * @return BookingPageResponseDTO với danh sách booking theo status
+     */
     @GetMapping("/status/{status}")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingPageResponseDTO>> getBookingsByStatus(
@@ -274,14 +466,26 @@ public class BookingController {
     ) {
         try {
             Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            BookingPageResponseDTO response = bookingService.getBookingsByStatus(status, pageable);
-            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn theo trạng thái thành công", response));
+            BookingPageResponseDTO bookings = bookingService.getBookingsByStatus(status, pageable);
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn theo trạng thái thành công", bookings));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi khi lấy danh sách lịch hẹn theo trạng thái: " + e.getMessage()));
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách lịch hẹn: " + e.getMessage()));
         }
     }
 
+    /**
+     * Staff/Admin xem booking theo customer cụ thể
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffAppointments.jsx
+     * - Staff có thể xem tất cả booking của một customer
+     * - Hữu ích khi customer gọi điện hỏi về booking của họ
+     * 
+     * @param customerId ID của customer cần xem booking
+     * @param pageNumber Số trang
+     * @param pageSize Số booking mỗi trang
+     * @return BookingPageResponseDTO với danh sách booking của customer
+     */
     @GetMapping("/customer/{customerId}")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingPageResponseDTO>> getBookingsByCustomer(
@@ -291,14 +495,26 @@ public class BookingController {
     ) {
         try {
             Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            BookingPageResponseDTO response = bookingService.getBookingsByCustomer(customerId, pageable);
-            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn theo khách hàng thành công", response));
+            BookingPageResponseDTO bookings = bookingService.getBookingsByCustomer(customerId, pageable);
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn theo khách hàng thành công", bookings));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi khi lấy danh sách lịch hẹn theo khách hàng: " + e.getMessage()));
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách lịch hẹn: " + e.getMessage()));
         }
     }
 
+    /**
+     * Staff/Admin xem booking theo service cụ thể
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffAppointments.jsx
+     * - Staff có thể xem tất cả booking của một service
+     * - Hữu ích để quản lý workload theo từng loại xét nghiệm
+     * 
+     * @param serviceId ID của service cần xem booking
+     * @param pageNumber Số trang
+     * @param pageSize Số booking mỗi trang
+     * @return BookingPageResponseDTO với danh sách booking của service
+     */
     @GetMapping("/service/{serviceId}")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingPageResponseDTO>> getBookingsByService(
@@ -308,14 +524,27 @@ public class BookingController {
     ) {
         try {
             Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            BookingPageResponseDTO response = bookingService.getBookingsByService(serviceId, pageable);
-            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn theo dịch vụ thành công", response));
+            BookingPageResponseDTO bookings = bookingService.getBookingsByService(serviceId, pageable);
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn theo dịch vụ thành công", bookings));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi khi lấy danh sách lịch hẹn theo dịch vụ: " + e.getMessage()));
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách lịch hẹn: " + e.getMessage()));
         }
     }
 
+    /**
+     * Staff/Admin xem booking theo khoảng thời gian
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffAppointments.jsx
+     * - Staff có thể xem booking trong một khoảng thời gian cụ thể
+     * - Hữu ích để lập báo cáo theo ngày/tuần/tháng
+     * 
+     * @param fromDate Ngày bắt đầu
+     * @param toDate Ngày kết thúc
+     * @param pageNumber Số trang
+     * @param pageSize Số booking mỗi trang
+     * @return BookingPageResponseDTO với danh sách booking trong khoảng thời gian
+     */
     @GetMapping("/date-range")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<BookingPageResponseDTO>> getBookingsByDateRange(
@@ -326,63 +555,112 @@ public class BookingController {
     ) {
         try {
             Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            BookingPageResponseDTO response = bookingService.getBookingsByDateRange(fromDate, toDate, pageable);
-            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn theo khoảng thời gian thành công", response));
+            BookingPageResponseDTO bookings = bookingService.getBookingsByDateRange(fromDate, toDate, pageable);
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch hẹn theo khoảng thời gian thành công", bookings));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi khi lấy danh sách lịch hẹn theo khoảng thời gian: " + e.getMessage()));
+                    .body(ApiResponse.error("Lỗi khi lấy danh sách lịch hẹn: " + e.getMessage()));
         }
     }
 
-    // Statistics endpoints
+    /**
+     * Staff/Admin xem tổng số booking
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffDashboard.jsx
+     * - Hiển thị tổng số booking trong dashboard
+     * - Dùng để thống kê tổng quan
+     * 
+     * @return Long với tổng số booking
+     */
     @GetMapping("/statistics/total")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<Long>> getTotalBookings() {
         try {
-            long total = bookingService.getTotalBookings();
-            return ResponseEntity.ok(ApiResponse.success("Lấy tổng số lịch hẹn thành công", total));
+            long totalBookings = bookingService.getTotalBookings();
+            return ResponseEntity.ok(ApiResponse.success("Lấy tổng số lịch hẹn thành công", totalBookings));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Lỗi khi lấy tổng số lịch hẹn: " + e.getMessage()));
         }
     }
 
+    /**
+     * Staff/Admin xem số booking theo status
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffDashboard.jsx
+     * - Hiển thị số booking theo từng status trong dashboard
+     * - Ví dụ: 10 PENDING, 5 CONFIRMED, 3 SAMPLE_COLLECTED, 20 COMPLETED
+     * 
+     * @param status Status cần đếm
+     * @return Long với số booking theo status
+     */
     @GetMapping("/statistics/status/{status}")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<Long>> getBookingsByStatus(@PathVariable String status) {
         try {
             long count = bookingService.getBookingsByStatus(status);
-            return ResponseEntity.ok(ApiResponse.success("Lấy số lượng lịch hẹn theo trạng thái thành công", count));
+            return ResponseEntity.ok(ApiResponse.success("Lấy số lịch hẹn theo trạng thái thành công", count));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi khi lấy số lượng lịch hẹn theo trạng thái: " + e.getMessage()));
+                    .body(ApiResponse.error("Lỗi khi lấy số lịch hẹn: " + e.getMessage()));
         }
     }
 
+    /**
+     * Staff/Admin xem số booking theo customer
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffDashboard.jsx
+     * - Hiển thị số booking của một customer cụ thể
+     * - Dùng để phân tích customer behavior
+     * 
+     * @param customerId ID của customer cần đếm booking
+     * @return Long với số booking của customer
+     */
     @GetMapping("/statistics/customer/{customerId}")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<Long>> getBookingsByCustomer(@PathVariable Integer customerId) {
         try {
             long count = bookingService.getBookingsByCustomer(customerId);
-            return ResponseEntity.ok(ApiResponse.success("Lấy số lượng lịch hẹn theo khách hàng thành công", count));
+            return ResponseEntity.ok(ApiResponse.success("Lấy số lịch hẹn theo khách hàng thành công", count));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi khi lấy số lượng lịch hẹn theo khách hàng: " + e.getMessage()));
+                    .body(ApiResponse.error("Lỗi khi lấy số lịch hẹn: " + e.getMessage()));
         }
     }
 
+    /**
+     * Staff/Admin xem số booking theo service
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffDashboard.jsx
+     * - Hiển thị số booking của một service cụ thể
+     * - Dùng để phân tích popularity của từng service
+     * 
+     * @param serviceId ID của service cần đếm booking
+     * @return Long với số booking của service
+     */
     @GetMapping("/statistics/service/{serviceId}")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<Long>> getBookingsByService(@PathVariable Integer serviceId) {
         try {
             long count = bookingService.getBookingsByService(serviceId);
-            return ResponseEntity.ok(ApiResponse.success("Lấy số lượng lịch hẹn theo dịch vụ thành công", count));
+            return ResponseEntity.ok(ApiResponse.success("Lấy số lịch hẹn theo dịch vụ thành công", count));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi khi lấy số lượng lịch hẹn theo dịch vụ: " + e.getMessage()));
+                    .body(ApiResponse.error("Lỗi khi lấy số lịch hẹn: " + e.getMessage()));
         }
     }
 
+    /**
+     * Staff/Admin xem số booking theo khoảng thời gian
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffDashboard.jsx
+     * - Hiển thị số booking trong một khoảng thời gian
+     * - Dùng để lập báo cáo theo thời gian
+     * 
+     * @param fromDate Ngày bắt đầu
+     * @param toDate Ngày kết thúc
+     * @return Long với số booking trong khoảng thời gian
+     */
     @GetMapping("/statistics/date-range")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<Long>> getBookingsByDateRange(
@@ -391,14 +669,24 @@ public class BookingController {
     ) {
         try {
             long count = bookingService.getBookingsByDateRange(fromDate, toDate);
-            return ResponseEntity.ok(ApiResponse.success("Lấy số lượng lịch hẹn theo khoảng thời gian thành công", count));
+            return ResponseEntity.ok(ApiResponse.success("Lấy số lịch hẹn theo khoảng thời gian thành công", count));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.error("Lỗi khi lấy số lượng lịch hẹn theo khoảng thời gian: " + e.getMessage()));
+                    .body(ApiResponse.error("Lỗi khi lấy số lịch hẹn: " + e.getMessage()));
         }
     }
 
-    // Legacy endpoint for backward compatibility
+    /**
+     * Legacy API - Staff/Admin xem tất cả booking (cũ)
+     * 
+     * Frontend: SWP391_FE/src/pages/Staff/StaffAppointments.jsx (cũ)
+     * - API cũ, được giữ lại để tương thích ngược
+     * - Sử dụng PageResponse thay vì BookingPageResponseDTO
+     * 
+     * @param pageNumber Số trang
+     * @param pageSize Số booking mỗi trang
+     * @return PageResponse<BookingResponseDTO> với danh sách booking
+     */
     @GetMapping("/all-legacy")
     @PreAuthorize("hasAnyAuthority('ROLE_STAFF', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<BookingResponseDTO>>> getAllBookingsLegacy(
@@ -407,7 +695,7 @@ public class BookingController {
     ) {
         try {
             Pageable pageable = PageRequest.of(pageNumber - 1, pageSize);
-            var bookings = bookingService.getAllBookingsForStaffLegacy(pageable);
+            Page<BookingResponseDTO> bookings = bookingService.getAllBookingsForStaffLegacy(pageable);
             PageResponse<BookingResponseDTO> response = new PageResponse<>();
             response.setContent(bookings.getContent());
             response.setPageNumber(bookings.getNumber() + 1);

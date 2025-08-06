@@ -16,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -85,7 +86,7 @@ public class HomepageController {
         try {
             List<ConsultantDTO> consultants = consultantService.getAllConsultants();
             if (consultants == null || consultants.isEmpty()) {
-                return ResponseEntity.ok(ApiResponse.success("Không có tư vấn viên nào", List.of()));
+                return ResponseEntity.ok(ApiResponse.success("Không có tư vấn viên nào", new ArrayList<>()));
             }
             return ResponseEntity.ok(ApiResponse.success("Lấy danh sách tư vấn viên thành công", consultants));
         } catch (Exception e) {

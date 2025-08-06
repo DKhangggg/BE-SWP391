@@ -22,7 +22,7 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Integer> {
     List<TimeSlot> findAvailableTimeSlotsByDateAndConsultant(@Param("date") LocalDate date, @Param("consultantId") Integer consultantId);
     
     // Find facility time slots (consultant is null) for a specific date
-    @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotDate >= :date AND ts.consultant IS NULL AND ts.isAvailable = true AND ts.bookedCount < ts.capacity")
+    @Query("SELECT ts FROM TimeSlot ts WHERE ts.slotDate = :date AND ts.consultant IS NULL AND ts.isAvailable = true AND ts.bookedCount < ts.capacity")
     List<TimeSlot> findAvailableFacilityTimeSlotsByDate(@Param("date") LocalDate date);
     
     // Find facility time slots from today onwards
@@ -58,7 +58,11 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Integer> {
     @Query("SELECT ts FROM TimeSlot ts WHERE ts.isAvailable = true ORDER BY ts.startTime")
     List<TimeSlot> findByIsActiveTrueOrderByStartTime();
 
-    @Query("SELECT t FROM TimeSlot t WHERE t.consultant.id = :consultantId AND t.slotDate BETWEEN :fromDate AND :toDate AND t.isAvailable = true")
+    @Query("SELECT t FROM TimeSlot t WHERE t.slotDate BETWEEN :fromDate AND :toDate AND t.consultant IS NULL AND t.isAvailable = true AND t.bookedCount < t.capacity")
+    List<TimeSlot> findAvailableFacilityTimeSlotsByDateRange(@Param("fromDate") LocalDate fromDate,
+                                                           @Param("toDate") LocalDate toDate);
+
+    @Query("SELECT t FROM TimeSlot t WHERE t.consultant.id = :consultantId AND t.slotDate BETWEEN :fromDate AND :toDate AND t.isAvailable = true AND t.bookedCount < t.capacity")
     List<TimeSlot> findAvailableByConsultantAndDateRange(@Param("consultantId") Integer consultantId,
                                                      @Param("fromDate") LocalDate fromDate,
                                                      @Param("toDate") LocalDate toDate);

@@ -59,6 +59,10 @@ public class FeedbackController {
     public ResponseEntity<ApiResponse<FeedbackResponseDTO>> getConsultationFeedback(@PathVariable Integer consultationId) {
         try {
             FeedbackResponseDTO feedback = feedbackService.getConsultationFeedback(consultationId);
+            if (feedback == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Không tìm thấy phản hồi cho consultation này"));
+            }
             return ResponseEntity.ok(ApiResponse.success("Lấy phản hồi của consultation thành công", feedback));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -70,6 +74,10 @@ public class FeedbackController {
     public ResponseEntity<ApiResponse<FeedbackResponseDTO>> getBookingFeedback(@PathVariable Integer bookingId) {
         try {
             FeedbackResponseDTO feedback = feedbackService.getBookingFeedback(bookingId);
+            if (feedback == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Không tìm thấy phản hồi cho booking này"));
+            }
             return ResponseEntity.ok(ApiResponse.success("Lấy phản hồi của booking thành công", feedback));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

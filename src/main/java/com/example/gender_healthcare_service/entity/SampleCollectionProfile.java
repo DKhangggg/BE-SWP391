@@ -70,6 +70,14 @@ public class SampleCollectionProfile {
     @Column(name = "Notes", length = 1000)
     private String notes;
 
+    // WORKFLOW: Field mới để lưu tên bác sĩ phụ trách
+    // Được nhập từ staff khi lấy mẫu hoặc cập nhật kết quả
+    // Hiển thị trong TestResultModal cho customer
+    @Size(max = 100)
+    @Nationalized
+    @Column(name = "DoctorName", length = 100)
+    private String doctorName;
+
     @ColumnDefault("getdate()")
     @Column(name = "CreatedAt")
     private LocalDateTime createdAt;

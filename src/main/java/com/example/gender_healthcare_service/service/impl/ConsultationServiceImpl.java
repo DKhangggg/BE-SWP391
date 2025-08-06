@@ -213,8 +213,8 @@ public class ConsultationServiceImpl implements ConsultationService {
         List<ConsultantAvailabilityResponseDTO> result = new ArrayList<>();
         
         for (TimeSlot timeSlot : availableTimeSlots) {
-            // Chỉ hiển thị timeslot CONSULTATION
-            if (!"CONSULTATION".equals(timeSlot.getSlotType())) {
+            // Chỉ hiển thị timeslot FACILITY (đã sửa từ CONSULTATION)
+            if (!"FACILITY".equals(timeSlot.getSlotType())) {
                 continue;
             }
             
@@ -269,14 +269,14 @@ public class ConsultationServiceImpl implements ConsultationService {
         });
         
         TimeSlot timeSlot = availableTimeSlots.stream()
-                .filter(ts -> ts.getStartTime().equals(bookingRequest.getStartTime().toLocalTime()) && 
+                .filter(ts -> ts.getStartTime().equals(bookingRequest.getStartTime().toLocalTime()) &&
                               ts.getEndTime().equals(bookingRequest.getEndTime().toLocalTime()) &&
-                              "CONSULTATION".equals(ts.getSlotType()))
+                              "FACILITY".equals(ts.getSlotType()))
                 .findFirst()
                 .orElseThrow(() -> {
-                    log.error("No available time slot found for date: {}, startTime: {}, endTime: {}, slotType: CONSULTATION", 
-                             bookingRequest.getStartTime().toLocalDate(), 
-                             bookingRequest.getStartTime().toLocalTime(), 
+                    log.error("No available time slot found for date: {}, startTime: {}, endTime: {}, slotType: FACILITY",
+                             bookingRequest.getStartTime().toLocalDate(),
+                             bookingRequest.getStartTime().toLocalTime(),
                              bookingRequest.getEndTime().toLocalTime());
                     return new RuntimeException("No available time slot found for the requested time");
                 });
@@ -364,14 +364,14 @@ public class ConsultationServiceImpl implements ConsultationService {
         log.info("Found {} available time slots for date {}", availableTimeSlots.size(), consultationRequest.getStartTime().toLocalDate());
         
         TimeSlot timeSlot = availableTimeSlots.stream()
-                .filter(ts -> ts.getStartTime().equals(consultationRequest.getStartTime().toLocalTime()) && 
+                .filter(ts -> ts.getStartTime().equals(consultationRequest.getStartTime().toLocalTime()) &&
                               ts.getEndTime().equals(consultationRequest.getEndTime().toLocalTime()) &&
-                              "CONSULTATION".equals(ts.getSlotType()))
+                              "FACILITY".equals(ts.getSlotType()))
                 .findFirst()
                 .orElseThrow(() -> {
-                    log.error("No available time slot found for date: {}, startTime: {}, endTime: {}, slotType: CONSULTATION", 
-                             consultationRequest.getStartTime().toLocalDate(), 
-                             consultationRequest.getStartTime().toLocalTime(), 
+                    log.error("No available time slot found for date: {}, startTime: {}, endTime: {}, slotType: FACILITY",
+                             consultationRequest.getStartTime().toLocalDate(),
+                             consultationRequest.getStartTime().toLocalTime(),
                              consultationRequest.getEndTime().toLocalTime());
                     return new RuntimeException("No available time slot found for the requested time");
                 });

@@ -46,6 +46,18 @@ public class BookingServiceImpl implements BookingService {
     private final BookingNotificationService bookingNotificationService;
     private final ModelMapper modelMapper;
 
+    /**
+     * WORKFLOW STEP 1: Tạo booking mới cho customer
+     * 
+     * Frontend: SWP391_FE/src/pages/User/STITesting/index.jsx
+     * - Customer chọn service và timeslot, submit form
+     * - API gọi method này để tạo booking với status PENDING
+     * - Validate timeslot availability và user permissions
+     * - Tự động trigger WebSocket notification cho customer tracking
+     * 
+     * @param bookingRequestDTO Chứa serviceId, timeSlotId, customerNotes
+     * @return BookingResponseDTO với bookingId và status PENDING
+     */
     @Override
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO bookingRequestDTO) {
@@ -82,6 +94,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setIsDeleted(false);
         booking.setCreatedAt(LocalDateTime.now());
         booking.setUpdatedAt(LocalDateTime.now());
+        
         // Increment booked count in time slot
         timeSlot.incrementBookedCount();
         timeSlotRepository.save(timeSlot);
@@ -171,6 +184,18 @@ public class BookingServiceImpl implements BookingService {
         return convertToDto(savedBooking);
     }
 
+    /**
+     * WORKFLOW STEP 5: Lấy booking chi tiết cho customer (bao gồm kết quả)
+     * 
+     * Frontend: SWP391_FE/src/components/TestResultModal.jsx
+     * - Customer click "Xem kết quả" từ notification hoặc booking list
+     * - Method này trả về đầy đủ thông tin booking và kết quả
+     * - Bao gồm doctorName từ SampleCollectionProfile
+     * - Customer chỉ có thể xem booking của chính mình
+     * 
+     * @param bookingId ID của booking cần xem
+     * @return BookingResponseDTO với đầy đủ thông tin kết quả và doctorName
+     */
     @Override
     public BookingResponseDTO getBookingByIdForUser(Integer bookingId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -226,13 +251,25 @@ public class BookingServiceImpl implements BookingService {
         return convertToDto(updatedBooking);
     }
 
+    /**
+     * WORKFLOW STEP 4: Staff cập nhật kết quả xét nghiệm
+     * 
+     * Frontend: SWP391_FE/src/components/staff/TestResultForm.jsx
+     * - Staff nhập kết quả xét nghiệm chi tiết
+     * - Tự động chuyển status từ SAMPLE_COLLECTED → COMPLETED
+     * - Lưu kết quả, resultType, notes, resultDate vào database
+     * - Trigger WebSocket notification đến customer tracking page
+     * - Customer nhận được real-time update và có thể xem kết quả ngay
+     * 
+     * @param bookingId ID của booking cần cập nhật kết quả
+     * @param resultRequest Chứa result, resultType, notes, resultDate
+     * @return BookingResponseDTO với status COMPLETED và kết quả
+     */
     @Override
     @Transactional
     public BookingResponseDTO updateTestResult(Integer bookingId, UpdateTestResultRequestDTO resultRequest) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ServiceNotFoundException("Booking not found with ID: " + bookingId));
-
-
 
         String previousStatus = booking.getStatus();
 
@@ -510,28 +547,32 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
+    /**
+     * Convert Booking entity sang BookingResponseDTO với đầy đủ thông tin
+     * 
+     * Frontend: SWP391_FE/src/components/TestResultModal.jsx
+     * - Method này map tất cả thông tin từ entity sang DTO
+     * - Bao gồm doctorName từ SampleCollectionProfile
+     * - Priority: result.doctorName > sampleCollectionProfile.doctorName > fallback
+     * - Customer có thể hiển thị tên bác sĩ trong kết quả
+     * 
+     * @param booking Booking entity cần convert
+     * @return BookingResponseDTO với đầy đủ thông tin
+     */
     private BookingResponseDTO convertToDto(Booking booking) {
         BookingResponseDTO dto = new BookingResponseDTO();
-        
-        // Manual mapping để tránh ModelMapper errors
         dto.setBookingId(booking.getId());
-        dto.setCustomerId(booking.getCustomerID().getId());
         dto.setCustomerFullName(booking.getCustomerID().getFullName());
-        dto.setCustomerEmailAddress(booking.getCustomerID().getEmail());
-        dto.setCustomerPhone(booking.getCustomerID().getPhoneNumber());
-        dto.setServiceId(booking.getService().getId());
         dto.setServiceName(booking.getService().getServiceName());
-        dto.setServiceDescription(booking.getService().getDescription());
-        dto.setServicePrice(booking.getService().getPrice());
         dto.setStatus(booking.getStatus());
+        dto.setBookingDate(booking.getBookingDate());
+        dto.setDescription(booking.getDescription());
         dto.setResult(booking.getResult());
         dto.setResultDate(booking.getResultDate());
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setUpdatedAt(booking.getUpdatedAt());
-        dto.setDescription(booking.getDescription());
-        dto.setBookingDate(booking.getBookingDate());
-        
-        // Time slot mapping with null check
+
+        // Map time slot information
         if (booking.getTimeSlot() != null) {
             dto.setTimeSlotId(booking.getTimeSlot().getTimeSlotID());
             dto.setSlotDate(booking.getTimeSlot().getSlotDate());
@@ -540,15 +581,30 @@ public class BookingServiceImpl implements BookingService {
             dto.setSlotType(booking.getTimeSlot().getSlotType());
         }
 
-        // Sample collection profile mapping
+        // WORKFLOW: Map SampleCollectionProfile với doctorName
         if (booking.getSampleCollectionProfile() != null) {
             dto.setSampleCollectionProfile(convertSampleCollectionToDto(booking.getSampleCollectionProfile()));
+            // Set direct doctorName field for easier access in frontend
+            dto.setDoctorName(booking.getSampleCollectionProfile().getDoctorName());
         }
 
         return dto;
     }
 
-    // Sample Collection Methods Implementation
+    /**
+     * WORKFLOW STEP 3: Staff lấy mẫu xét nghiệm và nhập tên bác sĩ phụ trách
+     * 
+     * Frontend: SWP391_FE/src/components/staff/SampleCollectionForm.jsx
+     * - Staff điền thông tin người lấy mẫu và tên bác sĩ phụ trách
+     * - Tạo SampleCollectionProfile với doctorName field
+     * - Chuyển status từ CONFIRMED → SAMPLE_COLLECTED
+     * - Trigger WebSocket notification: CONFIRMED → SAMPLE_COLLECTED
+     * - Customer nhận được real-time update về việc đã lấy mẫu
+     * 
+     * @param bookingId ID của booking cần lấy mẫu
+     * @param sampleCollectionRequest Chứa thông tin người lấy mẫu và doctorName
+     * @return BookingResponseDTO với status SAMPLE_COLLECTED và SampleCollectionProfile
+     */
     @Override
     @Transactional
     public BookingResponseDTO collectSample(Integer bookingId, SampleCollectionRequestDTO sampleCollectionRequest) {
@@ -580,12 +636,14 @@ public class BookingServiceImpl implements BookingService {
         profile.setSampleCollectionDate(sampleCollectionRequest.getSampleCollectionDate());
         profile.setCollectedBy(currentStaffName);
         profile.setNotes(sampleCollectionRequest.getNotes());
+        // WORKFLOW: Lưu tên bác sĩ phụ trách vào SampleCollectionProfile
+        profile.setDoctorName(sampleCollectionRequest.getDoctorName());
         profile.setIsDeleted(false);
 
-        // Save profile
+        // Save profile to database
         SampleCollectionProfile savedProfile = sampleCollectionProfileRepository.save(profile);
 
-        // Update booking status to SAMPLE_COLLECTED
+        // WORKFLOW: Update booking status để trigger WebSocket notification
         String previousStatus = booking.getStatus();
         booking.setStatus("SAMPLE_COLLECTED");
         booking.setUpdatedAt(LocalDateTime.now());
@@ -593,7 +651,7 @@ public class BookingServiceImpl implements BookingService {
 
         Booking updatedBooking = bookingRepository.save(booking);
 
-        // Send notification
+        // WORKFLOW: Send WebSocket notification to customer tracking page
         bookingNotificationService.notifyBookingStatusChange(updatedBooking, "SAMPLE_COLLECTED", previousStatus, currentStaffName);
 
         return convertToDto(updatedBooking);
@@ -635,6 +693,7 @@ public class BookingServiceImpl implements BookingService {
         profile.setRelationshipToBooker(sampleCollectionRequest.getRelationshipToBooker());
         profile.setSampleCollectionDate(sampleCollectionRequest.getSampleCollectionDate());
         profile.setNotes(sampleCollectionRequest.getNotes());
+        profile.setDoctorName(sampleCollectionRequest.getDoctorName());
         profile.setUpdatedAt(LocalDateTime.now());
 
         sampleCollectionProfileRepository.save(profile);
@@ -666,6 +725,8 @@ public class BookingServiceImpl implements BookingService {
         dto.setSampleCollectionDate(profile.getSampleCollectionDate());
         dto.setCollectedBy(profile.getCollectedBy());
         dto.setNotes(profile.getNotes());
+        // WORKFLOW: Map doctorName từ SampleCollectionProfile để hiển thị trong TestResultModal
+        dto.setDoctorName(profile.getDoctorName());
         dto.setCreatedAt(profile.getCreatedAt());
         dto.setUpdatedAt(profile.getUpdatedAt());
 

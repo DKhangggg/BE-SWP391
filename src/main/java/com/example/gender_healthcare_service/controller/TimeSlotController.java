@@ -63,12 +63,16 @@ public class TimeSlotController {
     // Get available time slots by service and location
     @GetMapping("/available")
     public ResponseEntity<ApiResponse<List<TimeSlotResponseDTO>>> getAvailableTimeSlotsByConsultant(
-            @RequestParam Integer consultantId,
+            @RequestParam(required = false) Integer consultantId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         try {
-            List<TimeSlotResponseDTO> slots = timeSlotService.getAvailableTimeSlotsByConsultant(consultantId, fromDate, toDate);
-            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch trống theo tư vấn viên thành công", slots));
+            // Cả booking và consultation đều tìm facility timeslot (consultant IS NULL) ban đầu
+            // Chỉ khác nhau ở cách xử lý khi book:
+            // - Booking: giữ nguyên consultantId = null, tăng bookedCount
+            // - Consultation: gán consultantId vào timeslot, tăng bookedCount
+            List<TimeSlotResponseDTO> slots = timeSlotService.getAvailableFacilityTimeSlotsByDateRange(fromDate, toDate);
+            return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lịch trống thành công", slots));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Lỗi khi lấy danh sách lịch trống: " + e.getMessage()));
@@ -150,4 +154,24 @@ public class TimeSlotController {
                     .body(ApiResponse.error("Lỗi khi lấy danh sách lịch trống: " + e.getMessage()));
         }
     }
-} 
+
+    // Quick create facility time slots for testing
+    @PostMapping("/quick-create-facility")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<ApiResponse<String>> quickCreateFacilityTimeSlots() {
+        try {
+            LocalDate startDate = LocalDate.now();
+            int days = 30;
+            String slotType = "FACILITY";
+            Integer capacity = 5;
+            String description = "Slot lấy mẫu xét nghiệm tại cơ sở";
+            Integer duration = 120;
+
+            timeSlotService.autoCreateTimeSlots(startDate, days, slotType, capacity, description, duration);
+            return ResponseEntity.ok(ApiResponse.success("Tạo lịch trống facility thành công cho 30 ngày tới", null));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Lỗi khi tạo lịch trống facility: " + e.getMessage()));
+        }
+    }
+}

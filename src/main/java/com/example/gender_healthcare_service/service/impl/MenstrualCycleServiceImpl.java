@@ -769,7 +769,7 @@ public class MenstrualCycleServiceImpl implements MenstrualCycleService {
                 return new PhaseInfoDTO(
                     "OVULATION",
                     "⭐",
-                    "#4fc3f7",
+                    "#568392",
                     "Ngày rụng trứng - trứng được giải phóng từ buồng trứng, khả năng thụ thai cao nhất.",
                     "Rụng trứng"
                 );
